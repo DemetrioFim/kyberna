@@ -11,6 +11,7 @@ services:
       - mongo_data:/data/db
     networks:
       - data-network
+  
   minio:
     image: minio/minio:latest
     container_name: minio
@@ -24,3 +25,25 @@ services:
       - minio_data:/data
     networks:
       - data-network
+  
+  spark-jupyter:
+    image: quay.io/jupyter/pyspark-notebook:spark-4.0.1
+    container_name: spark-jupyter
+    ports:
+      - "8888:8888" # Porta do Jupyter Lab
+      - "4040:4040" # Porta do Spark UI (para ver os jobs)
+    volumes:
+      - ./notebooks:/home/jovyan/work # Mapeia sua pasta local de notebooks
+    environment:
+      # Configura o Spark para baixar os JARs corretos
+      - SPARK_OPTS=--packages io.delta:delta-core_2.12:2.4.0,org.mongodb.spark:mongo-spark-connector_2.12:10.2.0,org.apache.hadoop:hadoop-aws:3.3.4
+    networks:
+      - data-network
+
+volumes:
+  mongo_data:
+  minio_data:
+
+networks:
+  data-network:
+    driver: bridge
