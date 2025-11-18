@@ -27,7 +27,7 @@ services:
       - data-network
   
   spark-jupyter:
-    image: quay.io/jupyter/pyspark-notebook:spark-4.0.1
+    build: ./containers-docker/nb-spark
     container_name: spark-jupyter
     ports:
       - "8888:8888" # Porta do Jupyter Lab
