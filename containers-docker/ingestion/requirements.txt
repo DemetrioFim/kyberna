@@ -1,0 +1,5 @@
+pandas
+sodapy
+pymongo
+requests
+python-dotenv

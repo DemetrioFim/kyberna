@@ -26,16 +26,34 @@ services:
     networks:
       - data-network
   
+  ingestion:
+    build: ./containers-docker/ingestion
+    container_name: ingestion
+    depends_on:
+    - mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - MONGO_HOST=mongodb
+      - SOCRATA_APP_TOKEN=${SOCRATA_APP_TOKEN}
+      - SOCRATA_APP_USER=${SOCRATA_APP_USER}
+      - SOCRATA_APP_PWD=${SOCRATA_APP_PWD}
+    networks:
+      - data-network
+    command: tail -f /dev/null # Remove when up to cloud
+
   spark-jupyter:
     build: ./containers-docker/nb-spark
     container_name: spark-jupyter
+    depends_on:
+      - mongodb
+      - minio
     ports:
-      - "8888:8888" # Porta do Jupyter Lab
-      - "4040:4040" # Porta do Spark UI (para ver os jobs)
+      - "8888:8888" 
+      - "4040:4040" 
     volumes:
-      - ./notebooks:/home/jovyan/work # Mapeia sua pasta local de notebooks
+      - ./notebooks:/home/jovyan/work
     environment:
-      # Configura o Spark para baixar os JARs corretos
       - SPARK_OPTS=--packages io.delta:delta-core_2.12:2.4.0,org.mongodb.spark:mongo-spark-connector_2.12:10.2.0,org.apache.hadoop:hadoop-aws:3.3.4
     networks:
       - data-network
