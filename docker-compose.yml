@@ -11,7 +11,7 @@ services:
       - mongo_data:/data/db
     networks:
       - data-network
-  
+
   minio:
     image: minio/minio:latest
     container_name: minio
@@ -25,12 +25,12 @@ services:
       - minio_data:/data
     networks:
       - data-network
-  
+
   ingestion:
     build: ./containers-docker/ingestion
     container_name: ingestion
     depends_on:
-    - mongodb
+      - mongodb
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
@@ -49,8 +49,8 @@ services:
       - mongodb
       - minio
     ports:
-      - "8888:8888" 
-      - "4040:4040" 
+      - "8888:8888"
+      - "4040:4040"
     volumes:
       - ./notebooks:/home/jovyan/work
     environment:
@@ -58,9 +58,96 @@ services:
     networks:
       - data-network
 
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-airflow}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-airflow}
+      - POSTGRES_DB=${POSTGRES_DB:-airflow}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - data-network
+
+  airflow-webserver:
+    build: ./containers-docker/airflow
+    container_name: airflow-webserver
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    environment:
+      - AIRFLOW_HOME=/opt/airflow
+      - AIRFLOW_UID=50000
+      - AIRFLOW_GID=0
+      - AIRFLOW_DATABASE_HOST=postgres
+      - AIRFLOW_DATABASE_PORT=5432
+      - AIRFLOW_DATABASE_USER=${POSTGRES_USER:-airflow}
+      - AIRFLOW_DATABASE_PASSWORD=${POSTGRES_PASSWORD:-airflow}
+      - AIRFLOW_DATABASE_DB=${POSTGRES_DB:-airflow}
+      - AIRFLOW_WEBSERVER_PORT=8080
+      - AIRFLOW_WEBSERVER_HOST=0.0.0.0
+      - AIRFLOW_EXECUTOR=LocalExecutor
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    networks:
+      - data-network
+    command: webserver
+
+  airflow-scheduler:
+    build: ./containers-docker/airflow
+    container_name: airflow-scheduler
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW_HOME=/opt/airflow
+      - AIRFLOW_UID=50000
+      - AIRFLOW_GID=0
+      - AIRFLOW_DATABASE_HOST=postgres
+      - AIRFLOW_DATABASE_PORT=5432
+      - AIRFLOW_DATABASE_USER=${POSTGRES_USER:-airflow}
+      - AIRFLOW_DATABASE_PASSWORD=${POSTGRES_PASSWORD:-airflow}
+      - AIRFLOW_DATABASE_DB=${POSTGRES_DB:-airflow}
+      - AIRFLOW_EXECUTOR=LocalExecutor
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    networks:
+      - data-network
+    command: scheduler
+
+  airflow-init:
+    build: ./containers-docker/airflow
+    container_name: airflow-init
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW_HOME=/opt/airflow
+      - AIRFLOW_UID=50000
+      - AIRFLOW_GID=0
+      - AIRFLOW_DATABASE_HOST=postgres
+      - AIRFLOW_DATABASE_PORT=5432
+      - AIRFLOW_DATABASE_USER=${POSTGRES_USER:-airflow}
+      - AIRFLOW_DATABASE_PASSWORD=${POSTGRES_PASSWORD:-airflow}
+      - AIRFLOW_DATABASE_DB=${POSTGRES_DB:-airflow}
+      - AIRFLOW_EXECUTOR=LocalExecutor
+    networks:
+      - data-network
+    command: bash -c "airflow db init && airflow users create --username admin --password admin --firstname admin --lastname admin --role Admin --email admin@example.com"
+
 volumes:
   mongo_data:
   minio_data:
+  postgres_data:
+
 
 networks:
   data-network:
