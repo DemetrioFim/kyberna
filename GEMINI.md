@@ -26,20 +26,20 @@ Siga este protocolo em **toda** solicitação de implementação:
 
 1. **Contextualizar antes de codar.**
    - Leia `VISION.md` (seção relevante) e `TASKS.md` antes de qualquer implementação.
-   - Identifique o ID da tarefa (ex.: `DE-09`), suas **dependências** e seu **Critério de Pronto (DoD)**.
+   - Identifique o Marco (`M1`..`M7`) e o ID da tarefa (`<Marco>-<Pilar><Nº>`, ex.: `M1-I2`, `M2-D4`), suas **dependências** e seu **Critério de Pronto (DoD)**.
    - Se uma dependência não estiver `[x]`, avise o usuário e proponha implementá-la primeiro (ou um *stub* explícito e marcado com `# TODO(<ID>)`).
-2. **Uma tarefa por vez, na trilha solicitada.**
-   - Implemente **apenas** a tarefa pedida, respeitando a trilha (`[INFRA]`, `[DE]`, `[DS]`, `[DATAVIZ]`).
-   - Não "aproveite para refatorar" arquivos de outras trilhas sem pedir. Se notar um problema fora do escopo, registre-o na seção *Achados* do `TASKS.md`.
-3. **Testar via terminal antes de declarar concluído.**
-   - Rode no mínimo: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest -q` (ou o subconjunto relevante: `uv run pytest tests/<trilha> -q`).
-   - Para tarefas de pipeline, execute o comando CLI correspondente (ex.: `uv run kyberna silver build --sample`) e mostre evidência (contagem de linhas, schema, tempo).
+2. **Uma tarefa (ou fatia solicitada do Marco) por vez, respeitando os 4 Pilares.**
+   - Os 4 pilares dentro de cada Marco são: 🏗️ Infraestrutura (`I`), 🗄️ Engenharia de Dados & Finanças (`D`), 🧠 Ciência de Dados & Prescrição (`S`) e 🎨 Interface & Visualização (`V`).
+   - Não "aproveite para refatorar" arquivos fora do escopo sem pedir. Se notar um problema fora do escopo, registre-o na seção *Achados* do `TASKS.md`.
+3. **Testar via terminal e validar entre pilares antes de declarar concluído.**
+   - Rode no mínimo: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest -q` (ou o subconjunto relevante: `uv run pytest tests/<pilar> -q`).
+   - Para tarefas de pipeline, execute o comando CLI correspondente (ex.: `uv run kyberna silver build --sample`) e mostre evidência (contagem de linhas, schema no `kyberna.duckdb`, tempo).
    - Para tarefas de UI, suba o app (`uv run streamlit run src/ui/app.py`) e/ou rode `uv run pytest tests/ui -q` (AppTest). Quando houver browser disponível, valide visualmente.
    - **Nunca** declare uma tarefa concluída com testes falhando ou não executados. Se algo não puder ser testado no ambiente, diga explicitamente o que ficou sem validação.
 4. **Atualizar o `TASKS.md` ao finalizar.**
-   - Troque `[ ]` por `[x]` na tarefa concluída.
-   - Se concluída parcialmente, use `[~]` e descreva o que falta na linha *Notas*.
-   - Adicione uma linha curta em *Registro de Execução* (data, ID, resumo, comando de validação).
+   - Troque `[ ]` por `[x]` na tarefa concluída (e atualize o status do Marco no topo quando todas as tarefas do Marco forem concluídas).
+   - Se concluída parcialmente, use `[~]` e descreva o que falta.
+   - Adicione um bullet no *Registro Histórico de Mudanças (Changelog)* ao final do `TASKS.md` (data, ID, resumo e validação).
 5. **Reportar de forma concisa:** o que foi feito, arquivos alterados (com links), como validar, riscos/pendências.
 
 > [!IMPORTANT]
