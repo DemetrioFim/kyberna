@@ -57,7 +57,7 @@ flowchart LR
   - *Arquivos:* `src/core/settings.py`, `src/core/paths.py`, `src/core/types.py` (`ScenarioId`, `GoldTable` como `Literal`), `config/pipeline.yaml`, `.env.example`, `tests/infra/test_settings.py`.
   - *Depende de:* `M1-I1`
   - *DoD:* testes cobrem leitura por env var, defaults e validação de valores inválidos; `mypy` sem erros; nenhum segredo real versionado.
-- [ ] **M1-I4** *(INFRA-04)* — **CLI `kyberna` (Typer) e logging estruturado**: CLI com grupos `ingest`, `bronze`, `silver`, `gold`, `ml`, `audit`, `load`, `pipeline`, `fixture` (comandos inicialmente *stubs* que levantam `NotImplementedError` com o ID da tarefa responsável). Logging: formato humano (rich) em `dev`, JSON em `ci/prod`; decorator/context manager `timed_step(name)` que loga duração e contagem de linhas.
+- [x] **M1-I4** *(INFRA-04)* — **CLI `kyberna` (Typer) e logging estruturado**: CLI com grupos `ingest`, `bronze`, `silver`, `gold`, `ml`, `audit`, `load`, `pipeline`, `fixture` (comandos inicialmente *stubs* que levantam `NotImplementedError` com o ID da tarefa responsável). Logging: formato humano (rich) em `dev`, JSON em `ci/prod`; decorator/context manager `timed_step(name)` que loga duração e contagem de linhas.
   - *Arquivos:* `src/cli.py`, `src/core/logging.py`, `pyproject.toml` (`[project.scripts] kyberna = "src.cli:app"`), `tests/infra/test_cli.py`.
   - *Depende de:* `M1-I2`, `M1-I3`
   - *DoD:* `uv run kyberna --help` lista todos os grupos; `typer.testing.CliRunner` valida exit code 0 para `--help` de cada grupo.
@@ -347,6 +347,7 @@ flowchart LR
 ## 📝 Registro Histórico de Mudanças (Changelog)
 
 - **v0.1.0-dev** *(Em andamento — Fundação, Arquitetura Híbrida DuckDB + Pandas e Bootstrap)*:
+  - **[2026-10-29] `M1-I4` (`INFRA-04`) Concluída**: Implementação da CLI `kyberna` via Typer com os 9 grupos de comandos (`ingest`, `fixture`, `bronze`, `silver`, `gold`, `ml`, `audit`, `load`, `pipeline`), suporte a `--version`, stubs explícitos apontando para os IDs das tarefas responsáveis, sistema de logging estruturado duplo (Rich em dev e JSON em CI/prod) e utilitário `timed_step` (context manager e decorator) com testes unitários em `tests/infra/`.
   - **[2026-10-29] `M1-I3` (`INFRA-03`) Concluída**: Implementação das configurações tipadas `Settings` com Pydantic v2 / `pydantic-settings` (prefixo `KYBERNA_`), funções centrais de localização de artefatos em `paths.py`, tipos literais canônicos (`types.py`), arquivo `config/pipeline.yaml` (janela Socrata 2023-2024, seeds determinísticas e thresholds de negócio), `.env.example` e suíte de testes unitários com cobertura completa.
   - **[2026-10-29] `M1-I2` (`INFRA-02`) Concluída**: Configuração e validação das ferramentas de qualidade `ruff` (lint + format), `mypy` (modo strict com pydantic plugin), `pytest` (com fixture de lake temporário e `tests/test_smoke.py`) e `pre-commit` (hooks de git, ruff, validação de arquivos grandes e segredos).
   - **[2026-10-29] Reestruturação do `TASKS.md` em Marcos Verticais (`M1` a `M7`) e 4 Pilares Integrados (`I`, `D`, `S`, `V`)**: Adoção do fluxo modular inspirado em `Colonia/TASKS.md`, garantindo que cada marco entregue uma fatia funcional com validação cruzada imediata entre Infraestrutura, Engenharia de Dados, Ciência de Dados e Interface.
