@@ -65,6 +65,14 @@ packages = ["src"]
 [tool.ruff]
 line-length = 110
 target-version = "py311"
+extend-exclude = [
+    "notebooks",
+    "data",
+    "models",
+    "docs",
+    "*.md",
+]
+
 
 [tool.ruff.lint]
 select = [
@@ -82,6 +90,14 @@ ignore = [
     "PLR0913", # Too many arguments in function definition
     "PLR2004", # Magic value used in comparison
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "PLC0415", # Allow imports in tests functions if needed
+    "PLR2004", # Magic value used in comparison
+    "S101",    # Use of assert
+]
+
 
 [tool.mypy]
 python_version = "3.11"
@@ -114,3 +130,15 @@ filterwarnings = [
     "ignore::DeprecationWarning",
 ]
 
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+show_missing = true

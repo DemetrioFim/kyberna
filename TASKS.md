@@ -49,7 +49,7 @@ flowchart LR
   - *Arquivos:* `pyproject.toml`, `uv.lock`, `.python-version`, `.gitignore`, `.dockerignore`, `.editorconfig`, `README.md`, `src/**/__init__.py`, `data/*/.gitkeep`.
   - *Depende de:* —
   - *DoD:* `uv sync --all-extras` conclui sem erro; `uv run python -c "import src, duckdb, pandas, pyarrow, streamlit"` retorna 0; `git status` não lista nada de `data/` além de `reference/` e `.gitkeep`.
-- [ ] **M1-I2** *(INFRA-02)* — **Qualidade de código (`ruff`, `mypy`, `pytest`, `pre-commit`)**: Configurar `ruff` (lint + format, `line-length=110`, regras `E,F,I,B,UP,SIM,PL,NPY,RUF`), `mypy --strict` com plugin pydantic, `pytest` (`testpaths=tests`, markers `slow`, `azure`, `ui`), cobertura com `pytest-cov` e `pre-commit` com ruff + checagens básicas (trailing whitespace, large files > 1 MB, detect-private-key).
+- [x] **M1-I2** *(INFRA-02)* — **Qualidade de código (`ruff`, `mypy`, `pytest`, `pre-commit`)**: Configurar `ruff` (lint + format, `line-length=110`, regras `E,F,I,B,UP,SIM,PL,NPY,RUF`), `mypy --strict` com plugin pydantic, `pytest` (`testpaths=tests`, markers `slow`, `azure`, `ui`), cobertura com `pytest-cov` e `pre-commit` com ruff + checagens básicas (trailing whitespace, large files > 1 MB, detect-private-key).
   - *Arquivos:* `pyproject.toml` (seções `[tool.*]`), `.pre-commit-config.yaml`, `tests/conftest.py`, `tests/test_smoke.py`.
   - *Depende de:* `M1-I1`
   - *DoD:* `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src` e `uv run pytest -q` passam; `uv run pre-commit run --all-files` passa.
@@ -347,6 +347,7 @@ flowchart LR
 ## 📝 Registro Histórico de Mudanças (Changelog)
 
 - **v0.1.0-dev** *(Em andamento — Fundação, Arquitetura Híbrida DuckDB + Pandas e Bootstrap)*:
+  - **[2026-10-29] `M1-I2` (`INFRA-02`) Concluída**: Configuração e validação das ferramentas de qualidade `ruff` (lint + format), `mypy` (modo strict com pydantic plugin), `pytest` (com fixture de lake temporário e `tests/test_smoke.py`) e `pre-commit` (hooks de git, ruff, validação de arquivos grandes e segredos).
   - **[2026-10-29] Reestruturação do `TASKS.md` em Marcos Verticais (`M1` a `M7`) e 4 Pilares Integrados (`I`, `D`, `S`, `V`)**: Adoção do fluxo modular inspirado em `Colonia/TASKS.md`, garantindo que cada marco entregue uma fatia funcional com validação cruzada imediata entre Infraestrutura, Engenharia de Dados, Ciência de Dados e Interface.
   - **[2026-10-29] `M1-I1` (`INFRA-01`) Concluída**: Instalação do `uv` (v0.13.6) e Python 3.11.18 hermético; criação do `pyproject.toml`, `.gitignore`, `.dockerignore`, `.editorconfig`, `README.md` e árvore de diretórios completa; preservação do histórico anterior na branch `archive/spark-airflow-setup` e instalação validada dos 113 pacotes no `.venv`.
   - **[2026-10-29] Definição da Arquitetura de ETL Auditável (Opção 4)**: Substituição de Polars/Delta por **DuckDB SQL** (ETL e Waterfall financeiro salvos em `data/kyberna.duckdb` para inspeção direta via DBeaver / `duckdb -ui`) + **Pandas 2.x** (`Faker`, ML e Services) + gerador de planilha Excel de conciliação (`uv run kyberna audit`).
