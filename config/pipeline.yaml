@@ -1,0 +1,41 @@
+# ==============================================================================
+# Kyberna — Parâmetros Globais do Pipeline de Dados e Algoritmos
+# ==============================================================================
+
+pipeline:
+  version: "1.0.0"
+
+# Reprodutibilidade e sementes pseudo-aleatórias determinísticas
+seeds:
+  faker: 42
+  sampling: 42
+  train_test_split: 42
+
+# Janela histórica padrão da ingestão da base pública Iowa Liquor Sales
+ingestion:
+  socrata_domain: "data.iowa.gov"
+  socrata_dataset_id: "m3tr-qhgy"
+  start_date: "2023-01-01"
+  end_date: "2024-12-31"
+  page_size: 50000
+  sample_rows_limit: 10000
+
+# Parâmetros analíticos e regras de negócio
+thresholds:
+  # Classificação Curva ABC (Receita Bruta Acumulada)
+  abc_a_cutoff: 0.80   # Top 80% da receita -> Classe A
+  abc_b_cutoff: 0.95   # 80% a 95% -> Classe B; > 95% -> Classe C
+
+  # Classificação Volatilidade XYZ (Coeficiente de Variação - CV)
+  xyz_x_cutoff: 0.50   # CV <= 0.50 -> Alta previsibilidade (X)
+  xyz_y_cutoff: 1.00   # 0.50 < CV <= 1.00 -> Previsibilidade moderada (Y); > 1.00 -> Errada/Esporádica (Z)
+
+  # Critérios de Risco de Churn e Inatividade
+  churn_inactivity_days: 120    # Clientes sem compra há mais de 120 dias
+
+  # Análise de Estoque e Capital de Giro
+  excess_inventory_days: 120    # Estoque parado acima de 120 dias de cobertura
+  min_stock_coverage_days: 15   # Nível de alerta de ruptura (dias de venda média)
+
+  # Janela de Previsão de Demanda
+  forecast_horizon_days: 30     # Horizonte padrão de previsão estatística
