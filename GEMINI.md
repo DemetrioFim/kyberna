@@ -281,25 +281,29 @@ for i, row in df.iterrows(): ...
 - Estado global tipado em `src/ui/state.py` (cenário ativo, período, filtros); nada de chaves mágicas espalhadas em `st.session_state`.
 - Todos os rótulos de negócio vêm do `ScenarioConfig.labels` (ex.: "Lojista" no C1, "PDV" no C2, "Filial" no C3, "Cliente do Clube" no C4).
 - Todo widget interativo tem `key` única e descritiva (`key="sim_price_change_pct"`) para testes.
-- Gráficos sempre com `template="kyberna"` (registrado em `src/ui/theme.py`) e `use_container_width=True`/largura responsiva.
+- Gráficos sempre com `template="kyberna_light"` ou `template="kyberna_dark"` (conforme tema ativo registrado em `src/ui/theme.py`) e `use_container_width=True`/largura responsiva.
 - Formatação brasileira: `R$ 1.234.567,89`, `12,3%`, datas `dd/mm/aaaa` via `src/ui/formatting.py`.
 
-### 5.6 Identidade visual Kyberna
+### 5.6 Identidade visual Kyberna (Light Mode ☀️ & Dark Mode 🌙)
 
-| Token             | Valor                  | Uso                               |
-| ----------------- | ---------------------- | --------------------------------- |
-| `navy_900`      | `#0B1F33`            | Fundo de sidebar, títulos        |
-| `navy_700`      | `#16324F`            | Superfícies escuras, cabeçalhos |
-| `teal_500`      | `#1F7A8C`            | Cor primária, séries principais |
-| `teal_300`      | `#5FB3C4`            | Séries secundárias              |
-| `brass_500`     | `#C9A227`            | Destaque / prescrição / CTA     |
-| `positive`      | `#2E9E6A`            | Ganho de margem, saudável        |
-| `negative`      | `#D1495B`            | Perda, risco, ruptura             |
-| `warning`       | `#E59F3A`            | Atenção, excesso de estoque     |
-| `gray_100…900` | `#F4F6F8 … #1E2329` | Fundos, grades, texto             |
+A interface suporta alternância dinâmica entre **Light Mode** (executivo/projetor) e **Dark Mode** (cockpit/monitores) via seletor na sidebar e variáveis CSS:
+
+| Token             | Light Mode ☀️         | Dark Mode 🌙          | Uso                               |
+| ----------------- | ---------------------- | ---------------------- | --------------------------------- |
+| `bg_primary`      | `#F8FAFC`            | `#0D1117`            | Fundo principal da aplicação      |
+| `surface_card`    | `#FFFFFF`            | `#161B22` / `#1C2128` | Superfícies de cards e containers |
+| `border_subtle`   | `#E2E8F0`            | `#21262D`            | Bordas e divisores de seção       |
+| `text_primary`    | `#0F172A` (Navy)      | `#E6EDF3`            | Títulos, KPIs e números           |
+| `text_muted`      | `#475569`            | `#8B949E`            | Subtítulos, rótulos e eixos       |
+| `teal_500`        | `#1F7A8C`            | `#58A6FF`            | Cor primária, séries principais   |
+| `brass_500`       | `#C9A227`            | `#D29922`            | Destaque / prescrição / CTA       |
+| `positive`        | `#2E9E6A`            | `#3FB950`            | Ganho de margem, saudável         |
+| `negative`        | `#D1495B`            | `#F85149`            | Perda, risco, ruptura             |
+| `warning`         | `#E59F3A`            | `#D29922`            | Atenção, excesso de estoque       |
 
 - Tipografia: **Inter** (UI e números tabulares). Visual sóbrio, executivo, alto contraste, sem 3D, sem pizza com > 4 fatias.
 - Cada tela termina com um **bloco de Prescrição** (borda `brass_500`) contendo a ação recomendada e o impacto em R$.
+- Autenticação da UI configurável via `KYBERNA_AUTH_MODE` (`none` para dev local, `entra_id` corporativo e `demo_password` para links externos com trava contra força bruta após 5 tentativas).
 
 ### 5.7 Testes
 

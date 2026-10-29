@@ -55,7 +55,7 @@ Sem uma base comum, o Comercial concede desconto e estica prazo de boleto (60/90
 
 ### 3.2 Padrão de Experiência Executiva (Regras de UI para Agentes)
 - **Manchete Executiva Dinâmica (Headline First):** O topo de cada uma das 4 telas deve exibir um banner narrativo gerado dinamicamente pelos dados (ex.: *"Resumo Executivo: A margem líquida caiu 2,4 p.p. no trimestre puxada por descontos na Linha Escolar, mas há R$ 310 mil de oportunidade imediata de recuperação em 64 clientes em risco"*).
-- **Hierarquia Visual Sóbria:** Paleta corporativa Kyberna (tons de azul-marinho profundo, ardósia, verde-esmeralda para ganho de margem, âmbar para atenção e vermelho-coral para risco de churn/ruptura). Proibido visual de "notebook acadêmico".
+- **Hierarquia Visual Sóbria (Light Mode ☀️ e Dark Mode 🌙):** Paleta corporativa Kyberna com suporte a alternância dinâmica entre tema claro executivo (ideal para projetores e apresentações em salas iluminadas) e tema escuro (cockpit para uso diário em monitores), usando azul-marinho profundo, ardósia, verde-esmeralda para ganho de margem, âmbar para atenção e vermelho-coral para risco de churn/ruptura. Proibido visual de "notebook acadêmico".
 - **Contexto Persistente:** Ao trocar o cenário na barra lateral, todos os rótulos de negócio (ex.: "Lojista CNPJ" vs. "PDV" vs. "Filial"; "Caixa Master" vs. "Unidade"; "RCA" vs. "Vendedor") adaptam-se automaticamente.
 
 ### 3.3 Métrica Norte (North Star)
