@@ -139,7 +139,7 @@ Kyberna/
 │   └── scripts/                    # bootstrap_azure.ps1, grant_sql_access.sql
 ├── tests/
 │   ├── conftest.py                 # fixtures: sample sintético, tmp lake, settings de teste
-│   ├── fixtures/                   # iowa_sample.parquet (gerado por DE-02, pequeno)
+│   ├── fixtures/                   # iowa_sample.parquet (gerado por M1-D2, pequeno)
 │   ├── infra/ · etl/ · ml/ · db/ · services/ · ui/
 └── docs/
     ├── runbook_demo.md · data_dictionary.md · model_cards/

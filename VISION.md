@@ -97,22 +97,24 @@ Base pública do Estado de Iowa (EUA), contendo milhões de transações reais d
 > **IMPORTANTE — Âncora Temporal e Sazonalidade B2B (Sell-in):**
 > O pipeline sempre normaliza a data máxima da base para uma `as_of_date` configurável (ex.: data atual da demonstração), garantindo que "últimos 30 dias" e "clientes em risco hoje" estejam sempre vivos. Além disso, no Cenário 1 (Indústria de Brinquedos), a curva sazonal reflete o calendário real do **Sell-in industrial brasileiro** (onde a fábrica fatura para o varejo de 45 a 60 dias antes da data comemorativa: picos de faturamento B2B em Jul/Ago para o Dia das Crianças, Set/Out para o Natal e Nov/Jan para Volta às Aulas).
 
-### 5.3 Fluxo do Pipeline de Dados (Medallion Architecture)
+### 5.3 Fluxo do Pipeline de Dados (Medallion Architecture + Auditoria Aberta)
 
 1. **[Ingestão] Iowa Liquor Sales (API Socrata / Parquet)**
-   `-->` **Camada Bronze:** Dado bruto imutável em Parquet/Delta.
-2. **[Normalização] Camada Silver:**
-   `-->` Modelo canônico limpo + deslocamento para Âncora Temporal (`as_of_date`).
+   `-->` **Camada Bronze:** Dado bruto imutável em Parquet particionado (`year=/month=`) + registrado em `bronze.sales_raw` no catálogo local `data/kyberna.duckdb`.
+2. **[Normalização SQL] Camada Silver:**
+   `-->` Modelo canônico limpo (via SQL no DuckDB) + deslocamento para Âncora Temporal (`as_of_date`) em `silver.sales`.
 3. **[Enriquecimento & Remapeamento] Motor de Cenários (`ScenarioConfig YAML`):**
-   `-->` Cruza Camada Silver + Referências BR (Municípios, UFs, Impostos, Frete) + `Faker pt_BR` (Seed determinística para CNPJs e RCAs).
-   `-->` Gera 4 visões na **Camada Gold**:
+   `-->` Cruza Camada Silver + Referências BR (Municípios, UFs, Impostos, Frete) + `Faker pt_BR` (Pandas determinístico para CNPJs e RCAs em `silver.dim_*`).
+   `-->` Gera 4 visões na **Camada Gold** (`gold.*` no `kyberna.duckdb` + snapshots Parquet):
    - **Gold C1:** Indústria de Brinquedos (B2B Nacional)
    - **Gold C2:** Distribuidora de Bebidas (B2B Regional/Nacional)
    - **Gold C3:** Rede Multi-filial (Varejo Franquias/Filiais)
    - **Gold C4:** PDV Único (Comércio Local)
-4. **[Ciência de Dados] Motor Analítico & ML:**
-   `-->` Calcula RFM, Risco de Churn por ciclo, Matriz White Space, Forecast 30d e Elasticidade de Preço.
-5. **[Serving & UI] Camada de Consumo:**
+4. **[Ciência de Dados] Motor Analítico & ML (Pandas 2.x):**
+   `-->` Calcula ABC/XYZ, RFM, Risco de Churn por ciclo, Matriz White Space, Eficiência de RCAs, Forecast 30d e Elasticidade de Preço.
+5. **[Auditoria & Conciliação Financeira]:**
+   `-->` Catálogo local unificado (`data/kyberna.duckdb`) inspecionável via **DBeaver / DuckDB UI** + comando `uv run kyberna audit` gerando a planilha `data/reports/conciliacao_<cenario>.xlsx` com memória de cálculo aberta pedido a pedido.
+6. **[Serving & UI] Camada de Consumo:**
    `-->` Persiste no **Azure SQL Free Tier** (com fallback automático para **DuckDB + Parquet local**).
    `-->` Alimenta o **App Streamlit Kyberna** com Seletor Global de Cenários.
 
@@ -164,7 +166,7 @@ O usuário alterna o cenário na barra lateral e **toda a aplicação muda de vo
 
 ## 6. Regras de Negócio e Fórmulas Canônicas (Fonte Única da Verdade)
 
-Para garantir consistência matemática absoluta entre o pipeline de dados (`DE`), os modelos (`DS`) e as 4 telas (`DATAVIZ`), todo o código do repositório deve obedecer a estas definições:
+Para garantir consistência matemática absoluta entre os 4 pilares de cada marco — Infraestrutura (`I`), Engenharia de Dados & Finanças (`D`), Ciência de Dados & Prescrição (`S`) e Interface & Visualização (`V`) —, todo o código do repositório deve obedecer a estas definições:
 
 ### 6.1 Waterfall da Margem de Contribuição Líquida (`MC_liq`)
 - `Receita Bruta Tabelada = Quantidade * Preco_Tabela`
@@ -280,15 +282,16 @@ O maior risco de qualquer ferramenta de BI é o cliente parar de abrir o link po
 
 | Camada | Tecnologia | Racional Técnico e Financeiro |
 |---|---|---|
-| **Processamento e ETL** | **Polars + DuckDB** (Python 3.11+, gerenciado via `uv`) | Processamento vetorizado e colunar em memória; roda milhões de linhas em segundos sem exigir cluster Spark. |
-| **Storage / Lakehouse** | **Delta Lake (`deltalake` / Rust) + Parquet** no **Azure Blob / ADLS Gen2** | Arquitetura Medallion (Bronze -> Silver -> Gold) 100% Python sem JVM e com custo de centavos por mês. |
+| **Processamento e ETL** | **DuckDB (SQL) + Pandas 2.x (`pyarrow`)** (Python 3.11+, gerenciado via `uv`) | Transformações pesadas e Waterfall financeiro em SQL explícito e auditável no DuckDB; enriquecimento (`Faker`) e features em Pandas 2.x sem exigir cluster Spark ou Polars/Delta. |
+| **Storage / Catálogo Local** | **Catálogo Unificado `data/kyberna.duckdb` + Parquet** local e no **ADLS Gen2** | Arquitetura Medallion (`bronze`, `silver`, `gold`) 100% inspecionável no DBeaver ou `duckdb -ui` e sincronizável com Azure Blob/ADLS Gen2 a custo de centavos. |
+| **Auditoria e Conciliação** | **Excel (`xlsxwriter` via `kyberna audit`) + DBeaver / DuckDB UI** | Gera `data/reports/conciliacao_<cenario>.xlsx` com DRE resumido e memória de cálculo aberta pedido a pedido para conferência imediata. |
 | **Banco Servido (Gold)** | **Azure SQL Database Free Tier** (Serverless Gen5, 32 GB, auto-pause 1h) | Custo R$ 0,00 dentro dos 100.000 vCore-segundos gratuitos/mês. |
 | **Modo Fallback Local** | **DuckDB lendo Parquet Gold local** | Garante que a demonstração funcione em menos de 1s mesmo offline ou enquanto o Azure SQL Serverless estiver despertando do auto-pause. |
-| **Ciência de Dados e ML** | **StatsForecast (Nixtla), LightGBM, Scikit-Learn** | Modelos leves, ultra-rápidos em CPU e altamente explicáveis. |
+| **Ciência de Dados e ML** | **StatsForecast (Nixtla), LightGBM, Scikit-Learn** (nativos sobre Pandas 2.x) | Modelos leves, ultra-rápidos em CPU, altamente explicáveis e sem conversões desnecessárias de DataFrame. |
 | **Front-end / DataApp** | **Streamlit + Plotly** (arquitetura modular + `@st.cache_data` / `@st.fragment`) | Acabamento executivo, resposta instantânea e facilidade de manutenção por uma equipe enxuta. |
 | **Deploy e Orquestração** | **Docker no Azure Container Apps** (scale-to-zero) + **GitHub Actions** | Hospedagem serverless gratuita quando ociosa e pipelines agendados dentro dos 2.000 min/mês gratuitos do GitHub. |
 
-Detalhes de implementação e padrões de código: ver `GEMINI.md` / `CLAUDE.md` e o plano de execução em `TASKS.md`.
+Detalhes de implementação e padrões de código: ver `GEMINI.md` / `CLAUDE.md` e o plano de execução modular por marcos (`M1` a `M7`) em `TASKS.md`.
 
 ---
 
@@ -314,6 +317,6 @@ Detalhes de implementação e padrões de código: ver `GEMINI.md` / `CLAUDE.md`
 - [ ] **Fluidez de Demo:** Roteiro de 15 minutos navegável nos 4 cenários sem erros ou telas em branco.
 - [ ] **Consistência Matemática:** O valor de Margem de Contribuição Líquida exibido na Tela 1 bate exatamente com a base do Simulador na Tela 4 e com os totais da Tela 2.
 - [ ] **Performance:** Troca de filtros, cenários e sliders do simulador respondendo em menos de 1,5 s (com cache aquecido).
-- [ ] **Reprodutibilidade:** Pipeline de dados e modelos executável ponta a ponta com um único comando CLI (`uv run python -m src.cli build-all`).
+- [ ] **Reprodutibilidade e Auditoria:** Pipeline de dados, modelos e planilha Excel de conciliação executáveis ponta a ponta com a CLI (`uv run kyberna pipeline run --scenario all` e `uv run kyberna audit --scenario c1_toys`).
 - [ ] **Custo Cloud:** Operação mensal na Azure menor ou igual a US$ 1,00.
 - [ ] **Tração Comercial:** Apresentação realizada para o Caso Âncora (Indústria de Brinquedos) e fechamento do primeiro projeto comercial ainda em 2026.
