@@ -1,0 +1,59 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+secrets_*.json
+*.pem
+*.key
+
+# Data directories (only reference/ and .gitkeep are versioned)
+data/raw/*
+!data/raw/.gitkeep
+data/bronze/*
+!data/bronze/.gitkeep
+data/silver/*
+!data/silver/.gitkeep
+data/gold/*
+!data/gold/.gitkeep
+data/reports/*
+!data/reports/.gitkeep
+data/kyberna.duckdb*
+
+# Models artifacts
+models/*
+!models/**/.gitkeep
+
+# Testing & quality caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+Desktop.ini
+
+# Build & packaging
+dist/
+build/
+*.egg-info/
+*.whl
+
+# Streamlit local credentials
+.streamlit/secrets.toml
