@@ -45,7 +45,7 @@ flowchart LR
 
 ## Trilha 1 — `[INFRA]` Infraestrutura, Repositório, Docker, Azure SQL Free Tier & Container Apps
 
-### [ ] INFRA-01 · Bootstrap do repositório `P0` `~2h`
+### [x] INFRA-01 · Bootstrap do repositório `P0` `~2h`
 
 - **Descrição:** Inicializar projeto com `uv` (Python 3.11, `.python-version`), `pyproject.toml` com build `hatchling` empacotando `src`, extras `etl` (httpx, tenacity, faker, pandera, xlsxwriter), `ml` (statsforecast, lightgbm, scikit-learn, joblib), `app` (streamlit, plotly, xlsxwriter), núcleo (duckdb, pandas, pyarrow, numpy, pydantic, pydantic-settings, typer, pyodbc, azure-identity, pyyaml) e grupo `dev` (pytest, pytest-cov, ruff, mypy, pre-commit, types-PyYAML, pandas-stubs). Criar toda a árvore de pastas do §3 do `GEMINI.md` com `__init__.py` e `.gitkeep`; `.gitignore` (data/* exceto `reference/`, `models/`, `.env`, `.venv`), `.dockerignore`, `.editorconfig`, `README.md` (quickstart em PowerShell), `git init`.
 - **Arquivos:** `pyproject.toml`, `uv.lock`, `.python-version`, `.gitignore`, `.dockerignore`, `.editorconfig`, `README.md`, `src/**/__init__.py`, `data/*/.gitkeep`.
@@ -508,3 +508,4 @@ flowchart LR
 | ---------- | -- | --------------------------------------------------------------------------------------------------- | --------------- |
 | 2026-10-24 | — | Criação dos documentos de governança (`VISION.md`, `GEMINI.md`, `CLAUDE.md`, `TASKS.md`) | Revisão manual |
 | 2026-10-29 | — | Atualização da arquitetura de ETL para Opção 4 (DuckDB SQL + Pandas 2.x + Catálogo `.duckdb` + Conciliação Excel `kyberna audit`) em `GEMINI.md`, `CLAUDE.md` e `TASKS.md` | Revisão manual |
+| 2026-10-29 | INFRA-01 | Bootstrap do repositório com uv, Python 3.11, pyproject.toml, estrutura e branch de arquivo | `uv sync --all-extras` & `uv run python -c "import src, duckdb, pandas, pyarrow, streamlit"` |
