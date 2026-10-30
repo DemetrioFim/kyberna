@@ -38,9 +38,9 @@ def test_compute_weekly_time_shift_invariants(max_date: datetime.date, ref_date:
     lower_bound = ref_date - datetime.timedelta(days=6)
     upper_bound = ref_date
 
-    assert lower_bound <= shifted_max <= upper_bound, (
-        f"Data deslocada {shifted_max} fora do intervalo [{lower_bound}, {upper_bound}]"
-    )
+    assert (
+        lower_bound <= shifted_max <= upper_bound
+    ), f"Data deslocada {shifted_max} fora do intervalo [{lower_bound}, {upper_bound}]"
 
     # 3. Invariante: dia da semana preservado
     assert shifted_max.weekday() == max_date.weekday()

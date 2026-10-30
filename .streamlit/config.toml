@@ -1,0 +1,25 @@
+# ==============================================================================
+# Kyberna — Streamlit Configuration
+# ==============================================================================
+
+[theme]
+base = "light"
+primaryColor = "#1F7A8C"
+backgroundColor = "#F8FAFC"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#0F172A"
+font = "sans serif"
+
+[server]
+headless = true
+port = 8501
+enableCORS = true
+enableXsrfProtection = true
+maxUploadSize = 50
+
+[browser]
+gatherUsageStats = false
+
+[runner]
+fastReruns = true
+magicEnabled = false

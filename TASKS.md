@@ -11,9 +11,8 @@ Plataforma B2B de **Decision Intelligence & Prescriptive Analytics** em Python (
 ## 🚀 Status Geral do Desenvolvimento
 
 - **Versão Atual**: `v0.1.0-dev`
-- **Marcos Concluídos**: — *(Em andamento: M1)*
+- **Marcos Concluídos**: M1 (Fundação do Motor, Ingestão, Camada Silver e Tema UI)
 - **Próximos Focos Imediatos**:
-  - **M1**: Fundação do Motor, Qualidade, CLI, Ingestão Base (Bronze/Silver SQL) e Tema Visual (`v0.1.0-dev`)
   - **M2**: Caso Âncora (C1 Brinquedos), Waterfall Financeiro, Auditoria Excel (`kyberna audit`) e Tela 1 Executiva (`v0.2.0-dev`)
 
 ### Estrutura dos Módulos em Cada Marco (4 Pilares Integrados)
@@ -40,7 +39,7 @@ flowchart LR
 
 ---
 
-### 🟡 M1 — Fundação do Motor, Contratos, Ingestão e Camada Silver Auditável (Em Andamento 🔄)
+### 🟢 M1 — Fundação do Motor, Contratos, Ingestão e Camada Silver Auditável (Concluído ✅)
 
 > **Objetivo de Validação Ponta a Ponta (`v0.1.0-dev`)**: Configurar toda a fundação de engenharia, qualidade e CLI, validando-a na prática com a geração da fixture sintética, ingestão da API Socrata até a camada **Silver SQL** no catálogo `data/kyberna.duckdb` (pronta para inspeção no DBeaver / `duckdb -ui`) e abertura do esqueleto multipage do App Streamlit com o Design System Kyberna.
 
@@ -85,11 +84,11 @@ flowchart LR
   - *DoD:* testes provam: offset múltiplo de 7; `max(date)` ∈ `[reference_date − 6, reference_date]`; distribuição por dia da semana idêntica antes/depois.
 
 #### 🎨 Interface, UX & Visualização *(Valida o Ambiente de Front-end)*
-- [ ] **M1-V1** *(VIZ-01)* — **Esqueleto multipage do app Streamlit e Toggle de Tema**: `src/ui/app.py` com `st.set_page_config` (título `"Kyberna · Decision Intelligence"`, ícone, layout `wide`), `st.navigation` com as 4 páginas agrupadas ("Visão Executiva", "Radar Comercial", "Estoque & Demanda", "Simulador What-If") e cabeçalhos com estado vazio elegante. Seletor de tema na sidebar (**Light Mode ☀️ / Dark Mode 🌙** via `st.session_state.theme_mode`, persistente na sessão) e cascata `Região → UF` (`UF_REGIAO`). `.streamlit/config.toml` (tema base, `server.headless`, `browser.gatherUsageStats=false`, `runner.fastReruns`).
+- [x] **M1-V1** *(VIZ-01)* — **Esqueleto multipage do app Streamlit e Toggle de Tema**: `src/ui/app.py` com `st.set_page_config` (título `"Kyberna · Decision Intelligence"`, ícone, layout `wide`), `st.navigation` com as 4 páginas agrupadas ("Visão Executiva", "Radar Comercial", "Estoque & Demanda", "Simulador What-If") e cabeçalhos com estado vazio elegante. Seletor de tema na sidebar (**Light Mode ☀️ / Dark Mode 🌙** via `st.session_state.theme_mode`, persistente na sessão) e cascata `Região → UF` (`UF_REGIAO`). `.streamlit/config.toml` (tema base, `server.headless`, `browser.gatherUsageStats=false`, `runner.fastReruns`).
   - *Arquivos:* `src/ui/app.py`, `src/ui/pages/1_executive.py`, `src/ui/pages/2_commercial_radar.py`, `src/ui/pages/3_inventory_demand.py`, `src/ui/pages/4_simulator.py`, `.streamlit/config.toml`.
   - *Depende de:* `M1-I1`
   - *DoD:* `uv run streamlit run src/ui/app.py` abre as 4 páginas sem erro; alternância entre Claro e Escuro altera o estado global; AppTest básico renderiza cada página.
-- [ ] **M1-V2** *(VIZ-02)* — **Design system Kyberna (Light/Dark tokens, Plotly templates duplos e CSS dinâmico)**: `theme.py` com tokens para Light Mode e Dark Mode (§5.6 do `GEMINI.md`), registro dos templates Plotly `"kyberna_light"` e `"kyberna_dark"` (fonte Inter, paleta categórica e sequencial/divergente, grades suaves, separadores pt-BR `separators=",."`, margens compactas); `styles.css` com variáveis CSS Custom Properties (`--kyb-bg`, `--kyb-card-bg`, `--kyb-border`, `--kyb-text`) dinâmicas conforme o tema ativo; logotipo SVG (leme estilizado + wordmark `"KYBERNA"`).
+- [x] **M1-V2** *(VIZ-02)* — **Design system Kyberna (Light/Dark tokens, Plotly templates duplos e CSS dinâmico)**: `theme.py` com tokens para Light Mode e Dark Mode (§5.6 do `GEMINI.md`), registro dos templates Plotly `"kyberna_light"` e `"kyberna_dark"` (fonte Inter, paleta categórica e sequencial/divergente, grades suaves, separadores pt-BR `separators=",."`, margens compactas); `styles.css` com variáveis CSS Custom Properties (`--kyb-bg`, `--kyb-card-bg`, `--kyb-border`, `--kyb-text`) dinâmicas conforme o tema ativo; logotipo SVG (leme estilizado + wordmark `"KYBERNA"`).
   - *Arquivos:* `src/ui/theme.py`, `src/ui/assets/styles.css`, `src/ui/assets/logo.svg`, `.streamlit/config.toml`.
   - *Depende de:* `M1-V1`
   - *DoD:* página/modo de amostra exibe paleta, tipografia e gráficos nos dois temas (Light/Dark); contraste AA verificado nos pares principais.
@@ -347,6 +346,7 @@ flowchart LR
 ## 📝 Registro Histórico de Mudanças (Changelog)
 
 - **v0.1.0-dev** *(Em andamento — Fundação, Arquitetura Híbrida DuckDB + Pandas e Bootstrap)*:
+  - **[2026-10-30] `M1-V1` (`VIZ-01`) e `M1-V2` (`VIZ-02`) Concluídas (Conclusão do Marco M1 🟢)**: Implementação do esqueleto multipage Streamlit (`st.navigation`) com 4 páginas ("Visão Executiva", "Radar Comercial", "Estoque & Demanda", "Simulador What-If"), seletor de tema Light Mode ☀️ / Dark Mode 🌙 persistente na sessão (`st.session_state.theme_mode`), cascata geográfica brasileira completa (`Região → UF` com 27 UFs) e configuração `.streamlit/config.toml`. Design System Kyberna completo em `src/ui/theme.py` (tokens de contraste WCAG 2.1 AA ≥ 10:1 para ambos os modos, templates Plotly duplos `"kyberna_light"` e `"kyberna_dark"` com números no padrão pt-BR `,./.` e tipografia Inter), folha de estilos dinâmica `src/ui/assets/styles.css` (`.kpi-card`, `.prescription-box`, `.badge-*`) e logotipo vetorial `src/ui/assets/logo.svg` (leme estilizado de 8 raios em gradiente teal/gold). Suíte de testes automatizados com 11 novos testes cobrindo tokens, contraste, registro de gráficos Plotly e interação simulada via `streamlit.testing.v1.AppTest` em `tests/ui/test_theme.py` e `tests/ui/test_app.py`.
   - **[2026-10-30] `M1-D5` (`DE-05`) Concluída**: Implementação do motor de âncora temporal SQL no DuckDB (`src/etl/silver/time_anchor.py`) com cálculo de deslocamento por semanas cheias (`shift_days % 7 == 0`), garantindo que `max(date)` caia na semana de `reference_date` e preservando com 100% de exatidão a distribuição por dia da semana e a sazonalidade semanal. Registro das colunas `original_date` e `time_shift_days`, suporte a `--no-shift` para manter histórico, persistência atômica em Parquet, validação `SilverSalesSchema`, subcomando CLI `kyberna silver anchor` e suíte de 11 testes unitários em `tests/etl/test_time_anchor.py`.
   - **[2026-10-30] `M1-D4` (`DE-04`) Concluída**: Pipeline SQL puro no DuckDB para limpeza, tipagem e deduplicação da camada Bronze para Silver (`src/etl/silver/clean.py`), incluindo macro de Title Case resiliente a hífens e múltiplos espaços, deduplicação por `invoice_line_id`, imputação modal de categorias ausentes, derivação de `chain_name` (redes varejistas), filtros de integridade contábil/sanidade de preços e corte de percentis extremos (p0,1 e p99,9). Registro da tabela `silver.sales` no DuckDB, exportação de `data/silver/sales.parquet` com compressão Zstandard, validação Pandera contra `SilverSalesSchema`, integração com comando CLI `kyberna silver build --sample` e suíte de 5 testes unitários em `tests/etl/test_silver_clean.py`.
   - **[2026-10-30] `M1-D3` (`DE-03`) Concluída**: Cliente HTTP com `httpx` e retry exponencial com `tenacity` para a API Socrata (`src/etl/ingest/socrata_client.py`), suportando paginação `$limit`/`$offset`, ordenação determinística por `:id`, download particionado por mês em CSV (`data/raw/sales/year=YYYY/month=MM/data.csv`) e idempotência. Módulo de conversão para Bronze Parquet particionado (`src/etl/ingest/raw_to_bronze.py`) com metadados (`_ingested_at`, `_batch_id`, `_source`), amostragem estratificada determinística por hash de loja e registro da view `bronze.sales_raw` no DuckDB (`src/etl/lake.py`). Suíte com 6 novos testes em `tests/etl/test_ingest.py` usando `httpx.MockTransport` e CLI `kyberna ingest run` / `kyberna bronze build --sample`.
