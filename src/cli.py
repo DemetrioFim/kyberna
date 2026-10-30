@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import typer
 
-from src.core.logging import setup_logging
+from src.core.logging import setup_logging, timed_step
+from src.core.paths import get_project_root
 from src.etl.ingest.fixture import generate_fixture
+from src.etl.ingest.raw_to_bronze import convert_all_raw_to_bronze, populate_bronze_from_sample_fixture
+from src.etl.ingest.socrata_client import SocrataClient
 
 app = typer.Typer(
     name="kyberna",
@@ -77,12 +82,43 @@ app.add_typer(pipeline_app)
 # ------------------------------------------------------------------------------
 @ingest_app.command("run")
 def ingest_run(
-    sample: bool = typer.Option(False, "--sample", help="Ingerir apenas amostra reduzida para validação"),
-    year: int | None = typer.Option(None, "--year", help="Filtrar ano específico para ingestão"),
+    start: str = typer.Option("2023-01-01", "--start", help="Data inicial no formato YYYY-MM-DD"),
+    end: str = typer.Option("2024-12-31", "--end", help="Data final no formato YYYY-MM-DD"),
+    sample_frac: float | None = typer.Option(
+        None, "--sample-frac", help="Fração de amostragem estratificada por loja (ex: 0.3)"
+    ),
+    force: bool = typer.Option(False, "--force", "-f", help="Força novo download mesmo se raw já existir"),
+    app_token: str | None = typer.Option(None, "--app-token", help="App Token da API Socrata (opcional)"),
 ) -> None:
-    """Executa a ingestão paginada da API Socrata para data/raw/."""
-    # TODO(M1-D1): Implementar cliente httpx com tenacity e paginação
-    raise NotImplementedError("Comando ainda não implementado. Tarefa responsável: M1-D1")
+    """Executa a ingestão paginada da API Socrata para data/raw/ e converte para Bronze."""
+    with timed_step("ingestao_socrata"):
+        client = SocrataClient(app_token=app_token)
+        downloaded = client.download_range(start_date=start, end_date=end, force=force)
+        typer.echo(f"Ingestão concluída: {len(downloaded)} partições mensais em data/raw/sales/.")
+
+    with timed_step("conversao_raw_to_bronze"):
+        bronze_files = convert_all_raw_to_bronze(sample_frac=sample_frac)
+        typer.echo(
+            f"Camada Bronze atualizada: {len(bronze_files)} partições Parquet "
+            "e view bronze.sales_raw registrada no DuckDB."
+        )
+
+
+@ingest_app.callback(invoke_without_command=True)
+def ingest_callback(
+    ctx: typer.Context,
+    *,
+    start: str = typer.Option("2023-01-01", "--start", help="Data inicial no formato YYYY-MM-DD"),
+    end: str = typer.Option("2024-12-31", "--end", help="Data final no formato YYYY-MM-DD"),
+    sample_frac: float | None = typer.Option(
+        None, "--sample-frac", help="Fração de amostragem estratificada por loja (ex: 0.3)"
+    ),
+    force: bool = typer.Option(False, "--force", "-f", help="Força novo download mesmo se raw já existir"),
+    app_token: str | None = typer.Option(None, "--app-token", help="App Token da API Socrata (opcional)"),
+) -> None:
+    """Ingestão de dados brutos da API pública Socrata (Iowa Liquor Sales)."""
+    if ctx.invoked_subcommand is None:
+        ingest_run(start=start, end=end, sample_frac=sample_frac, force=force, app_token=app_token)
 
 
 # ------------------------------------------------------------------------------
@@ -92,9 +128,12 @@ def ingest_run(
 def fixture_generate(
     rows: int = typer.Option(20000, "--rows", "-r", help="Quantidade de linhas sintéticas a gerar"),
     seed: int = typer.Option(42, "--seed", "-s", help="Semente pseudo-aleatória determinística"),
+    output: Path | None = typer.Option(
+        None, "--output", "-o", help="Caminho opcional do arquivo Parquet de saída"
+    ),
 ) -> None:
     """Gera fixture mínima de vendas sintéticas em tests/fixtures/iowa_sample.parquet."""
-    df = generate_fixture(num_rows=rows, seed=seed)
+    df = generate_fixture(num_rows=rows, seed=seed, output_path=output)
     typer.echo(f"Fixture gerada com sucesso: {len(df):,} linhas.")
 
 
@@ -104,10 +143,21 @@ def fixture_generate(
 @bronze_app.command("build")
 def bronze_build(
     sample: bool = typer.Option(False, "--sample", help="Construir Bronze a partir da amostra fixture"),
+    sample_frac: float | None = typer.Option(
+        None, "--sample-frac", help="Fração de amostragem estratificada por loja"
+    ),
 ) -> None:
     """Converte dados brutos (raw) para Bronze Parquet com metadados."""
-    # TODO(M1-D3): Implementar conversão raw -> bronze com DuckDB e Pandera
-    raise NotImplementedError("Comando ainda não implementado. Tarefa responsável: M1-D3")
+    with timed_step("construcao_bronze"):
+        if sample:
+            fixture_p = get_project_root() / "tests" / "fixtures" / "iowa_sample.parquet"
+            if not fixture_p.exists():
+                generate_fixture(output_path=fixture_p)
+            populate_bronze_from_sample_fixture(fixture_p)
+            typer.echo("Bronze construída a partir da amostra fixture com sucesso.")
+        else:
+            files = convert_all_raw_to_bronze(sample_frac=sample_frac)
+            typer.echo(f"Bronze construída a partir de {len(files)} arquivos raw.")
 
 
 # ------------------------------------------------------------------------------

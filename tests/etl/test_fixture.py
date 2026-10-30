@@ -70,6 +70,11 @@ def test_fixture_file_size(iowa_sample_path: Path) -> None:
 
 def test_cli_fixture_generate_command(tmp_path: Path) -> None:
     """Verifica execução do comando CLI kyberna fixture generate."""
-    result = runner.invoke(app, ["fixture", "generate", "--rows", "100", "--seed", "42"])
+    out_file = tmp_path / "custom_sample.parquet"
+    result = runner.invoke(
+        app,
+        ["fixture", "generate", "--rows", "100", "--seed", "42", "--output", str(out_file)],
+    )
     assert result.exit_code == 0
     assert "Fixture gerada com sucesso: 100 linhas" in result.output
+    assert out_file.exists()

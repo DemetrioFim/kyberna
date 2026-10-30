@@ -23,6 +23,16 @@ def get_duckdb_path(base: Path | None = None) -> Path:
     return get_data_dir(base) / "kyberna.duckdb"
 
 
+def raw_path(table: str, year: int | None = None, month: int | None = None, base: Path | None = None) -> Path:
+    """Retorna o caminho do CSV da camada Raw, opcionalmente particionado."""
+    folder = get_data_dir(base) / "raw" / table
+    if year is not None and month is not None:
+        return folder / f"year={year}" / f"month={month:02d}" / "data.csv"
+    if year is not None:
+        return folder / f"year={year}" / "data.csv"
+    return folder / "data.csv"
+
+
 def bronze_path(
     table: str, year: int | None = None, month: int | None = None, base: Path | None = None
 ) -> Path:

@@ -92,6 +92,9 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"src/cli.py" = [
+    "B008",    # Do not perform function calls in argument defaults (padrão Typer Option/Argument)
+]
 "tests/*" = [
     "PLC0415", # Allow imports in tests functions if needed
     "PLR2004", # Magic value used in comparison

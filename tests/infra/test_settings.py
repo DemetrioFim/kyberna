@@ -15,6 +15,7 @@ from src.core.paths import (
     get_duckdb_path,
     get_project_root,
     gold_snapshot_path,
+    raw_path,
     reference_data_path,
     silver_path,
 )
@@ -85,6 +86,13 @@ def test_paths_helpers(tmp_path: Path) -> None:
 
     duckdb_file = get_duckdb_path(tmp_path)
     assert duckdb_file == tmp_path / "data" / "kyberna.duckdb"
+
+    # Raw
+    r_simple = raw_path("sales", base=tmp_path)
+    assert r_simple == tmp_path / "data" / "raw" / "sales" / "data.csv"
+
+    r_part = raw_path("sales", year=2024, month=5, base=tmp_path)
+    assert r_part == tmp_path / "data" / "raw" / "sales" / "year=2024" / "month=05" / "data.csv"
 
     # Bronze
     b_simple = bronze_path("sales", base=tmp_path)

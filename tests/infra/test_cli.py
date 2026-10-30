@@ -45,6 +45,6 @@ def test_cli_group_help(group: str) -> None:
 
 def test_cli_stub_command_raises_not_implemented() -> None:
     """Garante que stubs informam a tarefa responsável ao serem chamados."""
-    result = runner.invoke(app, ["ingest", "run"])
+    result = runner.invoke(app, ["silver", "build"])
     assert result.exit_code != 0
-    assert "M1-D1" in str(result.exception) or "M1-D1" in result.output
+    assert "M1-D5" in str(result.exception) or "M1-D5" in result.output
