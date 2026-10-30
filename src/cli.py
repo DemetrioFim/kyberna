@@ -10,6 +10,7 @@ from src.etl.ingest.fixture import generate_fixture
 from src.etl.ingest.raw_to_bronze import convert_all_raw_to_bronze, populate_bronze_from_sample_fixture
 from src.etl.ingest.socrata_client import SocrataClient
 from src.etl.silver.clean import build_silver_sales
+from src.etl.silver.time_anchor import apply_time_anchor
 
 app = typer.Typer(
     name="kyberna",
@@ -167,13 +168,43 @@ def bronze_build(
 @silver_app.command("build")
 def silver_build(
     sample: bool = typer.Option(False, "--sample", help="Construir Silver a partir da Bronze sample"),
+    reference_date: str | None = typer.Option(
+        None, "--reference-date", help="Data de referência para a âncora temporal (YYYY-MM-DD)"
+    ),
+    no_shift: bool = typer.Option(
+        False, "--no-shift", help="Não aplica o time-shift de semanas (mantém datas originais)"
+    ),
 ) -> None:
-    """Aplica limpeza canônica, tipagem e deduplicação no DuckDB gerando a camada Silver."""
+    """Aplica limpeza canônica, tipagem, deduplicação e âncora temporal no DuckDB."""
     with timed_step("construcao_silver"):
         parquet_p, report = build_silver_sales(sample=sample)
         typer.echo(
             f"Silver construída com sucesso em {parquet_p}: "
             f"{report['final_silver']:,} linhas (descartadas {report['total_removed']:,})."
+        )
+        _, anchor_meta = apply_time_anchor(reference_date=reference_date, no_shift=no_shift)
+        typer.echo(
+            f"Âncora temporal aplicada: shift={anchor_meta['time_shift_days']} dias "
+            f"({anchor_meta['min_shifted_date']} a {anchor_meta['max_shifted_date']})."
+        )
+
+
+@silver_app.command("anchor")
+def silver_anchor(
+    reference_date: str | None = typer.Option(
+        None, "--reference-date", help="Data de referência para a âncora temporal (YYYY-MM-DD)"
+    ),
+    no_shift: bool = typer.Option(
+        False, "--no-shift", help="Não aplica o time-shift de semanas (mantém datas originais)"
+    ),
+) -> None:
+    """Ajusta a âncora temporal sobre a tabela Silver existente no DuckDB."""
+    with timed_step("ajuste_ancora_temporal"):
+        parquet_p, anchor_meta = apply_time_anchor(reference_date=reference_date, no_shift=no_shift)
+        typer.echo(
+            f"Âncora temporal atualizada em {parquet_p}: "
+            f"shift={anchor_meta['time_shift_days']} dias "
+            f"({anchor_meta['min_shifted_date']} a {anchor_meta['max_shifted_date']})."
         )
 
 

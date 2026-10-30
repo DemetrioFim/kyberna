@@ -72,6 +72,12 @@ class SilverSalesSchema(pa.DataFrameModel):
 
     invoice_line_id: str = Field(unique=True, nullable=False, description="Identificador único da linha")
     date: pd.Timestamp = Field(nullable=False)
+    original_date: pd.Timestamp | None = Field(
+        default=None, nullable=True, required=False, description="Data original antes do time-shift"
+    )
+    time_shift_days: int | None = Field(
+        default=None, nullable=True, required=False, description="Offset de dias aplicado pelo time-shift"
+    )
     store_number: str = Field(nullable=False)
     store_name: str = Field(nullable=False)
     city: str = Field(nullable=False)

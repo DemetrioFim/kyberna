@@ -176,6 +176,8 @@ def build_silver_sales(
         SELECT
             e.invoice_line_id,
             e.date,
+            e.date AS original_date,
+            0 AS time_shift_days,
             e.store_number,
             e.store_name,
             e.city,
