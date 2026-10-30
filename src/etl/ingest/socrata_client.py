@@ -22,7 +22,7 @@ def is_retryable_exception(exc: BaseException) -> bool:
     """
     if isinstance(exc, httpx.HTTPStatusError):
         return exc.response.status_code in (429, 500, 502, 503, 504)
-    return isinstance(exc, (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError))
+    return isinstance(exc, httpx.TimeoutException | httpx.NetworkError | httpx.TransportError)
 
 
 class SocrataClient:

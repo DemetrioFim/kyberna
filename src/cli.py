@@ -9,6 +9,7 @@ from src.core.paths import get_project_root
 from src.etl.ingest.fixture import generate_fixture
 from src.etl.ingest.raw_to_bronze import convert_all_raw_to_bronze, populate_bronze_from_sample_fixture
 from src.etl.ingest.socrata_client import SocrataClient
+from src.etl.silver.clean import build_silver_sales
 
 app = typer.Typer(
     name="kyberna",
@@ -167,9 +168,13 @@ def bronze_build(
 def silver_build(
     sample: bool = typer.Option(False, "--sample", help="Construir Silver a partir da Bronze sample"),
 ) -> None:
-    """Aplica limpeza canônica, âncora temporal e dimensões sintéticas no DuckDB."""
-    # TODO(M1-D5): Implementar pipeline Silver SQL no DuckDB + enriquecimento Faker
-    raise NotImplementedError("Comando ainda não implementado. Tarefa responsável: M1-D5")
+    """Aplica limpeza canônica, tipagem e deduplicação no DuckDB gerando a camada Silver."""
+    with timed_step("construcao_silver"):
+        parquet_p, report = build_silver_sales(sample=sample)
+        typer.echo(
+            f"Silver construída com sucesso em {parquet_p}: "
+            f"{report['final_silver']:,} linhas (descartadas {report['total_removed']:,})."
+        )
 
 
 # ------------------------------------------------------------------------------
