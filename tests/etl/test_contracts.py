@@ -214,3 +214,4 @@ def test_gold_contract_margin_identity_violation(valid_gold_fact_df: pd.DataFram
     bad_df.loc[0, "contribution_margin"] = 99999.0  # valor arbitrário incorreto
     with pytest.raises(DataContractError):
         validate_contract(bad_df, GoldFactSalesSchema, layer="Gold")
+
