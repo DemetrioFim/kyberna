@@ -3,6 +3,7 @@ from __future__ import annotations
 import typer
 
 from src.core.logging import setup_logging
+from src.etl.ingest.fixture import generate_fixture
 
 app = typer.Typer(
     name="kyberna",
@@ -89,11 +90,12 @@ def ingest_run(
 # ------------------------------------------------------------------------------
 @fixture_app.command("generate")
 def fixture_generate(
-    rows: int = typer.Option(1000, "--rows", help="Quantidade de linhas sintéticas a gerar"),
+    rows: int = typer.Option(20000, "--rows", "-r", help="Quantidade de linhas sintéticas a gerar"),
+    seed: int = typer.Option(42, "--seed", "-s", help="Semente pseudo-aleatória determinística"),
 ) -> None:
     """Gera fixture mínima de vendas sintéticas em tests/fixtures/iowa_sample.parquet."""
-    # TODO(M1-D2): Implementar gerador determinístico com Faker pt_BR
-    raise NotImplementedError("Comando ainda não implementado. Tarefa responsável: M1-D2")
+    df = generate_fixture(num_rows=rows, seed=seed)
+    typer.echo(f"Fixture gerada com sucesso: {len(df):,} linhas.")
 
 
 # ------------------------------------------------------------------------------
