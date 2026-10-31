@@ -6,6 +6,7 @@
   --kyb-bg: #F8FAFC;
   --kyb-sidebar-bg: #FFFFFF;
   --kyb-card-bg: #FFFFFF;
+  --kyb-input-bg: #FFFFFF;
   --kyb-border: #E2E8F0;
   --kyb-text: #0F172A;
   --kyb-text-muted: #475569;
@@ -148,32 +149,85 @@ div[data-testid="stSliderThumbValue"] {
 }
 
 /* Selectbox / BaseWeb Dropdowns */
-div[data-baseweb="select"] > div {
-  background-color: var(--kyb-card-bg) !important;
-  border-color: var(--kyb-border) !important;
+div[data-baseweb="select"],
+div[data-baseweb="select"] > div,
+div[data-baseweb="select"] > div:first-child,
+div[data-baseweb="select"] > div > div,
+div[data-baseweb="select"] [role="combobox"],
+div[data-baseweb="select"] input,
+div[data-baseweb="select"] * {
+  background-color: var(--kyb-input-bg) !important;
   color: var(--kyb-text) !important;
 }
 
-div[data-baseweb="select"] span,
-div[data-baseweb="select"] input {
+div[data-baseweb="select"] > div {
+  border: 1px solid var(--kyb-border) !important;
+  border-radius: 8px !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+div[data-baseweb="select"] > div:hover,
+div[data-baseweb="select"] > div:focus-within {
+  border-color: var(--kyb-teal) !important;
+  box-shadow: 0 0 0 1px var(--kyb-teal) !important;
+}
+
+div[data-baseweb="select"] svg,
+div[data-baseweb="select"] path {
+  fill: var(--kyb-text) !important;
   color: var(--kyb-text) !important;
+  stroke: var(--kyb-text) !important;
 }
 
 div[data-baseweb="popover"],
+div[data-baseweb="popover"] > div,
 div[data-baseweb="menu"],
 ul[role="listbox"] {
-  background-color: var(--kyb-card-bg) !important;
+  background-color: var(--kyb-input-bg) !important;
   border: 1px solid var(--kyb-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--kyb-shadow) !important;
 }
 
-li[role="option"] {
+li[role="option"],
+div[role="option"] {
   color: var(--kyb-text) !important;
-  background-color: var(--kyb-card-bg) !important;
+  background-color: var(--kyb-input-bg) !important;
+  padding: 0.55rem 0.85rem !important;
+  font-size: 0.88rem !important;
 }
 
 li[role="option"]:hover,
-li[role="option"][aria-selected="true"] {
-  background-color: var(--kyb-border) !important;
+li[role="option"][aria-selected="true"],
+div[role="option"]:hover,
+div[role="option"][aria-selected="true"] {
+  background-color: rgba(56, 189, 248, 0.15) !important;
+  color: var(--kyb-teal) !important;
+}
+
+/* Ícones de Ajuda e Tooltips (?) */
+div[data-testid="stTooltipIcon"],
+[data-testid="stTooltipHoverTarget"],
+div[data-testid="stHelpContainer"] {
+  opacity: 0.85;
+}
+
+div[data-testid="stTooltipIcon"] svg,
+[data-testid="stTooltipHoverTarget"] svg,
+div[data-testid="stHelpContainer"] svg,
+div[data-testid="stTooltipIcon"] path,
+[data-testid="stTooltipHoverTarget"] path {
+  fill: var(--kyb-text-muted) !important;
+  stroke: var(--kyb-text-muted) !important;
+  color: var(--kyb-text-muted) !important;
+}
+
+div[data-testid="stTooltipIcon"]:hover svg,
+[data-testid="stTooltipHoverTarget"]:hover svg {
+  fill: var(--kyb-teal) !important;
+  stroke: var(--kyb-teal) !important;
+  color: var(--kyb-teal) !important;
+  opacity: 1;
 }
 
 /* Caixas de Alerta (st.info, st.warning, st.success, etc.) */

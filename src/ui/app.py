@@ -52,6 +52,7 @@ def inject_custom_css(theme_mode: str) -> None:
             --kyb-bg: {tokens["bg_primary"]};
             --kyb-sidebar-bg: {tokens["sidebar_bg"]};
             --kyb-card-bg: {tokens["surface_card"]};
+            --kyb-input-bg: {tokens["input_bg"]};
             --kyb-border: {tokens["border_subtle"]};
             --kyb-text: {tokens["text_primary"]};
             --kyb-text-muted: {tokens["text_muted"]};
@@ -102,10 +103,10 @@ with st.sidebar:
 
     # 3. Seletor de Cenário
     scenario_options = {
-        "c1_toys": "C1 — Indústria B2B de Brinquedos",
-        "c2_beverages": "C2 — Distribuidora de Bebidas",
-        "c3_retail_chain": "C3 — Rede de Varejo Multiloja",
-        "c4_single_store": "C4 — Loja de Varejo Única",
+        "c1_toys": "C1 — Indústria de Brinquedos",
+        "c2_beverages": "C2 — Distribuidora Bebidas",
+        "c3_retail_chain": "C3 — Rede de Varejo",
+        "c4_single_store": "C4 — Varejo Loja Única",
     }
 
     def _on_scenario_change() -> None:
