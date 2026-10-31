@@ -1,0 +1,56 @@
+# ==============================================================================
+# Cenário 3 — Rede Varejista Multi-filial e Franquias
+# ==============================================================================
+
+id: "c3_retail_chain"
+display_name: "C3 — Rede Varejista Multi-filial"
+short_name: "Rede de Lojas / Filiais"
+company_profile: >-
+  Rede varejista operando dezenas de lojas físicas e franquias em shopping centers
+  e polos de comércio. Atua com central de compras, reposição por filial e
+  matriz inteligente de remanejamento e balanceamento de estoque entre lojas.
+
+perspective: "buyer"
+category_map: "category_maps/toys.csv"
+retail_markup: 1.65
+
+labels:
+  customer: "Filial / Loja"
+  customer_plural: "Filiais"
+  product_family: "Departamento / Categoria"
+  sales_rep: "Gerente de Loja"
+  sales_rep_plural: "Gerentes de Loja"
+  branch: "Filial"
+  unit: "Peça / Item"
+  box: "Caixa de Reposição"
+  order: "Venda ao Consumidor"
+  order_plural: "Vendas de Balcão"
+
+capabilities:
+  margin_waterfall: true
+  abc_xyz: true
+  rfm_churn: true
+  white_space: true
+  rep_efficiency: true
+  forecast_30d: true
+  inventory_stock: true
+  branch_transfers: true
+  simulator_what_if: true
+
+filters:
+  supported_regions:
+    - "Todas"
+    - "Sudeste"
+    - "Sul"
+    - "Nordeste"
+    - "Centro-Oeste"
+    - "Norte"
+  has_geographic_filter: true
+  has_rep_filter: true
+  has_family_filter: true
+
+finance_profile:
+  tax_rules_file: "tax_rules.yaml"
+  freight_file: "freight.yaml"
+  commission_file: "commission.yaml"
+  discounts_file: "discounts.yaml"

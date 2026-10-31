@@ -204,9 +204,9 @@ def test_each_customer_has_exactly_one_rca_and_one_municipality() -> None:
         rep_id = row["sales_rep_id"]
         customer_region = UF_REGIAO[uf]
         rep_region = rep_region_map[rep_id]
-        assert customer_region == rep_region, (
-            f"Cliente na UF {uf} (Região {customer_region}) recebeu RCA {rep_id} da Região {rep_region}"
-        )
+        assert (
+            customer_region == rep_region
+        ), f"Cliente na UF {uf} (Região {customer_region}) recebeu RCA {rep_id} da Região {rep_region}"
 
 
 def test_full_enrich_pipeline_and_duckdb_persistence(tmp_path: Path) -> None:

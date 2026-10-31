@@ -6,6 +6,7 @@ import typer
 
 from src.core.logging import setup_logging, timed_step
 from src.core.paths import get_project_root
+from src.core.scenarios import list_scenario_configs, load_scenario_config
 from src.etl.ingest.fixture import generate_fixture
 from src.etl.ingest.raw_to_bronze import convert_all_raw_to_bronze, populate_bronze_from_sample_fixture
 from src.etl.ingest.socrata_client import SocrataClient
@@ -233,12 +234,19 @@ def silver_enrich(
 # ------------------------------------------------------------------------------
 @gold_app.command("build")
 def gold_build(
-    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário de negócio"),
+    scenario: str = typer.Option(
+        "c1_toys", "--scenario", help="Identificador do cenário de negócio (ou 'all')"
+    ),
     sample: bool = typer.Option(False, "--sample", help="Processar com base na amostra reduzida"),
 ) -> None:
     """Gera dimensões, fatos e marts analíticos da camada Gold no formato Parquet e DuckDB."""
-    # TODO(M2-D1): Implementar star schema e marts de margem de contribuição
-    raise NotImplementedError("Comando ainda não implementado. Tarefa responsável: M2-D1")
+    if scenario == "all":
+        list_scenario_configs()
+    else:
+        load_scenario_config(scenario)
+
+    # TODO(M2-D4): Materializar star schema e marts de margem de contribuição
+    raise NotImplementedError("Comando ainda não implementado. Tarefa responsável: M2-D1 (M2-D4)")
 
 
 # ------------------------------------------------------------------------------

@@ -1,0 +1,56 @@
+# ==============================================================================
+# Cenário 2 — Indústria / Distribuidora B2B de Bebidas e Destilados
+# ==============================================================================
+
+id: "c2_beverages"
+display_name: "C2 — Distribuidora B2B de Bebidas"
+short_name: "Distribuidora de Bebidas"
+company_profile: >-
+  Distribuidora regional e nacional de destilados, aperitivos, licores e vinhos.
+  Abastecimento de bares, restaurantes, adegas, empórios gourmet e supermercados
+  através de vendedores de rota atendendo canais on-trade e off-trade.
+
+perspective: "seller"
+category_map: "category_maps/beverages.csv"
+retail_markup: null
+
+labels:
+  customer: "PDV / Ponto de Venda"
+  customer_plural: "PDVs (Bares/Restaurantes)"
+  product_family: "Categoria de Bebidas"
+  sales_rep: "Vendedor de Rota"
+  sales_rep_plural: "Vendedores de Rota"
+  branch: "Centro de Distribuição"
+  unit: "Garrafa"
+  box: "Caixa / Fardo"
+  order: "Pedido de Rota"
+  order_plural: "Pedidos de Rota"
+
+capabilities:
+  margin_waterfall: true
+  abc_xyz: true
+  rfm_churn: true
+  white_space: true
+  rep_efficiency: true
+  forecast_30d: true
+  inventory_stock: true
+  branch_transfers: false
+  simulator_what_if: true
+
+filters:
+  supported_regions:
+    - "Todas"
+    - "Sudeste"
+    - "Sul"
+    - "Nordeste"
+    - "Centro-Oeste"
+    - "Norte"
+  has_geographic_filter: true
+  has_rep_filter: true
+  has_family_filter: true
+
+finance_profile:
+  tax_rules_file: "tax_rules.yaml"
+  freight_file: "freight.yaml"
+  commission_file: "commission.yaml"
+  discounts_file: "discounts.yaml"

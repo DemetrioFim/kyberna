@@ -1,0 +1,52 @@
+# ==============================================================================
+# Cenário 4 — Comércio Varejista Independente (PDV Único)
+# ==============================================================================
+
+id: "c4_single_store"
+display_name: "C4 — Varejo Independente (PDV Único)"
+short_name: "Loja Única / PDV"
+company_profile: >-
+  Comércio varejista independente de alto fluxo operando loja física de rua.
+  Venda direta no balcão e gôndola, abastecida por compras semanais, com Clube
+  de Fidelidade por CPF para análise de recompra e curva ABC de sortimento.
+
+perspective: "buyer"
+category_map: "category_maps/toys.csv"
+retail_markup: 1.75
+
+labels:
+  customer: "Cliente Fidelidade (CPF)"
+  customer_plural: "Clientes Fidelidade"
+  product_family: "Linha de Produto"
+  sales_rep: "Balconista / Atendente"
+  sales_rep_plural: "Balconistas"
+  branch: "Loja Matriz"
+  unit: "Unidade"
+  box: "Embalagem"
+  order: "Cupom Fiscal"
+  order_plural: "Cupons Fiscais"
+
+capabilities:
+  margin_waterfall: true
+  abc_xyz: true
+  rfm_churn: true
+  white_space: true
+  rep_efficiency: false
+  forecast_30d: true
+  inventory_stock: true
+  branch_transfers: false
+  simulator_what_if: true
+
+filters:
+  supported_regions:
+    - "Todas"
+    - "Sudeste"
+  has_geographic_filter: false
+  has_rep_filter: false
+  has_family_filter: true
+
+finance_profile:
+  tax_rules_file: "tax_rules.yaml"
+  freight_file: "freight.yaml"
+  commission_file: "commission.yaml"
+  discounts_file: "discounts.yaml"

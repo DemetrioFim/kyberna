@@ -1,0 +1,56 @@
+# ==============================================================================
+# Cenário 1 — Indústria B2B Nacional de Brinquedos (Caso Âncora da Kyberna)
+# ==============================================================================
+
+id: "c1_toys"
+display_name: "C1 — Indústria B2B de Brinquedos"
+short_name: "Indústria de Brinquedos"
+company_profile: >-
+  Indústria nacional de brinquedos educativos, pedagógicos e jogos com sede em
+  São Paulo (SP). Venda direta de caixas master para milhares de lojistas, papelarias,
+  magazines e atacadistas regionais em todo o Brasil, operada via equipe de RCAs.
+
+perspective: "seller"
+category_map: "category_maps/toys.csv"
+retail_markup: null
+
+labels:
+  customer: "Lojista (CNPJ)"
+  customer_plural: "Lojistas"
+  product_family: "Família de Brinquedos"
+  sales_rep: "RCA (Representante)"
+  sales_rep_plural: "Representantes Comerciais"
+  branch: "Fábrica / CD"
+  unit: "Unidade"
+  box: "Caixa Master"
+  order: "Pedido de Venda"
+  order_plural: "Pedidos de Venda"
+
+capabilities:
+  margin_waterfall: true
+  abc_xyz: true
+  rfm_churn: true
+  white_space: true
+  rep_efficiency: true
+  forecast_30d: true
+  inventory_stock: true
+  branch_transfers: false
+  simulator_what_if: true
+
+filters:
+  supported_regions:
+    - "Todas"
+    - "Sudeste"
+    - "Sul"
+    - "Nordeste"
+    - "Centro-Oeste"
+    - "Norte"
+  has_geographic_filter: true
+  has_rep_filter: true
+  has_family_filter: true
+
+finance_profile:
+  tax_rules_file: "tax_rules.yaml"
+  freight_file: "freight.yaml"
+  commission_file: "commission.yaml"
+  discounts_file: "discounts.yaml"
