@@ -28,8 +28,9 @@ def test_app_theme_toggle_interaction() -> None:
     at.run()
     assert at.session_state.theme_mode == "light"
 
-    # Seleciona "Escuro 🌙" no radio de tema da sidebar
-    at.sidebar.radio[0].set_value("Escuro 🌙").run()
+    # Ativa o toggle de tema escuro na sidebar
+    assert len(at.sidebar.toggle) >= 1
+    at.sidebar.toggle[0].set_value(True).run()
     assert not at.exception
     assert at.session_state.theme_mode == "dark"
 

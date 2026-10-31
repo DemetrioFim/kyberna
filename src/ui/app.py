@@ -50,6 +50,7 @@ def inject_custom_css(theme_mode: str) -> None:
         dynamic_vars = f"""
         :root {{
             --kyb-bg: {tokens["bg_primary"]};
+            --kyb-sidebar-bg: {tokens["sidebar_bg"]};
             --kyb-card-bg: {tokens["surface_card"]};
             --kyb-border: {tokens["border_subtle"]};
             --kyb-text: {tokens["text_primary"]};
@@ -59,10 +60,6 @@ def inject_custom_css(theme_mode: str) -> None:
             --kyb-pos: {tokens["positive"]};
             --kyb-neg: {tokens["negative"]};
             --kyb-warn: {tokens["warning"]};
-        }}
-        .stApp {{
-            background-color: {tokens["bg_primary"]};
-            color: {tokens["text_primary"]};
         }}
         """
         st.markdown(f"<style>{css_content}\n{dynamic_vars}</style>", unsafe_allow_html=True)
@@ -75,8 +72,12 @@ inject_custom_css(st.session_state.theme_mode)
 # ==============================================================================
 
 with st.sidebar:
-    # 1. Branding / Logo
-    logo_path = Path(__file__).parent / "assets" / "logo.svg"
+    # 1. Branding / Logo (Adaptação para o tema ativo)
+    logo_filename = "logo_dark.svg" if st.session_state.theme_mode == "dark" else "logo.svg"
+    logo_path = Path(__file__).parent / "assets" / logo_filename
+    if not logo_path.exists():
+        logo_path = Path(__file__).parent / "assets" / "logo.svg"
+
     if logo_path.exists():
         st.image(str(logo_path), width=260)
     else:
@@ -84,21 +85,20 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # 2. Seletor de Tema (Light Mode ☀️ / Dark Mode 🌙)
-    def _on_theme_change() -> None:
-        val = st.session_state.get("_theme_radio")
-        if val:
-            st.session_state.theme_mode = "dark" if "Escuro" in val else "light"
+    # 2. Seletor de Tema via Toggle Switch
+    def _on_theme_toggle() -> None:
+        is_dark = bool(st.session_state.get("_theme_toggle", False))
+        st.session_state.theme_mode = "dark" if is_dark else "light"
 
-    st.radio(
-        "Aparência do Cockpit",
-        options=["Claro ☀️", "Escuro 🌙"],
-        index=0 if st.session_state.theme_mode == "light" else 1,
-        key="_theme_radio",
-        on_change=_on_theme_change,
-        horizontal=True,
-        help="Alterna dinamicamente entre visual executivo claro e cockpit escuro.",
+    st.toggle(
+        "Modo Escuro 🌙",
+        value=(st.session_state.theme_mode == "dark"),
+        key="_theme_toggle",
+        on_change=_on_theme_toggle,
+        help="Alterna dinamicamente entre o visual executivo claro e o cockpit escuro de alto contraste.",
     )
+
+    st.markdown("---")
 
     # 3. Seletor de Cenário
     scenario_options = {

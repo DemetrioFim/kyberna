@@ -4,6 +4,7 @@
 
 :root {
   --kyb-bg: #F8FAFC;
+  --kyb-sidebar-bg: #FFFFFF;
   --kyb-card-bg: #FFFFFF;
   --kyb-border: #E2E8F0;
   --kyb-text: #0F172A;
@@ -16,29 +17,182 @@
   --kyb-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
 }
 
-.stApp.dark-theme,
-[data-theme="dark"] {
-  --kyb-bg: #0D1117;
-  --kyb-card-bg: #161B22;
-  --kyb-border: #21262D;
-  --kyb-text: #E6EDF3;
-  --kyb-text-muted: #8B949E;
-  --kyb-teal: #58A6FF;
-  --kyb-brass: #D29922;
-  --kyb-pos: #3FB950;
-  --kyb-neg: #F85149;
-  --kyb-warn: #D29922;
-  --kyb-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.35);
-}
+/* ==============================================================================
+   Layout Base & Streamlit Main Containers
+   ============================================================================== */
 
-/* Base App Body */
-.stApp {
-  background-color: var(--kyb-bg);
-  color: var(--kyb-text);
+[data-testid="stAppViewContainer"],
+.stApp,
+[data-testid="stMain"],
+[data-testid="stMainBlockContainer"],
+.main .block-container {
+  background-color: var(--kyb-bg) !important;
+  color: var(--kyb-text) !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Card Container */
+header[data-testid="stHeader"] {
+  background-color: transparent !important;
+}
+
+/* ==============================================================================
+   Sidebar Completa (Light & Dark)
+   ============================================================================== */
+
+section[data-testid="stSidebar"],
+section[data-testid="stSidebar"] > div:first-child,
+[data-testid="stSidebarContent"],
+[data-testid="stSidebar"] .st-emotion-cache-16txtl3 {
+  background-color: var(--kyb-sidebar-bg) !important;
+  color: var(--kyb-text) !important;
+  border-right: 1px solid var(--kyb-border) !important;
+}
+
+section[data-testid="stSidebar"] hr {
+  border-color: var(--kyb-border) !important;
+  opacity: 0.7;
+}
+
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] span,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] h4,
+section[data-testid="stSidebar"] h5,
+section[data-testid="stSidebar"] h6 {
+  color: var(--kyb-text) !important;
+}
+
+/* Links de Navegação da Sidebar */
+[data-testid="stSidebarNav"] a,
+[data-testid="stSidebarNav"] span,
+[data-testid="stSidebar"] [data-testid="stSidebarNavLink"] {
+  color: var(--kyb-text) !important;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+[data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] {
+  background-color: rgba(56, 189, 248, 0.15) !important;
+  color: var(--kyb-teal) !important;
+  font-weight: 600;
+}
+
+/* ==============================================================================
+   Tipografia Global e Legibilidade
+   ============================================================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--kyb-text) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+p, span, li {
+  color: var(--kyb-text);
+}
+
+[data-testid="stCaptionContainer"] p,
+.stCaption,
+caption {
+  color: var(--kyb-text-muted) !important;
+  font-size: 0.88rem !important;
+  line-height: 1.4 !important;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--kyb-border) !important;
+  margin: 1.25rem 0;
+  opacity: 0.7;
+}
+
+/* ==============================================================================
+   Controles & Widgets (Sliders, Toggles, Selects, Alerts)
+   ============================================================================== */
+
+/* Rótulos de Widgets (Sliders, Selectboxes, etc.) */
+label[data-testid="stWidgetLabel"],
+label[data-testid="stWidgetLabel"] p,
+label[data-testid="stWidgetLabel"] span {
+  color: var(--kyb-text) !important;
+  font-weight: 500 !important;
+  font-size: 0.9rem !important;
+}
+
+/* Toggle Switch de Tema */
+[data-testid="stToggle"] label p,
+[data-testid="stToggle"] span {
+  color: var(--kyb-text) !important;
+  font-weight: 600 !important;
+  font-size: 0.92rem !important;
+}
+
+/* Sliders: Valores numéricos e réguas */
+div[data-testid="stSlider"] p {
+  color: var(--kyb-text) !important;
+}
+
+div[data-testid="stSliderTickBarMin"],
+div[data-testid="stSliderTickBarMax"] {
+  color: var(--kyb-text-muted) !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+}
+
+div[data-testid="stSliderThumbValue"] {
+  color: var(--kyb-text) !important;
+  font-weight: 700 !important;
+}
+
+/* Selectbox / BaseWeb Dropdowns */
+div[data-baseweb="select"] > div {
+  background-color: var(--kyb-card-bg) !important;
+  border-color: var(--kyb-border) !important;
+  color: var(--kyb-text) !important;
+}
+
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] input {
+  color: var(--kyb-text) !important;
+}
+
+div[data-baseweb="popover"],
+div[data-baseweb="menu"],
+ul[role="listbox"] {
+  background-color: var(--kyb-card-bg) !important;
+  border: 1px solid var(--kyb-border) !important;
+}
+
+li[role="option"] {
+  color: var(--kyb-text) !important;
+  background-color: var(--kyb-card-bg) !important;
+}
+
+li[role="option"]:hover,
+li[role="option"][aria-selected="true"] {
+  background-color: var(--kyb-border) !important;
+}
+
+/* Caixas de Alerta (st.info, st.warning, st.success, etc.) */
+div[data-testid="stAlert"] {
+  background-color: var(--kyb-card-bg) !important;
+  border: 1px solid var(--kyb-border) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--kyb-shadow) !important;
+  padding: 0.85rem 1.1rem !important;
+}
+
+div[data-testid="stAlert"] * {
+  color: var(--kyb-text) !important;
+}
+
+/* ==============================================================================
+   Cards Analíticos Kyberna (.kpi-card)
+   ============================================================================== */
+
 .kpi-card {
   background-color: var(--kyb-card-bg);
   border: 1px solid var(--kyb-border);
@@ -53,7 +207,7 @@
 
 .kpi-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
 }
 
 .kpi-card-teal { border-top: 3px solid var(--kyb-teal); }
@@ -79,7 +233,7 @@
 }
 
 .kpi-subfooter {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: var(--kyb-text-muted);
   border-top: 1px dashed var(--kyb-border);
   padding-top: 0.5rem;
@@ -89,7 +243,10 @@
   align-items: center;
 }
 
-/* Prescription Container */
+/* ==============================================================================
+   Blocos Prescritivos (.prescription-box)
+   ============================================================================== */
+
 .prescription-box {
   background-color: var(--kyb-card-bg);
   border-left: 4px solid var(--kyb-brass);
@@ -120,7 +277,10 @@
   line-height: 1.45;
 }
 
-/* Badges */
+/* ==============================================================================
+   Badges Semânticos
+   ============================================================================== */
+
 .badge {
   display: inline-block;
   padding: 0.2rem 0.55rem;
@@ -132,50 +292,26 @@
 }
 
 .badge-positive {
-  background-color: rgba(46, 158, 106, 0.15);
+  background-color: rgba(52, 211, 153, 0.15);
   color: var(--kyb-pos);
-  border: 1px solid rgba(46, 158, 106, 0.3);
+  border: 1px solid rgba(52, 211, 153, 0.3);
 }
 
 .badge-negative {
-  background-color: rgba(209, 73, 91, 0.15);
+  background-color: rgba(248, 113, 113, 0.15);
   color: var(--kyb-neg);
-  border: 1px solid rgba(209, 73, 91, 0.3);
+  border: 1px solid rgba(248, 113, 113, 0.3);
 }
 
 .badge-warning {
-  background-color: rgba(229, 159, 58, 0.15);
+  background-color: rgba(251, 191, 36, 0.15);
   color: var(--kyb-warn);
-  border: 1px solid rgba(229, 159, 58, 0.3);
+  border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
 .badge-source {
-  background-color: rgba(31, 122, 140, 0.12);
+  background-color: rgba(56, 189, 248, 0.12);
   color: var(--kyb-teal);
-  border: 1px solid rgba(31, 122, 140, 0.25);
+  border: 1px solid rgba(56, 189, 248, 0.25);
   font-size: 0.72rem;
-}
-
-/* Sidebar Branding */
-.sidebar-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.5rem 0 1rem 0;
-  margin-bottom: 0.5rem;
-  border-bottom: 1px solid var(--kyb-border);
-}
-
-.sidebar-brand-name {
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: var(--kyb-text);
-}
-
-.sidebar-brand-sub {
-  font-size: 0.65rem;
-  color: var(--kyb-text-muted);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
 }

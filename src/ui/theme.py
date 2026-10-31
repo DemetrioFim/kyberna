@@ -12,6 +12,7 @@ import plotly.io as pio
 KYBERNA_LIGHT_TOKENS: Final[dict[str, str]] = {
     "bg_primary": "#F8FAFC",
     "surface_card": "#FFFFFF",
+    "sidebar_bg": "#FFFFFF",
     "border_subtle": "#E2E8F0",
     "text_primary": "#0F172A",
     "text_muted": "#475569",
@@ -25,18 +26,19 @@ KYBERNA_LIGHT_TOKENS: Final[dict[str, str]] = {
 }
 
 KYBERNA_DARK_TOKENS: Final[dict[str, str]] = {
-    "bg_primary": "#0D1117",
-    "surface_card": "#161B22",
-    "border_subtle": "#21262D",
-    "text_primary": "#E6EDF3",
-    "text_muted": "#8B949E",
-    "teal_500": "#58A6FF",
-    "brass_500": "#D29922",
-    "positive": "#3FB950",
-    "negative": "#F85149",
-    "warning": "#D29922",
-    "chart_grid": "#21262D",
-    "chart_zero_line": "#30363D",
+    "bg_primary": "#0B111A",
+    "surface_card": "#131B26",
+    "sidebar_bg": "#0D131D",
+    "border_subtle": "#222F3E",
+    "text_primary": "#F1F5F9",
+    "text_muted": "#94A3B8",
+    "teal_500": "#38BDF8",
+    "brass_500": "#FBBF24",
+    "positive": "#34D399",
+    "negative": "#F87171",
+    "warning": "#FBBF24",
+    "chart_grid": "#1E293B",
+    "chart_zero_line": "#334155",
 }
 
 # ==============================================================================
