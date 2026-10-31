@@ -1,0 +1,9 @@
+priority,pattern,family,description
+10,.*VODKA.*,Vodka,Vodkas nacionais e importadas destiladas puras e aromatizadas
+20,.*WHISK.*|.*BOURBON.*|.*SCOTCH.*,Whisky,Whiskies standard premium bourbon e maltes importados
+30,.*RUM.*,Rum,Rums brancos envelhecidos e spiced rums caribenhos
+40,.*TEQUILA.*|.*MEZCAL.*,Tequila,Tequilas prata ouro e mezcal artesanal mexicano
+50,.*LIQUEUR.*|.*SCHNAPPS.*|.*CORDIAL.*,Licores,Licores finos cremosos de café ervas e aperitivos
+60,.*GIN.*,Gin,Gins clássicos London dry aromáticos e botânicos contemporâneos
+70,.*BRAND.*|.*COCKTAIL.*,Cachaças e Destilados,Cachaças artesanais envelhecidas brandies conhaques e bitters
+999,.*,Outros,Outras bebidas destiladas e itens correlatos fora das categorias base

@@ -1,0 +1,173 @@
+codigo_ibge,nome,uf,regiao,latitude,longitude,populacao,capital
+3550308,São Paulo,SP,Sudeste,-23.5505,-46.6333,11451245,True
+3509502,Campinas,SP,Sudeste,-22.9099,-47.0626,1138309,False
+3543402,Ribeirão Preto,SP,Sudeste,-21.1767,-47.8108,698259,False
+3548500,Santos,SP,Sudeste,-23.9608,-46.3336,418608,False
+3549904,São José dos Campos,SP,Sudeste,-23.1791,-45.8872,697428,False
+3552205,Sorocaba,SP,Sudeste,-23.5015,-47.4526,723574,False
+3548708,São Bernardo do Campo,SP,Sudeste,-23.6939,-46.565,810729,False
+3547809,Santo André,SP,Sudeste,-23.6572,-46.5333,748919,False
+3534401,Osasco,SP,Sudeste,-23.5329,-46.792,743432,False
+3549805,São José do Rio Preto,SP,Sudeste,-20.8113,-49.3758,480439,False
+3506003,Bauru,SP,Sudeste,-22.3145,-49.0587,379146,False
+3538709,Piracicaba,SP,Sudeste,-22.7253,-47.6492,423323,False
+3525904,Jundiaí,SP,Sudeste,-23.1857,-46.8978,443116,False
+3516200,Franca,SP,Sudeste,-20.5386,-47.4008,352537,False
+3304557,Rio de Janeiro,RJ,Sudeste,-22.9068,-43.1729,6211423,True
+3303302,Niterói,RJ,Sudeste,-22.8833,-43.1036,481758,False
+3301702,Duque de Caxias,RJ,Sudeste,-22.7856,-43.3117,808152,False
+3304904,São Gonçalo,RJ,Sudeste,-22.8269,-43.0539,896744,False
+3303500,Nova Iguaçu,RJ,Sudeste,-22.7556,-43.4603,785867,False
+3301009,Campos dos Goytacazes,RJ,Sudeste,-21.7545,-41.3244,483551,False
+3303906,Petrópolis,RJ,Sudeste,-22.505,-43.1789,278881,False
+3306305,Volta Redonda,RJ,Sudeste,-22.5231,-44.1042,261584,False
+3302403,Macaé,RJ,Sudeste,-22.3768,-41.7869,246391,False
+3300704,Cabo Frio,RJ,Sudeste,-22.8894,-42.0289,221987,False
+3106200,Belo Horizonte,MG,Sudeste,-19.9167,-43.9345,2315560,True
+3170206,Uberlândia,MG,Sudeste,-18.9186,-48.2772,713232,False
+3118601,Contagem,MG,Sudeste,-19.9322,-44.0539,621865,False
+3136702,Juiz de Fora,MG,Sudeste,-21.7642,-43.3503,540756,False
+3106705,Betim,MG,Sudeste,-19.9678,-44.1983,411859,False
+3143302,Montes Claros,MG,Sudeste,-16.7281,-43.8617,414240,False
+3170107,Uberaba,MG,Sudeste,-19.7472,-47.9392,337846,False
+3127701,Governador Valadares,MG,Sudeste,-18.8511,-41.9494,257172,False
+3131307,Ipatinga,MG,Sudeste,-19.4683,-42.5367,227731,False
+3152501,Pouso Alegre,MG,Sudeste,-22.23,-45.9364,152262,False
+3122306,Divinópolis,MG,Sudeste,-20.1444,-44.8872,231091,False
+3151800,Poços de Caldas,MG,Sudeste,-21.785,-46.5628,163742,False
+3205309,Vitória,ES,Sudeste,-20.3155,-40.3128,322869,True
+3205200,Vila Velha,ES,Sudeste,-20.3297,-40.2925,467722,False
+3205002,Serra,ES,Sudeste,-20.1286,-40.3078,520653,False
+3201308,Cariacica,ES,Sudeste,-20.2639,-40.42,353511,False
+3201209,Cachoeiro de Itapemirim,ES,Sudeste,-20.8489,-41.1128,185784,False
+3203205,Linhares,ES,Sudeste,-19.3911,-40.0722,171606,False
+3201506,Colatina,ES,Sudeste,-19.5392,-40.6308,119992,False
+4106902,Curitiba,PR,Sul,-25.4284,-49.2733,1773733,True
+4113700,Londrina,PR,Sul,-23.3045,-51.1696,555965,False
+4115200,Maringá,PR,Sul,-23.4205,-51.9331,409657,False
+4119905,Ponta Grossa,PR,Sul,-25.095,-50.1619,358371,False
+4104808,Cascavel,PR,Sul,-24.9558,-53.4553,348051,False
+4125506,São José dos Pinhais,PR,Sul,-25.5347,-49.2064,329222,False
+4108304,Foz do Iguaçu,PR,Sul,-25.5478,-54.5881,285415,False
+4109401,Guarapuava,PR,Sul,-25.3906,-51.4628,182644,False
+4118204,Paranaguá,PR,Sul,-25.5206,-48.5094,145829,False
+4127700,Toledo,PR,Sul,-24.7139,-53.7431,150470,False
+4205407,Florianópolis,SC,Sul,-27.5954,-48.548,537213,True
+4209102,Joinville,SC,Sul,-26.3045,-48.8487,616323,False
+4202404,Blumenau,SC,Sul,-26.9196,-49.0661,361261,False
+4216602,São José,SC,Sul,-27.6136,-48.6366,270295,False
+4204608,Criciúma,SC,Sul,-28.6775,-49.3703,214493,False
+4204202,Chapecó,SC,Sul,-27.1006,-52.6153,254781,False
+4208203,Itajaí,SC,Sul,-26.9078,-48.6619,264054,False
+4202008,Balneário Camboriú,SC,Sul,-26.9928,-48.6347,139155,False
+4208906,Jaraguá do Sul,SC,Sul,-26.4853,-49.08,182660,False
+4209904,Lages,SC,Sul,-27.8161,-50.3261,164981,False
+4314902,Porto Alegre,RS,Sul,-30.0346,-51.2177,1332570,True
+4305108,Caxias do Sul,RS,Sul,-29.1678,-51.1794,463377,False
+4304606,Canoas,RS,Sul,-29.9178,-51.1836,347657,False
+4314407,Pelotas,RS,Sul,-31.7654,-52.3376,325689,False
+4316907,Santa Maria,RS,Sul,-29.6842,-53.8069,271633,False
+4309209,Gravataí,RS,Sul,-29.9439,-50.9928,265070,False
+4313409,Novo Hamburgo,RS,Sul,-29.6878,-51.1319,227732,False
+4318705,São Leopoldo,RS,Sul,-29.76,-51.1478,217410,False
+4315602,Rio Grande,RS,Sul,-32.035,-52.0986,191900,False
+4314100,Passo Fundo,RS,Sul,-28.2619,-52.4083,206224,False
+2927408,Salvador,BA,Nordeste,-12.9777,-38.5016,2418005,True
+2910800,Feira de Santana,BA,Nordeste,-12.2664,-38.9664,616279,False
+2933307,Vitória da Conquista,BA,Nordeste,-14.8661,-40.8394,370868,False
+2905701,Camaçari,BA,Nordeste,-12.6975,-38.3242,299558,False
+2918407,Juazeiro,BA,Nordeste,-9.4167,-40.5,235816,False
+2914802,Itabuna,BA,Nordeste,-14.7878,-39.2789,186708,False
+2919207,Lauro de Freitas,BA,Nordeste,-12.8944,-38.3272,203334,False
+2913606,Ilhéus,BA,Nordeste,-14.7889,-39.0494,178703,False
+2918001,Jequié,BA,Nordeste,-13.8586,-40.0839,158812,False
+2900702,Alagoinhas,BA,Nordeste,-12.135,-38.4192,151065,False
+2903201,Barreiras,BA,Nordeste,-12.1528,-44.9967,159743,False
+2611606,Recife,PE,Nordeste,-8.0476,-34.877,1488920,True
+2607901,Jaboatão dos Guararapes,PE,Nordeste,-8.1128,-35.0153,643759,False
+2609600,Olinda,PE,Nordeste,-7.9989,-34.8456,349976,False
+2604106,Caruaru,PE,Nordeste,-8.2833,-35.9761,378052,False
+2611101,Petrolina,PE,Nordeste,-9.3889,-40.5008,386786,False
+2610707,Paulista,PE,Nordeste,-7.9408,-34.8728,342167,False
+2602902,Cabo de Santo Agostinho,PE,Nordeste,-8.2839,-35.035,203216,False
+2606002,Garanhuns,PE,Nordeste,-8.8906,-36.4928,142506,False
+2304400,Fortaleza,CE,Nordeste,-3.7172,-38.5434,2428678,True
+2303709,Caucaia,CE,Nordeste,-3.7317,-38.6531,355679,False
+2307304,Juazeiro do Norte,CE,Nordeste,-7.2028,-39.315,286120,False
+2307650,Maracanaú,CE,Nordeste,-3.8667,-38.6256,234392,False
+2312908,Sobral,CE,Nordeste,-3.6889,-40.3494,203062,False
+2304285,Crato,CE,Nordeste,-7.2344,-39.4103,131050,False
+2306405,Itapipoca,CE,Nordeste,-3.4944,-39.5789,131123,False
+2408102,Natal,RN,Nordeste,-5.7945,-35.211,751300,True
+2408003,Mossoró,RN,Nordeste,-5.1878,-37.3442,264577,False
+2403251,Parnamirim,RN,Nordeste,-5.9156,-35.2628,252716,False
+2412005,São Gonçalo do Amarante,RN,Nordeste,-5.7931,-35.3289,115838,False
+2507507,João Pessoa,PB,Nordeste,-7.115,-34.8631,833932,True
+2504009,Campina Grande,PB,Nordeste,-7.2219,-35.8811,419379,False
+2513703,Santa Rita,PB,Nordeste,-7.1139,-34.9781,149910,False
+2510808,Patos,PB,Nordeste,-7.0244,-37.28,103165,False
+2704302,Maceió,AL,Nordeste,-9.6658,-35.7353,957916,True
+2700300,Arapiraca,AL,Nordeste,-9.7519,-36.6606,234696,False
+2707701,Rio Largo,AL,Nordeste,-9.4778,-35.8403,93927,False
+2800308,Aracaju,SE,Nordeste,-10.9111,-37.0717,602757,True
+2804805,Nossa Senhora do Socorro,SE,Nordeste,-10.8547,-37.1261,192330,False
+2803500,Itabaiana,SE,Nordeste,-10.685,-37.4253,103440,False
+2803708,Lagarto,SE,Nordeste,-10.9172,-37.65,101579,False
+2111300,São Luís,MA,Nordeste,-2.5307,-44.3068,1037775,True
+2105302,Imperatriz,MA,Nordeste,-5.5264,-47.4778,273110,False
+2111201,São José de Ribamar,MA,Nordeste,-2.5619,-44.0542,244579,False
+2112209,Timon,MA,Nordeste,-5.0939,-42.8361,174465,False
+2103000,Caxias,MA,Nordeste,-4.8589,-43.3561,156973,False
+2211001,Teresina,PI,Nordeste,-5.0892,-42.8016,866300,True
+2207702,Parnaíba,PI,Nordeste,-2.9039,-41.7767,162159,False
+2208007,Picos,PI,Nordeste,-7.0769,-41.4669,83090,False
+5300108,Brasília,DF,Centro-Oeste,-15.7939,-47.8828,2817068,True
+5300109,Taguatinga,DF,Centro-Oeste,-15.8333,-48.0569,221909,False
+5300110,Ceilândia,DF,Centro-Oeste,-15.8208,-48.1078,398321,False
+5208707,Goiânia,GO,Centro-Oeste,-16.6869,-49.2648,1437237,True
+5201405,Aparecida de Goiânia,GO,Centro-Oeste,-16.8239,-49.2439,527550,False
+5201108,Anápolis,GO,Centro-Oeste,-16.3267,-48.9533,398817,False
+5218805,Rio Verde,GO,Centro-Oeste,-17.7928,-50.9192,225696,False
+5212501,Luziânia,GO,Centro-Oeste,-16.2525,-47.95,208725,False
+5200258,Águas Lindas de Goiás,GO,Centro-Oeste,-15.7622,-48.2819,225671,False
+5211503,Itumbiara,GO,Centro-Oeste,-18.4194,-49.2158,107970,False
+5103403,Cuiabá,MT,Centro-Oeste,-15.6014,-56.0979,650912,True
+5108402,Várzea Grande,MT,Centro-Oeste,-15.6469,-56.1325,299472,False
+5107602,Rondonópolis,MT,Centro-Oeste,-16.4678,-54.6367,244897,False
+5107909,Sinop,MT,Centro-Oeste,-11.8606,-55.5097,196094,False
+5107925,Sorriso,MT,Centro-Oeste,-12.5425,-55.7211,110635,False
+5107958,Tangará da Serra,MT,Centro-Oeste,-14.6225,-57.4933,106434,False
+5002704,Campo Grande,MS,Centro-Oeste,-20.4697,-54.6201,897938,True
+5003702,Dourados,MS,Centro-Oeste,-22.2211,-54.8056,243368,False
+5008305,Três Lagoas,MS,Centro-Oeste,-20.7847,-51.7019,132152,False
+5003207,Corumbá,MS,Centro-Oeste,-19.0092,-57.6533,96261,False
+5006606,Ponta Porã,MS,Centro-Oeste,-22.5361,-55.7256,92017,False
+1302603,Manaus,AM,Norte,-3.119,-60.0217,2063547,True
+1303403,Parintins,AM,Norte,-2.6289,-56.7358,96372,False
+1301902,Itacoatiara,AM,Norte,-3.1431,-58.4442,103598,False
+1302504,Manacapuru,AM,Norte,-3.2997,-60.6206,101883,False
+1301209,Coari,AM,Norte,-4.085,-63.1417,70616,False
+1501402,Belém,PA,Norte,-1.4558,-48.5039,1303389,True
+1500800,Ananindeua,PA,Norte,-1.3656,-48.3722,478778,False
+1506807,Santarém,PA,Norte,-2.4431,-54.7083,331937,False
+1504208,Marabá,PA,Norte,-5.3686,-49.1178,266536,False
+1505536,Parauapebas,PA,Norte,-6.0681,-49.9042,267836,False
+1502400,Castanhal,PA,Norte,-1.2978,-47.9256,192262,False
+1500107,Abaetetuba,PA,Norte,-1.7219,-48.8833,158188,False
+1200401,Rio Branco,AC,Norte,-9.9749,-67.8243,364756,True
+1200203,Cruzeiro do Sul,AC,Norte,-7.6311,-72.67,91888,False
+1200450,Sena Madureira,AC,Norte,-9.0658,-68.6569,41349,False
+1100205,Porto Velho,RO,Norte,-8.7619,-63.9039,460413,True
+1100122,Ji-Paraná,RO,Norte,-10.8828,-61.945,124333,False
+1100049,Cacoal,RO,Norte,-11.4386,-61.4472,86895,False
+1100304,Vilhena,RO,Norte,-12.7406,-60.1458,95832,False
+1100023,Ariquemes,RO,Norte,-9.9133,-63.0408,96833,False
+1400100,Boa Vista,RR,Norte,2.8235,-60.6758,413486,True
+1400506,Rorainópolis,RR,Norte,0.9456,-60.4439,32647,False
+1600303,Macapá,AP,Norte,0.0349,-51.0694,442933,True
+1600600,Santana,AP,Norte,-0.0583,-51.1817,107618,False
+1600279,Laranjal do Jari,AP,Norte,-0.8425,-52.5158,52362,False
+1721000,Palmas,TO,Norte,-10.1844,-48.3336,302692,True
+1702109,Araguaína,TO,Norte,-7.1919,-48.2072,171424,False
+1709500,Gurupi,TO,Norte,-11.7297,-49.0686,85126,False
+1718204,Porto Nacional,TO,Norte,-10.7081,-48.4172,64498,False

@@ -1,0 +1,28 @@
+uf,nome,regiao,codigo_ibge,aliquota_icms_interna
+SP,São Paulo,Sudeste,35,0.180
+RJ,Rio de Janeiro,Sudeste,33,0.200
+MG,Minas Gerais,Sudeste,31,0.180
+ES,Espírito Santo,Sudeste,32,0.170
+PR,Paraná,Sul,41,0.190
+SC,Santa Catarina,Sul,42,0.170
+RS,Rio Grande do Sul,Sul,43,0.170
+BA,Bahia,Nordeste,29,0.205
+PE,Pernambuco,Nordeste,26,0.205
+CE,Ceará,Nordeste,23,0.200
+RN,Rio Grande do Norte,Nordeste,24,0.180
+PB,Paraíba,Nordeste,25,0.200
+AL,Alagoas,Nordeste,27,0.190
+SE,Sergipe,Nordeste,28,0.190
+MA,Maranhão,Nordeste,21,0.220
+PI,Piauí,Nordeste,22,0.210
+DF,Distrito Federal,Centro-Oeste,53,0.200
+GO,Goiás,Centro-Oeste,52,0.190
+MT,Mato Grosso,Centro-Oeste,51,0.170
+MS,Mato Grosso do Sul,Centro-Oeste,50,0.170
+AM,Amazonas,Norte,13,0.200
+PA,Pará,Norte,15,0.190
+AC,Acre,Norte,12,0.190
+RO,Rondônia,Norte,11,0.195
+RR,Roraima,Norte,14,0.200
+AP,Amapá,Norte,16,0.180
+TO,Tocantins,Norte,17,0.200

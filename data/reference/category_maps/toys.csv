@@ -1,0 +1,9 @@
+priority,pattern,family,description
+10,.*VODKA.*,Jogos Educativos,Kits educativos de ciências alfabetização matemática e raciocínio lógico
+20,.*WHISK.*|.*BOURBON.*|.*SCOTCH.*,Quebra-Cabeças,Quebra-cabeças de 100 a 1000 peças mapas do Brasil e paisagens
+30,.*RUM.*,Primeira Infância,Móbiles chocalhos brinquedos de banho e estimulação motora bebê
+40,.*TEQUILA.*|.*MEZCAL.*,Brinquedos de Madeira,Blocos de montar carrinhos de madeira e ábacos artesanais
+50,.*LIQUEUR.*|.*SCHNAPPS.*|.*CORDIAL.*,Linha Escolar,Tintas guache massinhas lápis de cor e kits aquarela
+60,.*GIN.*,Jogos de Tabuleiro,Jogos de estratégia cartas trilha e tabuleiros clássicos
+70,.*BRAND.*|.*COCKTAIL.*,Pelúcias,Pelúcias antialérgicas bichinhos temáticos e almofadas
+999,.*,Outros,Acessórios e itens diversos fora das linhas principais
