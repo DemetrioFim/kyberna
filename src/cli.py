@@ -10,6 +10,7 @@ from src.etl.ingest.fixture import generate_fixture
 from src.etl.ingest.raw_to_bronze import convert_all_raw_to_bronze, populate_bronze_from_sample_fixture
 from src.etl.ingest.socrata_client import SocrataClient
 from src.etl.silver.clean import build_silver_sales
+from src.etl.silver.enrich import enrich_silver_dimensions
 from src.etl.silver.time_anchor import apply_time_anchor
 
 app = typer.Typer(
@@ -187,6 +188,11 @@ def silver_build(
             f"Âncora temporal aplicada: shift={anchor_meta['time_shift_days']} dias "
             f"({anchor_meta['min_shifted_date']} a {anchor_meta['max_shifted_date']})."
         )
+        counts = enrich_silver_dimensions()
+        typer.echo(
+            f"Dimensões Silver enriquecidas: {counts['customers']:,} clientes, "
+            f"{counts['sales_reps']:,} RCAs, {counts['geography']:,} municípios."
+        )
 
 
 @silver_app.command("anchor")
@@ -205,6 +211,20 @@ def silver_anchor(
             f"Âncora temporal atualizada em {parquet_p}: "
             f"shift={anchor_meta['time_shift_days']} dias "
             f"({anchor_meta['min_shifted_date']} a {anchor_meta['max_shifted_date']})."
+        )
+
+
+@silver_app.command("enrich")
+def silver_enrich(
+    seed: int = typer.Option(42, "--seed", "-s", help="Semente pseudo-aleatória determinística"),
+) -> None:
+    """Gera dimensões sintéticas brasileiras (clientes, RCAs e geografia) no DuckDB e Parquet."""
+    with timed_step("enriquecimento_silver"):
+        counts = enrich_silver_dimensions(global_seed=seed)
+        typer.echo(
+            f"Dimensões Silver enriquecidas com sucesso: "
+            f"{counts['customers']:,} clientes, {counts['sales_reps']:,} RCAs, "
+            f"{counts['geography']:,} municípios."
         )
 
 

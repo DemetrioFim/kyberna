@@ -142,6 +142,23 @@ class SilverSalesRepSchema(pa.DataFrameModel):
         coerce = True
 
 
+class SilverGeographySchema(pa.DataFrameModel):
+    """Contrato da dimensão de geografia brasileira."""
+
+    codigo_ibge: int = Field(nullable=False)
+    city: str = Field(nullable=False)
+    state: str = Field(str_length=2, nullable=False)
+    region: str = Field(isin=["Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte"], nullable=False)
+    latitude: float = Field(ge=-35.0, le=6.0, nullable=False)
+    longitude: float = Field(ge=-75.0, le=-34.0, nullable=False)
+    populacao: int = Field(gt=0, nullable=False)
+    capital: bool = Field(nullable=False)
+
+    class Config:
+        strict = True
+        coerce = True
+
+
 # ==============================================================================
 # Camada Gold: Fato de Vendas e Waterfall Financeiro
 # ==============================================================================
