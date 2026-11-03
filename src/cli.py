@@ -8,6 +8,9 @@ import typer
 from src.core.logging import setup_logging, timed_step
 from src.core.paths import get_duckdb_path, get_project_root
 from src.core.scenarios import list_scenario_configs, load_scenario_config
+from src.etl.audit import generate_audit_report
+from src.etl.gold.marts import build_gold_marts
+from src.etl.gold.star_schema import build_gold_star_schema
 from src.etl.ingest.fixture import generate_fixture
 from src.etl.ingest.raw_to_bronze import convert_all_raw_to_bronze, populate_bronze_from_sample_fixture
 from src.etl.ingest.socrata_client import SocrataClient
@@ -242,34 +245,42 @@ def gold_build(
     sample: bool = typer.Option(False, "--sample", help="Processar com base na amostra reduzida"),
 ) -> None:
     """Gera dimensões, fatos e marts analíticos da camada Gold no formato Parquet e DuckDB."""
+    target_scenarios = ["c1_toys"] if scenario in ("c1_toys", "c1", "all") else [scenario]
+
     if scenario == "all":
         list_scenario_configs()
-        with timed_step("build_cenario_c1_toys"):
-            con = duckdb.connect(str(get_duckdb_path()))
-            builder = C1ToysScenarioBuilder()
-            counts = builder.build(con)
-            typer.echo(
-                f"Cenário C1 (Brinquedos) construído com sucesso: "
-                f"{counts['dim_product']:,} produtos, {counts['sales_remapped']:,} vendas remapeadas."
-            )
-            return
 
-    # Valida cenário existente
-    load_scenario_config(scenario)
+    for scn in target_scenarios:
+        # Valida cenário existente
+        load_scenario_config(scn)
 
-    if scenario in ("c1_toys", "c1"):
-        with timed_step("build_cenario_c1_toys"):
-            con = duckdb.connect(str(get_duckdb_path()))
-            builder = C1ToysScenarioBuilder()
-            counts = builder.build(con)
-            typer.echo(
-                f"Cenário C1 (Brinquedos) construído com sucesso: "
-                f"{counts['dim_product']:,} produtos, {counts['sales_remapped']:,} vendas remapeadas."
-            )
-            return
+        if scn in ("c1_toys", "c1"):
+            with timed_step("build_cenario_c1_toys"):
+                con = duckdb.connect(str(get_duckdb_path()))
+                try:
+                    # 1. Builder semântico do cenário
+                    builder = C1ToysScenarioBuilder()
+                    builder.build(con)
 
-    # TODO(M2-D6 / M3-D1): Implementar builders específicos dos demais cenários (C2, C3, C4)
-    raise NotImplementedError(f"Builder para o cenário '{scenario}' será implementado nos próximos marcos.")
+                    # 2. Star Schema Gold
+                    star_counts = build_gold_star_schema(con, scenario_id="c1_toys")
+
+                    # 3. Marts analíticos Gold
+                    mart_counts = build_gold_marts(con, scenario_id="c1_toys")
+
+                    typer.echo(
+                        f"Cenário C1 (Brinquedos) construído com sucesso:\n"
+                        f"  - Star Schema: {star_counts['dim_product']:,} produtos, "
+                        f"{star_counts['dim_customer']:,} clientes, "
+                        f"{star_counts['fact_sales']:,} vendas faturadas.\n"
+                        f"  - Marts: {mart_counts['mart_margin_monthly']:,} registros mensais agregados."
+                    )
+                finally:
+                    con.close()
+        else:
+            # TODO(M6-D1 / M6-D2 / M6-D3): Builders para os demais cenários (C2, C3, C4)
+            msg = f"Builder para o cenário '{scn}' será implementado nos próximos marcos."
+            raise NotImplementedError(msg)
 
 
 # ------------------------------------------------------------------------------
@@ -296,13 +307,25 @@ def ml_infer(
 # ------------------------------------------------------------------------------
 # Audit
 # ------------------------------------------------------------------------------
+@audit_app.callback(invoke_without_command=True)
+def audit_main(
+    ctx: typer.Context,
+    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário a auditar"),
+) -> None:
+    """Gera planilha Excel aberta de conciliação financeira e memória de cálculo."""
+    if ctx.invoked_subcommand is None:
+        audit_report(scenario=scenario)
+
+
 @audit_app.command("report")
 def audit_report(
     scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário a auditar"),
 ) -> None:
     """Gera planilha Excel aberta de conciliação financeira e memória de cálculo."""
-    # TODO(M2-D4): Implementar gerador xlsxwriter com abas DRE, Memória e Curvas
-    raise NotImplementedError("Comando ainda não implementado. Tarefa responsável: M2-D4")
+    cfg = load_scenario_config(scenario)
+    with timed_step("audit_report"):
+        output_path = generate_audit_report(scenario_id=cfg.id)
+        typer.echo(f"Planilha de conciliação gerada com sucesso: {output_path}")
 
 
 # ------------------------------------------------------------------------------

@@ -155,9 +155,9 @@ def test_c1_average_margin_and_rca_dispersion(
     total_margin = df_fact["contribution_margin"].sum()
     avg_margin_pct = (total_margin / total_gross) * 100.0
 
-    assert 18.0 <= avg_margin_pct <= 35.0, (
-        f"Margem média do C1 foi {avg_margin_pct:.2f}%, fora do intervalo esperado [18%, 35%]"
-    )
+    assert (
+        18.0 <= avg_margin_pct <= 35.0
+    ), f"Margem média do C1 foi {avg_margin_pct:.2f}%, fora do intervalo esperado [18%, 35%]"
 
     # Agrupa por RCA para medir dispersão
     rca_margins = (
@@ -172,9 +172,9 @@ def test_c1_average_margin_and_rca_dispersion(
 
     std_margin_pct = float(rca_margins["margin_pct"].std())
 
-    assert std_margin_pct >= 4.0, (
-        f"Dispersão de margem entre RCAs foi {std_margin_pct:.2f} p.p., inferior a 4.0 p.p."
-    )
+    assert (
+        std_margin_pct >= 4.0
+    ), f"Dispersão de margem entre RCAs foi {std_margin_pct:.2f} p.p., inferior a 4.0 p.p."
 
 
 def test_margin_waterfall_determinism(tmp_path: Path) -> None:
