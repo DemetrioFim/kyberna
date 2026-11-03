@@ -7,6 +7,7 @@ import duckdb
 from src.core.logging import get_logger
 from src.core.paths import get_data_dir
 from src.core.types import ScenarioId
+from src.ml.abc_xyz import build_abc_xyz_mart
 
 logger = get_logger(__name__)
 
@@ -129,4 +130,9 @@ def build_gold_marts(
     logger.info("Iniciando geração dos marts Gold para cenário '%s'...", scenario_id)
     counts: dict[str, int] = {}
     counts["mart_margin_monthly"] = build_margin_monthly_mart(con, scenario_id=scenario_id)
+
+    # Mart analítico da Matriz ABC/XYZ
+    abc_df = build_abc_xyz_mart(con, scenario_id=scenario_id)
+    counts["mart_abc_xyz"] = len(abc_df)
+
     return counts

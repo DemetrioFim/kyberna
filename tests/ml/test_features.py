@@ -194,7 +194,9 @@ def test_customer_family_features_share_sums(
     shares_sum = cf_df.groupby("customer_id")["family_revenue_share"].sum()
 
     # Cada cliente com compras deve ter soma de share = 1.0 (tolerância de arredondamento 0.01)
-    assert ((shares_sum - 1.0).abs() < 0.01).all(), (
+    assert (
+        (shares_sum - 1.0).abs() < 0.01
+    ).all(), (
         f"Shares de famílias não fecham em 100% para alguns clientes: {shares_sum[shares_sum != 1.0].head()}"
     )
 

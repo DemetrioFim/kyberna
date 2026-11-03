@@ -11,6 +11,7 @@ import xlsxwriter
 from src.core.logging import get_logger
 from src.core.paths import get_data_dir, get_duckdb_path
 from src.core.types import ScenarioId
+from src.ml.abc_xyz import build_abc_xyz_mart, compute_abc_xyz_matrix_summary
 
 logger = get_logger(__name__)
 
@@ -63,6 +64,7 @@ def generate_audit_report(
         rcas_df = _extract_rcas_summary(con, scenario_id)
         top_customers_df = _extract_top_customers(con, scenario_id, limit=20)
         integrity_data = _extract_integrity_stats(con, scenario_id)
+        abc_xyz_df, matrix_summary_df = _extract_abc_xyz_data(con, scenario_id)
 
         # Construção da planilha via xlsxwriter
         workbook = xlsxwriter.Workbook(str(output_path), {"nan_inf_to_errors": True})
@@ -83,6 +85,9 @@ def generate_audit_report(
         _build_rcas_and_audit_sheet(
             workbook, formats, rcas_df, top_customers_df, integrity_data, scenario_id=scenario_id
         )
+
+        # 5. Aba Matriz ABC/XYZ
+        _build_abc_xyz_sheet(workbook, formats, abc_xyz_df, matrix_summary_df)
 
         workbook.close()
         logger.info("Planilha de conciliação gerada com sucesso em: %s", output_path)
@@ -288,6 +293,32 @@ def _extract_integrity_stats(con: duckdb.DuckDBPyConnection, scenario_id: str) -
     }
 
 
+def _extract_abc_xyz_data(
+    con: duckdb.DuckDBPyConnection, scenario_id: str
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Extrai os dados da Matriz ABC/XYZ e o resumo executivo das 9 células."""
+    table_exists = False
+    try:
+        res = con.execute(
+            f"SELECT COUNT(*) FROM information_schema.tables "
+            f"WHERE table_schema IN ('{scenario_id}', 'gold') AND table_name = 'mart_abc_xyz'"
+        ).fetchone()
+        table_exists = bool(res and res[0] > 0)
+    except Exception:
+        table_exists = False
+
+    if table_exists:
+        df = con.execute(
+            f"SELECT * FROM gold.mart_abc_xyz WHERE scenario_id = '{scenario_id}' "
+            f"ORDER BY abc_class ASC, contribution_margin DESC, product_id ASC"
+        ).df()
+    else:
+        df = build_abc_xyz_mart(con, scenario_id=scenario_id)  # type: ignore[arg-type]
+
+    summary = compute_abc_xyz_matrix_summary(df)
+    return df, summary
+
+
 # ==============================================================================
 # Estilização Corporativa Excel (xlsxwriter)
 # ==============================================================================
@@ -427,6 +458,25 @@ def _create_excel_formats(workbook: xlsxwriter.Workbook) -> dict[str, xlsxwriter
             {
                 "font_name": base_font,
                 "font_size": 10,
+                "border": 1,
+                "align": "center",
+                "valign": "vcenter",
+            }
+        ),
+        "cell_float": workbook.add_format(
+            {
+                "font_name": base_font,
+                "font_size": 10,
+                "border": 1,
+                "num_format": "#,##0.00",
+                "align": "right",
+                "valign": "vcenter",
+            }
+        ),
+        "cell_code": workbook.add_format(
+            {
+                "font_name": "Consolas",
+                "font_size": 9,
                 "border": 1,
                 "align": "center",
                 "valign": "vcenter",
@@ -1077,3 +1127,105 @@ def _build_rcas_and_audit_sheet(
     ws.set_column(5, 5, 20)
     ws.set_column(6, 9, 18)
     ws.set_column(10, 10, 14)
+
+
+def _build_abc_xyz_sheet(
+    workbook: xlsxwriter.Workbook,
+    formats: dict[str, Any],
+    abc_xyz_df: pd.DataFrame,
+    summary_df: pd.DataFrame,
+) -> None:
+    """Constrói a Aba 5: Matriz ABC/XYZ, Resumo das 9 Células e Políticas Prescritivas."""
+    ws = workbook.add_worksheet("Matriz_ABC_XYZ")
+    ws.set_tab_color("#D97706")
+    ws.hide_gridlines(2)
+
+    ws.write(1, 1, "MATRIZ 3x3 ABC/XYZ & POLÍTICAS PRESCRITIVAS DE ESTOQUE", formats["title"])
+    sub_title = (
+        "Cruzamento de relevância financeira (Curva ABC) e previsibilidade de demanda (XYZ) "
+        "com políticas sugeridas por célula."
+    )
+    ws.write(2, 1, sub_title, formats["subtitle"])
+
+    # Tabela 1: Resumo das 9 Células
+    ws.write(4, 1, "RESUMO EXECUTIVO DAS 9 CÉLULAS DA MATRIZ", formats["header_teal"])
+    headers_summary = [
+        "Célula",
+        "Curva ABC",
+        "Volatilidade XYZ",
+        "SKUs",
+        "% SKUs",
+        "Faturamento Bruto (R$)",
+        "% Receita",
+        "Margem Contr (R$)",
+        "% Margem",
+        "Margem Média (%)",
+        "Política Prescritiva Recomendada",
+    ]
+    for col_idx, h in enumerate(headers_summary, start=1):
+        ws.write(5, col_idx, h, formats["header_teal"])
+
+    for i, (_, row) in enumerate(summary_df.iterrows()):
+        curr_r = 6 + i
+        ws.write(curr_r, 1, row["cell"], formats["cell_bold_text"])
+        ws.write(curr_r, 2, f"Classe {row['abc_class']}", formats["cell_center"])
+        ws.write(curr_r, 3, f"Classe {row['xyz_class']}", formats["cell_center"])
+        ws.write(curr_r, 4, int(row["sku_count"]), formats["cell_int"])
+        ws.write(curr_r, 5, row["sku_pct"] / 100.0, formats["cell_percent"])
+        ws.write(curr_r, 6, row["gross_revenue"], formats["cell_currency"])
+        ws.write(curr_r, 7, row["revenue_pct"] / 100.0, formats["cell_percent"])
+        ws.write(curr_r, 8, row["contribution_margin"], formats["cell_currency"])
+        ws.write(curr_r, 9, row["margin_pct"] / 100.0, formats["cell_percent"])
+        ws.write(curr_r, 10, row["avg_margin_rate"] / 100.0, formats["cell_percent"])
+        ws.write(curr_r, 11, row["policy"], formats["cell_text"])
+
+    # Tabela 2: Amostra dos Top 30 SKUs Classificados
+    top_start_r = 17
+    ws.write(
+        top_start_r,
+        1,
+        "CATÁLOGO DE SKUs — CLASSIFICAÇÃO ABC/XYZ E POLÍTICA (TOP 30 POR MARGEM)",
+        formats["header_teal"],
+    )
+    headers_skus = [
+        "Código EAN-13",
+        "Produto",
+        "Família",
+        "Emb (Pack)",
+        "Unidades",
+        "Faturamento Bruto (R$)",
+        "Margem Contr (R$)",
+        "Margem (%)",
+        "Demanda Semanal Média",
+        "CV Semanal",
+        "Célula",
+        "Política Prescritiva",
+    ]
+    for col_idx, h in enumerate(headers_skus, start=1):
+        ws.write(top_start_r + 1, col_idx, h, formats["header_teal"])
+
+    top_skus = abc_xyz_df.head(30)
+    for i, (_, row) in enumerate(top_skus.iterrows()):
+        curr_r = top_start_r + 2 + i
+        ws.write(curr_r, 1, str(row["product_id"]), formats["cell_code"])
+        ws.write(curr_r, 2, row["product_name"], formats["cell_bold_text"])
+        ws.write(curr_r, 3, row["family"], formats["cell_text"])
+        ws.write(curr_r, 4, int(row["pack"]), formats["cell_int"])
+        ws.write(curr_r, 5, int(row["units_sold"]), formats["cell_int"])
+        ws.write(curr_r, 6, row["gross_revenue"], formats["cell_currency"])
+        ws.write(curr_r, 7, row["contribution_margin"], formats["cell_currency"])
+        m_pct = row["margin_pct"] / 100.0 if pd.notna(row["margin_pct"]) else 0.0
+        ws.write(curr_r, 8, m_pct, formats["cell_percent"])
+        ws.write(curr_r, 9, row["weekly_demand_mean"], formats["cell_float"])
+        ws.write(curr_r, 10, row["weekly_cv"], formats["cell_float"])
+        ws.write(curr_r, 11, row["abc_xyz_class"], formats["cell_bold_text"])
+        ws.write(curr_r, 12, row["policy"], formats["cell_text"])
+
+    ws.set_column(1, 1, 18)
+    ws.set_column(2, 2, 38)
+    ws.set_column(3, 3, 22)
+    ws.set_column(4, 5, 14)
+    ws.set_column(6, 7, 20)
+    ws.set_column(8, 10, 16)
+    ws.set_column(11, 11, 12)
+    ws.set_column(12, 12, 60)

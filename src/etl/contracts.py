@@ -219,6 +219,39 @@ class GoldFactSalesSchema(pa.DataFrameModel):
         coerce = True
 
 
+class GoldAbcXyzSchema(pa.DataFrameModel):
+    """Contrato do mart analítico da Matriz ABC/XYZ e políticas prescritivas por SKU."""
+
+    scenario_id: str = Field(isin=VALID_SCENARIO_IDS, nullable=False)
+    as_of_date: str = Field(nullable=False)
+    product_id: str = Field(nullable=False, str_length=13, description="EAN-13")
+    item_number: str = Field(nullable=False)
+    product_name: str = Field(nullable=False)
+    family: str = Field(nullable=False)
+    pack: int = Field(ge=1, nullable=False)
+    units_sold: int = Field(ge=0, nullable=False)
+    boxes_sold: float = Field(ge=0.0, nullable=False)
+    gross_revenue: float = Field(ge=0.0, nullable=False)
+    contribution_margin: float = Field(nullable=False)
+    margin_pct: float | None = Field(nullable=True)
+    weekly_demand_mean: float = Field(ge=0.0, nullable=False)
+    weekly_demand_std: float = Field(ge=0.0, nullable=False)
+    weekly_cv: float = Field(ge=0.0, nullable=False)
+    revenue_share: float = Field(ge=0.0, le=1.0001, nullable=False)
+    cum_revenue_share: float = Field(ge=0.0, le=1.0001, nullable=False)
+    margin_share: float = Field(nullable=False)
+    cum_margin_share: float = Field(nullable=False)
+    abc_class: str = Field(isin=["A", "B", "C"], nullable=False)
+    xyz_class: str = Field(isin=["X", "Y", "Z"], nullable=False)
+    abc_xyz_class: str = Field(isin=["AX", "AY", "AZ", "BX", "BY", "BZ", "CX", "CY", "CZ"], nullable=False)
+    policy: str = Field(nullable=False)
+    snapshot_date: str = Field(nullable=False)
+
+    class Config:
+        strict = False
+        coerce = True
+
+
 # ==============================================================================
 # Helper Unificado de Validação
 # ==============================================================================

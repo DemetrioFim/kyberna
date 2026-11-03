@@ -18,6 +18,7 @@ from src.etl.scenarios.c1_toys import C1ToysScenarioBuilder
 from src.etl.silver.clean import build_silver_sales
 from src.etl.silver.enrich import enrich_silver_dimensions
 from src.etl.silver.time_anchor import apply_time_anchor
+from src.ml.abc_xyz import build_abc_xyz_mart, compute_abc_xyz_matrix_summary
 
 app = typer.Typer(
     name="kyberna",
@@ -273,7 +274,8 @@ def gold_build(
                         f"  - Star Schema: {star_counts['dim_product']:,} produtos, "
                         f"{star_counts['dim_customer']:,} clientes, "
                         f"{star_counts['fact_sales']:,} vendas faturadas.\n"
-                        f"  - Marts: {mart_counts['mart_margin_monthly']:,} registros mensais agregados."
+                        f"  - Marts: {mart_counts['mart_margin_monthly']:,} registros mensais agregados, "
+                        f"{mart_counts.get('mart_abc_xyz', 0):,} SKUs classificados em ABC/XYZ."
                     )
                 finally:
                     con.close()
@@ -286,6 +288,46 @@ def gold_build(
 # ------------------------------------------------------------------------------
 # ML
 # ------------------------------------------------------------------------------
+@ml_app.command("abc-xyz")
+def ml_abc_xyz(
+    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
+    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
+    metric: str = typer.Option(
+        "contribution_margin",
+        "--metric",
+        help="Métrica do corte ABC ('contribution_margin' ou 'gross_revenue')",
+    ),
+) -> None:
+    """Classifica produtos na Matriz ABC/XYZ e salva mart_abc_xyz."""
+    con = duckdb.connect(str(get_duckdb_path()))
+    try:
+        with timed_step("ml_abc_xyz"):
+            df = build_abc_xyz_mart(
+                con,
+                as_of_date=as_of,
+                scenario_id=scenario,  # type: ignore[arg-type]
+                metric=metric,  # type: ignore[arg-type]
+            )
+            summary = compute_abc_xyz_matrix_summary(df)
+
+        typer.echo(f"\nMatriz 3x3 ABC/XYZ gerada com sucesso para '{scenario}' ({len(df):,} SKUs):")
+        typer.echo(
+            summary[
+                [
+                    "cell",
+                    "sku_count",
+                    "sku_pct",
+                    "gross_revenue",
+                    "revenue_pct",
+                    "contribution_margin",
+                    "margin_pct",
+                ]
+            ].to_string(index=False)
+        )
+    finally:
+        con.close()
+
+
 @ml_app.command("train")
 def ml_train(
     scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),

@@ -144,6 +144,7 @@ def test_generate_audit_report_excel_structure(
         "Memoria_Calculo",
         "Resumo_Familias_Mix",
         "Auditoria_RCAs_Clientes",
+        "Matriz_ABC_XYZ",
     ]
     for expected in expected_sheets:
         assert expected in sheet_names, f"Aba '{expected}' ausente no arquivo Excel gerado"

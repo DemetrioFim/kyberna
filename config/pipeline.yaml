@@ -22,13 +22,26 @@ ingestion:
 
 # Parâmetros analíticos e regras de negócio
 thresholds:
-  # Classificação Curva ABC (Receita Bruta Acumulada)
-  abc_a_cutoff: 0.80   # Top 80% da receita -> Classe A
-  abc_b_cutoff: 0.95   # 80% a 95% -> Classe B; > 95% -> Classe C
+  # Classificação Curva ABC (Margem de Contribuição Líquida ou Receita Bruta)
+  abc_metric: "contribution_margin"  # Opções: "contribution_margin" (padrão Kyberna) ou "gross_revenue"
+  abc_a_cutoff: 0.80   # Top 80% acumulado -> Classe A
+  abc_b_cutoff: 0.95   # 80% a 95% acumulado -> Classe B; > 95% -> Classe C
 
-  # Classificação Volatilidade XYZ (Coeficiente de Variação - CV)
+  # Classificação Volatilidade XYZ (Coeficiente de Variação semanal - CV)
   xyz_x_cutoff: 0.50   # CV <= 0.50 -> Alta previsibilidade (X)
-  xyz_y_cutoff: 1.00   # 0.50 < CV <= 1.00 -> Previsibilidade moderada (Y); > 1.00 -> Errada/Esporádica (Z)
+  xyz_y_cutoff: 1.00   # 0.50 < CV <= 1.00 -> Previsibilidade moderada (Y); > 1.00 ou inativo -> Errada/Esporádica (Z)
+
+  # Políticas Prescritivas por Célula da Matriz 3x3 ABC/XYZ
+  abc_xyz_policies:
+    AX: "Ruptura zero / Estoque de segurança alto e ressuprimento contínuo (JIT)"
+    AY: "Estoque de segurança moderado / Atenção a picos sazonais e campanhas"
+    AZ: "Estoque de segurança sob medida / Produção puxada ou sob encomenda flexível"
+    BX: "Ressuprimento automático / Ponto de pedido fixo e lote econômico"
+    BY: "Revisão periódica / Gestão padrão por ponto de pedido"
+    BZ: "Estoque mínimo / Reposição por lote econômico ou sob demanda"
+    CX: "Estoque enxuto / Compras programadas e automatizadas em lote padrão"
+    CY: "Estoque mínimo / Compra em lotes pequenos apenas com giro garantido"
+    CZ: "Sob encomenda ou descontinuar / Liquidar estoque excedente"
 
   # Critérios de Risco de Churn e Inatividade
   churn_inactivity_days: 120    # Clientes sem compra há mais de 120 dias
