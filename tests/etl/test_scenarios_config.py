@@ -167,7 +167,7 @@ def test_cli_gold_build_validates_scenario() -> None:
     assert result_invalid.exit_code != 0
     assert "inexistente" in str(result_invalid.exception)
 
-    # Cenário válido 'all'
+    # Cenário válido 'all' executa o build com sucesso
     result_all = runner.invoke(app, ["gold", "build", "--scenario", "all"])
-    assert result_all.exit_code != 0  # Falha pelo NotImplementedError da M2-D4
-    assert "M2-D1" in str(result_all.exception)
+    assert result_all.exit_code == 0
+    assert "Cenário C1 (Brinquedos) construído com sucesso" in result_all.output

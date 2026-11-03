@@ -160,8 +160,30 @@ class SilverGeographySchema(pa.DataFrameModel):
 
 
 # ==============================================================================
-# Camada Gold: Fato de Vendas e Waterfall Financeiro
+# Camada Gold: Dimensões, Fato de Vendas e Waterfall Financeiro
 # ==============================================================================
+class GoldDimProductSchema(pa.DataFrameModel):
+    """Contrato da dimensão de produtos da camada Gold."""
+
+    product_id: str = Field(
+        unique=True, nullable=False, str_length=13, description="Código de barras EAN-13 válido"
+    )
+    item_number: str = Field(unique=True, nullable=False, description="Chave natural do item original")
+    product_name: str = Field(nullable=False, description="Nome do produto em português sem termos de bebida")
+    brand_name: str = Field(nullable=False, description="Linha ou marca fictícia do fabricante")
+    family: str = Field(nullable=False, description="Família taxonômica do produto")
+    description: str = Field(nullable=False, description="Descrição comercial do produto")
+    pack: int = Field(ge=1, le=96, nullable=False, description="Unidades por caixa master")
+    base_unit_cost: float = Field(ge=1.0, le=350.0, nullable=False, description="Custo unitário base (R$)")
+    base_unit_price: float = Field(
+        ge=5.0, le=500.0, nullable=False, description="Preço de tabela unitário base (R$)"
+    )
+
+    class Config:
+        strict = True
+        coerce = True
+
+
 class GoldFactSalesSchema(pa.DataFrameModel):
     """Contrato da tabela Gold fact_sales por cenário com decomposição do waterfall."""
 

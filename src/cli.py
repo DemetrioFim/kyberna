@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import duckdb
 import typer
 
 from src.core.logging import setup_logging, timed_step
-from src.core.paths import get_project_root
+from src.core.paths import get_duckdb_path, get_project_root
 from src.core.scenarios import list_scenario_configs, load_scenario_config
 from src.etl.ingest.fixture import generate_fixture
 from src.etl.ingest.raw_to_bronze import convert_all_raw_to_bronze, populate_bronze_from_sample_fixture
 from src.etl.ingest.socrata_client import SocrataClient
+from src.etl.scenarios.c1_toys import C1ToysScenarioBuilder
 from src.etl.silver.clean import build_silver_sales
 from src.etl.silver.enrich import enrich_silver_dimensions
 from src.etl.silver.time_anchor import apply_time_anchor
@@ -242,11 +244,32 @@ def gold_build(
     """Gera dimensões, fatos e marts analíticos da camada Gold no formato Parquet e DuckDB."""
     if scenario == "all":
         list_scenario_configs()
-    else:
-        load_scenario_config(scenario)
+        with timed_step("build_cenario_c1_toys"):
+            con = duckdb.connect(str(get_duckdb_path()))
+            builder = C1ToysScenarioBuilder()
+            counts = builder.build(con)
+            typer.echo(
+                f"Cenário C1 (Brinquedos) construído com sucesso: "
+                f"{counts['dim_product']:,} produtos, {counts['sales_remapped']:,} vendas remapeadas."
+            )
+            return
 
-    # TODO(M2-D4): Materializar star schema e marts de margem de contribuição
-    raise NotImplementedError("Comando ainda não implementado. Tarefa responsável: M2-D1 (M2-D4)")
+    # Valida cenário existente
+    load_scenario_config(scenario)
+
+    if scenario in ("c1_toys", "c1"):
+        with timed_step("build_cenario_c1_toys"):
+            con = duckdb.connect(str(get_duckdb_path()))
+            builder = C1ToysScenarioBuilder()
+            counts = builder.build(con)
+            typer.echo(
+                f"Cenário C1 (Brinquedos) construído com sucesso: "
+                f"{counts['dim_product']:,} produtos, {counts['sales_remapped']:,} vendas remapeadas."
+            )
+            return
+
+    # TODO(M2-D6 / M3-D1): Implementar builders específicos dos demais cenários (C2, C3, C4)
+    raise NotImplementedError(f"Builder para o cenário '{scenario}' será implementado nos próximos marcos.")
 
 
 # ------------------------------------------------------------------------------
