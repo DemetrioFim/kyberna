@@ -185,7 +185,7 @@ def classify_abc_xyz(
 
     # Data de corte e snapshot
     if as_of_date is not None:
-        if isinstance(as_of_date, (date, datetime)):
+        if isinstance(as_of_date, date | datetime):
             cutoff_str = as_of_date.strftime("%Y-%m-%d")
         else:
             cutoff_str = str(as_of_date)[:10]
