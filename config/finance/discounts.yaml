@@ -1,0 +1,37 @@
+# ==============================================================================
+# Política Comercial de Descontos por Porte do Cliente e Viés de RCA
+# ==============================================================================
+
+# Desconto médio base concedido por porte do lojista (P, M, G)
+size_baseline:
+  P: 0.030    # Pequeno: 3.0%
+  M: 0.065    # Médio: 6.5%
+  G: 0.105    # Grande: 10.5%
+
+# Viés de negociação por perfil de RCA (para gerar a narrativa comercial de dispersão)
+# RCAs com viés agressivo dão mais desconto (destroem margem)
+# RCAs com viés disciplinado preservam margem
+rep_bias:
+  high_discount_reps:
+    - "RCA-003"
+    - "RCA-007"
+    - "RCA-012"
+    - "RCA-015"
+    - "RCA-019"
+    - "RCA-025"
+    - "RCA-028"
+    - "RCA-033"
+  extra_discount: 0.080
+  disciplined_reps:
+    - "RCA-001"
+    - "RCA-005"
+    - "RCA-008"
+    - "RCA-010"
+    - "RCA-018"
+    - "RCA-022"
+    - "RCA-030"
+    - "RCA-035"
+  discount_reduction: -0.040
+
+max_allowed_discount: 0.250
+min_allowed_discount: 0.000

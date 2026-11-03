@@ -1,0 +1,13 @@
+# ==============================================================================
+# Tabela de Frete CIF por Região de Destino (Custo por Caixa Master / R$)
+# ==============================================================================
+# A indústria arca com o frete CIF por caixa master expedida a partir de SP
+
+cost_per_box_by_region:
+  Sudeste: 3.50
+  Sul: 4.80
+  Centro-Oeste: 6.20
+  Nordeste: 8.50
+  Norte: 11.00
+
+default_cost_per_box: 5.00

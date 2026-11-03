@@ -1,0 +1,46 @@
+# ==============================================================================
+# Regras Tributárias Brasileiras (ICMS Interestadual / Interno, PIS e COFINS)
+# ==============================================================================
+# Cenário 1 (Caso Âncora): Indústria nacional com sede e expedição em São Paulo (SP)
+
+origin_uf: "SP"
+
+icms:
+  internal_rate: 0.18
+  south_southeast_rate: 0.12
+  north_northeast_co_rate: 0.07
+  destinations:
+    SP: 0.18
+    # Sul e Sudeste (exceto ES): 12.0%
+    RJ: 0.12
+    MG: 0.12
+    PR: 0.12
+    SC: 0.12
+    RS: 0.12
+    # Norte, Nordeste, Centro-Oeste e ES: 7.0%
+    ES: 0.07
+    DF: 0.07
+    GO: 0.07
+    MT: 0.07
+    MS: 0.07
+    BA: 0.07
+    PE: 0.07
+    CE: 0.07
+    MA: 0.07
+    PB: 0.07
+    RN: 0.07
+    AL: 0.07
+    SE: 0.07
+    PI: 0.07
+    AM: 0.07
+    PA: 0.07
+    RO: 0.07
+    AC: 0.07
+    TO: 0.07
+    AP: 0.07
+    RR: 0.07
+
+federal_taxes:
+  pis_rate: 0.0165
+  cofins_rate: 0.0760
+  ipi_rate: 0.0500

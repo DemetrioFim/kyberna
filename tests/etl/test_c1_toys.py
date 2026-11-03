@@ -66,9 +66,9 @@ def test_generate_toy_name_and_description_zero_forbidden_terms() -> None:
 
             text_to_check = f"{name} {desc}".lower()
             for term in FORBIDDEN_BEVERAGE_TERMS:
-                assert not re.search(rf"\b{re.escape(term)}\b", text_to_check), (
-                    f"Termo proibido '{term}' encontrado em produto: '{name}'"
-                )
+                assert not re.search(
+                    rf"\b{re.escape(term)}\b", text_to_check
+                ), f"Termo proibido '{term}' encontrado em produto: '{name}'"
 
 
 def test_build_c1_dim_product_contract_and_properties() -> None:
@@ -178,9 +178,9 @@ def test_c1_builder_execution_and_top_families_revenue_share(tmp_path: Path) -> 
     share_top5 = top5_rev / total_rev
 
     assert len(family_revenue) >= 5
-    assert share_top5 >= 0.85, (
-        f"Top 5 famílias somam {share_top5:.1%}, que é inferior a 85% do faturamento total."
-    )
+    assert (
+        share_top5 >= 0.85
+    ), f"Top 5 famílias somam {share_top5:.1%}, que é inferior a 85% do faturamento total."
 
 
 def test_c1_zero_forbidden_beverage_terms_in_database(tmp_path: Path) -> None:
@@ -196,9 +196,9 @@ def test_c1_zero_forbidden_beverage_terms_in_database(tmp_path: Path) -> None:
         for text in products_df[col]:
             low = str(text).lower()
             for term in FORBIDDEN_BEVERAGE_TERMS:
-                assert not re.search(rf"\b{re.escape(term)}\b", low), (
-                    f"Termo proibido '{term}' encontrado em dim_product.{col}: '{text}'"
-                )
+                assert not re.search(
+                    rf"\b{re.escape(term)}\b", low
+                ), f"Termo proibido '{term}' encontrado em dim_product.{col}: '{text}'"
 
     # Coleta textos de sales_remapped
     sales_df = con.execute(
@@ -208,9 +208,9 @@ def test_c1_zero_forbidden_beverage_terms_in_database(tmp_path: Path) -> None:
         for text in sales_df[col]:
             low = str(text).lower()
             for term in FORBIDDEN_BEVERAGE_TERMS:
-                assert not re.search(rf"\b{re.escape(term)}\b", low), (
-                    f"Termo proibido '{term}' encontrado em sales_remapped.{col}: '{text}'"
-                )
+                assert not re.search(
+                    rf"\b{re.escape(term)}\b", low
+                ), f"Termo proibido '{term}' encontrado em sales_remapped.{col}: '{text}'"
 
 
 def test_c1_boxes_pack_and_branch_invariants(tmp_path: Path) -> None:

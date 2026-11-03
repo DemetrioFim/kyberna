@@ -1,0 +1,11 @@
+# ==============================================================================
+# Parâmetros de Comissão para Representantes Comerciais (RCAs)
+# ==============================================================================
+
+min_rate: 0.035
+max_rate: 0.065
+default_rate: 0.050
+
+# Base de cálculo da comissão:
+# "net_price_revenue" = Receita faturada líquida de desconto comercial (Padrão canônico)
+basis: "net_price_revenue"

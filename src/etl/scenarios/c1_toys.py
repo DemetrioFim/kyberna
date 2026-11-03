@@ -520,8 +520,13 @@ def build_c1_dim_product(
 
         # Garante a faixa estrita de R$ 15 a R$ 350
         base_unit_price = max(15.0, min(350.0, raw_scaled_price))
-        margin_ratio = max(0.20, min(0.85, raw_cost / raw_price)) if raw_price > 0 else 0.50
-        base_unit_cost = max(5.0, min(base_unit_price * 0.90, base_unit_price * margin_ratio))
+        # Custo industrial de fabricação de brinquedos: calibrado para refletir a estrutura
+        # de custos fabris da indústria nacional (CMV industrial ~ 40% a 48% do preço de tabela).
+        industrial_cost_factor = 0.65
+        margin_ratio = (
+            max(0.15, min(0.60, (raw_cost / raw_price) * industrial_cost_factor)) if raw_price > 0 else 0.42
+        )
+        base_unit_cost = max(3.0, min(base_unit_price * 0.70, base_unit_price * margin_ratio))
 
         records.append(
             {
