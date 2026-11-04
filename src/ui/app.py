@@ -4,7 +4,11 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.ui.theme import REGIOES_BR, get_theme_tokens, get_ufs_for_regiao
+from src.db.repository import DataRepository
+from src.ui.cache import get_cached_repository
+from src.ui.components.sidebar import render_sidebar
+from src.ui.state import init_app_state
+from src.ui.theme import get_theme_tokens
 
 # ==============================================================================
 # Configuração da Aplicação (Deve ser a primeira chamada Streamlit)
@@ -21,18 +25,7 @@ st.set_page_config(
 # Inicialização do Estado Global de Sessão (st.session_state)
 # ==============================================================================
 
-if "theme_mode" not in st.session_state:
-    st.session_state.theme_mode = "light"
-
-if "scenario_id" not in st.session_state:
-    st.session_state.scenario_id = "c1_toys"
-
-if "regiao" not in st.session_state:
-    st.session_state.regiao = "Todas"
-
-if "uf" not in st.session_state:
-    st.session_state.uf = "Todas"
-
+state = init_app_state()
 
 # ==============================================================================
 # Injeção de CSS Dinâmico (Light & Dark Theme)
@@ -66,112 +59,19 @@ def inject_custom_css(theme_mode: str) -> None:
         st.markdown(f"<style>{css_content}\n{dynamic_vars}</style>", unsafe_allow_html=True)
 
 
-inject_custom_css(st.session_state.theme_mode)
+inject_custom_css(state.theme_mode)
 
 # ==============================================================================
-# Sidebar Global (Branding, Cenários, Tema e Cascata Geográfica)
+# Sidebar Global (Branding, Cenários, Tema, Cascata e Fonte de Dados)
 # ==============================================================================
 
-with st.sidebar:
-    # 1. Branding / Logo (Adaptação para o tema ativo)
-    logo_filename = "logo_dark.svg" if st.session_state.theme_mode == "dark" else "logo.svg"
-    logo_path = Path(__file__).parent / "assets" / logo_filename
-    if not logo_path.exists():
-        logo_path = Path(__file__).parent / "assets" / "logo.svg"
+repo: DataRepository | None = None
+try:
+    repo = get_cached_repository()
+except Exception:
+    repo = None
 
-    if logo_path.exists():
-        st.image(str(logo_path), width=260)
-    else:
-        st.markdown("### 🧭 **KYBERNA**")
-
-    st.markdown("---")
-
-    # 2. Seletor de Tema via Toggle Switch
-    def _on_theme_toggle() -> None:
-        is_dark = bool(st.session_state.get("_theme_toggle", False))
-        st.session_state.theme_mode = "dark" if is_dark else "light"
-
-    st.toggle(
-        "Modo Escuro 🌙",
-        value=(st.session_state.theme_mode == "dark"),
-        key="_theme_toggle",
-        on_change=_on_theme_toggle,
-        help="Alterna dinamicamente entre o visual executivo claro e o cockpit escuro de alto contraste.",
-    )
-
-    st.markdown("---")
-
-    # 3. Seletor de Cenário
-    scenario_options = {
-        "c1_toys": "C1 — Indústria de Brinquedos",
-        "c2_beverages": "C2 — Distribuidora Bebidas",
-        "c3_retail_chain": "C3 — Rede de Varejo",
-        "c4_single_store": "C4 — Varejo Loja Única",
-    }
-
-    def _on_scenario_change() -> None:
-        val = st.session_state.get("_scenario_select")
-        if val:
-            st.session_state.scenario_id = val
-
-    st.selectbox(
-        "Cenário de Negócio",
-        options=list(scenario_options.keys()),
-        format_func=lambda s: scenario_options[s],
-        index=list(scenario_options.keys()).index(st.session_state.scenario_id),
-        key="_scenario_select",
-        on_change=_on_scenario_change,
-        help="Altera o vocabulário, lógica de margem e matrizes analíticas da demonstração.",
-    )
-
-    st.markdown("---")
-
-    # 4. Cascata Geográfica (Região -> UF)
-    st.markdown("##### 📍 Filtros Geográficos")
-
-    def _on_regiao_change() -> None:
-        val = st.session_state.get("_regiao_select", "Todas")
-        st.session_state.regiao = val
-        st.session_state.uf = "Todas"
-        if "_uf_select" in st.session_state:
-            st.session_state._uf_select = "Todas"
-
-    regioes = ["Todas", *REGIOES_BR]
-    st.selectbox(
-        "Região",
-        options=regioes,
-        index=regioes.index(st.session_state.regiao) if st.session_state.regiao in regioes else 0,
-        key="_regiao_select",
-        on_change=_on_regiao_change,
-    )
-
-    def _on_uf_change() -> None:
-        val = st.session_state.get("_uf_select", "Todas")
-        st.session_state.uf = val
-
-    ufs_disponiveis = ["Todas", *get_ufs_for_regiao(st.session_state.regiao)]
-    current_uf_index = (
-        ufs_disponiveis.index(st.session_state.uf) if st.session_state.uf in ufs_disponiveis else 0
-    )
-    st.selectbox(
-        "Estado (UF)",
-        options=ufs_disponiveis,
-        index=current_uf_index,
-        key="_uf_select",
-        on_change=_on_uf_change,
-    )
-
-    st.markdown("---")
-
-    # 5. Fonte de Dados (Badge)
-    st.markdown(
-        """
-        <div style="text-align: center; margin-top: 1rem;">
-            <span class="badge badge-source">Fonte: Snapshot Local (DuckDB)</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+render_sidebar(repo)
 
 # ==============================================================================
 # Navegação Multipage (st.navigation)
