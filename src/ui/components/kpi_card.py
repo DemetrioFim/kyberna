@@ -1,0 +1,83 @@
+from __future__ import annotations
+
+import html
+from typing import Literal
+
+import streamlit as st
+
+KpiAccent = Literal["teal", "brass", "green", "red", "pos", "neg", "blue", "gold"]
+
+
+def kpi_card_html(
+    title: str,
+    value: str,
+    *,
+    subfooter_left: str = "",
+    delta_html: str = "",
+    accent: KpiAccent = "teal",
+    help_text: str | None = None,
+) -> str:
+    """Gera o HTML estruturado do card executivo Kyberna com barra superior e sub-rodapé duplo.
+
+    Argumentos:
+        title: Rótulo principal do indicador (ex: 'Faturamento Bruto', 'Margem Líquida').
+        value: Valor formatado (ex: 'R$ 4.280.000', '27,0%').
+        subfooter_left: Texto de apoio à esquerda no rodapé (ex: 'Meta: R$ 4,1 mi').
+        delta_html: Tag HTML de badge com a variação semântica gerada por `get_delta_html`.
+        accent: Cor da borda superior gradiente ('teal', 'brass', 'green', 'red', 'pos', 'neg').
+        help_text: Tooltip explicativo exibido ao passar o mouse sobre o título.
+    """
+    accent_map: dict[str, str] = {
+        "teal": "kpi-card-teal",
+        "brass": "kpi-card-brass",
+        "green": "kpi-card-pos",
+        "pos": "kpi-card-pos",
+        "red": "kpi-card-neg",
+        "neg": "kpi-card-neg",
+        "blue": "kpi-card-teal",
+        "gold": "kpi-card-brass",
+    }
+    card_class = accent_map.get(accent, "kpi-card-teal")
+
+    title_escaped = html.escape(title)
+    value_escaped = html.escape(value)
+    title_title_attr = f' title="{html.escape(help_text)}"' if help_text else ""
+
+    subfooter_content = ""
+    if subfooter_left or delta_html:
+        left_span = f"<span>{html.escape(subfooter_left)}</span>" if subfooter_left else "<span></span>"
+        subfooter_content = f"""
+        <div class="kpi-subfooter">
+            {left_span}
+            {delta_html}
+        </div>
+        """
+
+    return f"""
+    <div class="kpi-card {card_class}">
+        <div class="kpi-title"{title_title_attr}>{title_escaped}</div>
+        <div class="kpi-value">{value_escaped}</div>
+        {subfooter_content}
+    </div>
+    """
+
+
+def render_kpi_card(
+    title: str,
+    value: str,
+    *,
+    subfooter_left: str = "",
+    delta_html: str = "",
+    accent: KpiAccent = "teal",
+    help_text: str | None = None,
+) -> None:
+    """Renderiza um KPI card diretamente no container ou coluna ativa do Streamlit."""
+    content = kpi_card_html(
+        title=title,
+        value=value,
+        subfooter_left=subfooter_left,
+        delta_html=delta_html,
+        accent=accent,
+        help_text=help_text,
+    )
+    st.markdown(content, unsafe_allow_html=True)

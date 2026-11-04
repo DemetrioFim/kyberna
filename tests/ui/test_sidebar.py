@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from unittest.mock import MagicMock
 
 from streamlit.testing.v1 import AppTest
@@ -9,22 +8,19 @@ from src.core.paths import get_project_root
 from src.core.scenarios import load_scenario_config
 from src.db.azure_sql_repo import AzureSQLRepository
 from src.db.duckdb_repo import DuckDBRepository
-from src.ui.components.sidebar import _render_data_source_badge, render_sidebar
+from src.ui.components.sidebar import _render_data_source_badge
 from src.ui.state import (
     AppState,
-    get_app_state,
-    init_app_state,
-    set_scenario,
 )
 
 
 def _sidebar_entrypoint() -> None:
     """Script isolado de teste para exercitar o ciclo de vida completo da sidebar."""
-    from src.ui.components.sidebar import render_sidebar
-    from src.ui.state import init_app_state
+    import src.ui.components.sidebar as st_sidebar
+    import src.ui.state as st_state
 
-    init_app_state()
-    render_sidebar()
+    st_state.init_app_state()
+    st_sidebar.render_sidebar()
 
 
 def test_app_state_defaults() -> None:

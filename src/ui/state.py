@@ -65,7 +65,7 @@ def init_app_state() -> AppState:
 def get_app_state() -> AppState:
     """Lê `st.session_state` e retorna um snapshot imutável `AppState`."""
     raw_families = st.session_state.get("families", ())
-    if isinstance(raw_families, (list, set)):
+    if isinstance(raw_families, list | set):
         families_tuple = tuple(raw_families)
     elif isinstance(raw_families, tuple):
         families_tuple = raw_families
@@ -73,7 +73,7 @@ def get_app_state() -> AppState:
         families_tuple = ()
 
     raw_reps = st.session_state.get("sales_reps", ())
-    if isinstance(raw_reps, (list, set)):
+    if isinstance(raw_reps, list | set):
         reps_tuple = tuple(raw_reps)
     elif isinstance(raw_reps, tuple):
         reps_tuple = raw_reps
