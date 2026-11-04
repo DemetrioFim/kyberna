@@ -63,6 +63,33 @@ uv run pytest -q
 
 ---
 
+## ☁️ Ambiente Azure & Infraestrutura em Nuvem
+
+O ambiente de nuvem da Kyberna compartilha a infraestrutura gerenciada do ecossistema do projeto parceiro **Nig Brinquedos**:
+
+| Recurso | Detalhes do Ambiente |
+| --- | --- |
+| **Conta Entra ID** | `demetrio.fim@outlook.com` |
+| **Tenant ID** | `b4d152de-4aa3-4fd6-94fc-7095b8f7fd6c` |
+| **Assinatura Principal** | `kyberna_nig` (`170baf29-65ca-44d6-b4c9-6f630e4767e4`) / `kyberna` |
+| **Servidor Azure SQL** | `kyberna-server.database.windows.net,1433` |
+| **Banco Demo Servido** | `db-kyberna-demo` (Serverless Gen5 Free Tier, auto-pause 60 min) |
+| **Banco Vizinho (Nig)** | `db-nig-brinquedos2` (instância de produção do projeto parceiro) |
+| **Usuário Admin SQL** | `kyberna-server-admin` |
+| **Hospedagem App** | Azure Container Apps (`aca-kyberna-prod`, scale-to-zero) via GHCR |
+
+### Autenticação no Azure CLI
+Para renovar ou autenticar o acesso local via CLI:
+```powershell
+az login --tenant b4d152de-4aa3-4fd6-94fc-7095b8f7fd6c
+az account set --subscription 170baf29-65ca-44d6-b4c9-6f630e4767e4
+```
+
+> [!NOTE]
+> O repositório e o aplicativo operam com resiliência total via **modo híbrido**: caso o Azure SQL esteja pausado ou sem conectividade, a aplicação utiliza automaticamente o snapshot local no **DuckDB (`data/kyberna.duckdb`)** com latência < 15 ms, sem bloquear a interface.
+
+---
+
 ## 🧭 Organização do Desenvolvimento (Marcos `M1` a `M7`)
 
 O desenvolvimento segue **Marcos Verticais (`M1`..`M7`)**, onde cada marco entrega uma fatia funcional completa e validada entre os **4 Pilares Integrados**:

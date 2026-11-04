@@ -59,7 +59,7 @@ def _build_where_clause(
 
     if filters:
         for col_name, val in filters.items():
-            if isinstance(val, (list, tuple, set)):
+            if isinstance(val, list | tuple | set):
                 val_list = list(val)
                 if val_list:
                     placeholders = ", ".join(["?"] * len(val_list))

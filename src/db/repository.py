@@ -24,12 +24,10 @@ class DataRepository(Protocol):
     """
 
     @property
-    def backend(self) -> Literal["azure_sql", "duckdb"]:
-        ...
+    def backend(self) -> Literal["azure_sql", "duckdb"]: ...
 
     @property
-    def fallback_reason(self) -> str | None:
-        ...
+    def fallback_reason(self) -> str | None: ...
 
     def ping(self) -> bool:
         """Verifica se o backend de dados está operacional."""

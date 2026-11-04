@@ -151,9 +151,9 @@ def test_mart_query_latency_under_100ms(
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
     assert len(df) > 0
-    assert elapsed_ms < 100.0, (
-        f"Consulta ao mart levou {elapsed_ms:.2f} ms, acima do limite de 100 ms do DoD."
-    )
+    assert (
+        elapsed_ms < 100.0
+    ), f"Consulta ao mart levou {elapsed_ms:.2f} ms, acima do limite de 100 ms do DoD."
 
 
 def test_get_repository_explicit_duckdb(tmp_path: Path) -> None:
