@@ -8,6 +8,15 @@ import pandas as pd
 import pytest
 
 from src.core.paths import get_project_root
+from src.core.settings import get_settings
+
+
+@pytest.fixture(autouse=True)
+def reset_settings_cache() -> Generator[None, None, None]:
+    """Limpa o cache de Settings para que monkeypatch de variáveis de ambiente funcione nos testes."""
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 @pytest.fixture

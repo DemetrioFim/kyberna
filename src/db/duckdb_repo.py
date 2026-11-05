@@ -87,7 +87,7 @@ class DuckDBRepository:
         self,
         db_path: Path | str | None = None,
         fallback_reason: str | None = None,
-        read_only: bool = False,
+        read_only: bool = True,
     ) -> None:
         self.db_path = Path(db_path) if db_path else get_duckdb_path()
         self.fallback_reason = fallback_reason
@@ -96,6 +96,9 @@ class DuckDBRepository:
     def ping(self) -> bool:
         """Verifica se o banco DuckDB ou o diretório de dados está acessível."""
         try:
+            if not self.db_path.exists():
+                snapshots_dir = self.db_path.parent / "gold" / "snapshot"
+                return snapshots_dir.exists()
             con = duckdb.connect(str(self.db_path), read_only=self.read_only)
             con.execute("SELECT 1")
             con.close()
@@ -111,7 +114,9 @@ class DuckDBRepository:
         params: Mapping[str, Any] | Sequence[Any] | None = None,
     ) -> pd.DataFrame:
         """Executa uma consulta SQL no DuckDB e retorna o resultado em pd.DataFrame."""
-        con = duckdb.connect(str(self.db_path), read_only=self.read_only)
+        db_target = str(self.db_path) if self.db_path.exists() else ":memory:"
+        read_only_flag = self.read_only if self.db_path.exists() else False
+        con = duckdb.connect(db_target, read_only=read_only_flag)
         try:
             if params is not None:
                 return con.execute(sql, params).df()
@@ -143,7 +148,9 @@ class DuckDBRepository:
         """
         cols_sql = ", ".join(f'"{c}"' for c in columns) if columns else "*"
 
-        con = duckdb.connect(str(self.db_path), read_only=self.read_only)
+        db_target = str(self.db_path) if self.db_path.exists() else ":memory:"
+        read_only_flag = self.read_only if self.db_path.exists() else False
+        con = duckdb.connect(db_target, read_only=read_only_flag)
         try:
             source_table, has_scenario_col = _resolve_source_table(con, self.db_path, name, scenario_id)
             where_sql, query_params = _build_where_clause(has_scenario_col, scenario_id, filters)

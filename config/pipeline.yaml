@@ -46,6 +46,41 @@ thresholds:
   # Critérios de Risco de Churn e Inatividade
   churn_inactivity_days: 120    # Clientes sem compra há mais de 120 dias
 
+  # Análise Heurística de Churn e Ciclo Próprio de Recompra
+  churn:
+    inactivity_days_cutoff: 120    # Clientes sem compra há mais de 120 dias
+    healthy_ratio_cutoff: 1.1      # delay_ratio <= 1.1 -> No Ciclo
+    attention_ratio_cutoff: 1.5    # 1.1 < delay_ratio <= 1.5 -> Atenção
+    at_risk_ratio_cutoff: 2.5      # 1.5 < delay_ratio <= 2.5 -> Em Risco Imediato
+    prior_shrinkage_k: 3           # Peso k da regularização empírica bayesiana: w = N / (N + k)
+    min_cycle_days: 7.0            # Piso de ciclo esperado em dias (mínimo 1 semana)
+    min_std_days: 5.0              # Piso de dispersão em dias
+    statuses:
+      healthy:
+        name: "No Ciclo"
+        severity: "low"
+        badge_variant: "positive"
+        description: "Cliente comprando no ritmo histórico normal; carteira saudável e ativa."
+        action: "Manutenção do plano de visitas, acompanhamento de satisfação e ofertas de cross-sell (White Space)."
+      attention:
+        name: "Atenção"
+        severity: "medium"
+        badge_variant: "warning"
+        description: "Janela ideal de abordagem: cliente atingiu ou excedeu levemente seu ciclo médio (10% a 50% de atraso)."
+        action: "Contato proativo de lembrete pelo RCA responsável antes que o cliente esfrie ou migre para concorrência."
+      at_risk:
+        name: "Em Risco Imediato"
+        severity: "high"
+        badge_variant: "negative"
+        description: "Atraso crítico de recompra (50% a 150% além do ciclo normal); anomalia grave de engajamento."
+        action: "Prioridade máxima de reativação: contato imediato da gerência/RCA com ofertas especiais e apuração de motivos."
+      dormant:
+        name: "Adormecido / Perdido"
+        severity: "critical"
+        badge_variant: "negative"
+        description: "Cliente excedeu em mais de 150% seu ciclo normal (> 2.5x); provável interrupção definitiva ou abandono."
+        action: "Campanha de recuperação com condições agressivas de frete/prazo, visita presencial ou contato via WhatsApp da diretoria."
+
   # Segmentação RFM B2B (Recência, Frequência, Margem de Contribuição)
   rfm:
     recency_metric: "recency_days"

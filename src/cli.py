@@ -19,6 +19,7 @@ from src.etl.silver.clean import build_silver_sales
 from src.etl.silver.enrich import enrich_silver_dimensions
 from src.etl.silver.time_anchor import apply_time_anchor
 from src.ml.abc_xyz import build_abc_xyz_mart, compute_abc_xyz_matrix_summary
+from src.ml.churn import build_customer_risk_mart, compute_customer_risk_summary
 from src.ml.rfm import build_rfm_mart, compute_rfm_segment_summary
 
 app = typer.Typer(
@@ -356,6 +357,42 @@ def ml_rfm(
                     "contribution_margin",
                     "margin_share_pct",
                     "avg_ticket",
+                ]
+            ].to_string(index=False)
+        )
+    finally:
+        con.close()
+
+
+@ml_app.command("churn")
+def ml_churn(
+    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
+    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
+) -> None:
+    """Calcula ciclo de recompra e risco heurístico de Churn e salva mart_customer_risk."""
+    con = duckdb.connect(str(get_duckdb_path()))
+    try:
+        with timed_step("ml_churn"):
+            df = build_customer_risk_mart(
+                con,
+                as_of_date=as_of,
+                scenario_id=scenario,  # type: ignore[arg-type]
+            )
+            summary = compute_customer_risk_summary(df)
+
+        typer.echo(f"\nAnálise de Risco de Churn concluída para '{scenario}' ({len(df):,} clientes):")
+        typer.echo(
+            summary[
+                [
+                    "risk_status",
+                    "customer_count",
+                    "customer_share_pct",
+                    "annual_revenue_at_risk",
+                    "annual_margin_at_risk",
+                    "revenue_share_pct",
+                    "margin_share_pct",
+                    "avg_delay_ratio",
+                    "avg_churn_prob",
                 ]
             ].to_string(index=False)
         )

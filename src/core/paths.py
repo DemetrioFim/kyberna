@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from src.core.types import GoldTable, ScenarioId
@@ -15,11 +16,20 @@ def get_project_root() -> Path:
 
 def get_data_dir(base: Path | None = None) -> Path:
     """Retorna o diretório base de dados local (`data/`)."""
-    return (base or PROJECT_ROOT) / "data"
+    if base is not None:
+        return base / "data"
+    env_dir = os.environ.get("KYBERNA_DATA_DIR")
+    if env_dir:
+        return Path(env_dir)
+    return PROJECT_ROOT / "data"
 
 
 def get_duckdb_path(base: Path | None = None) -> Path:
     """Retorna o caminho do banco unificado `kyberna.duckdb`."""
+    if base is None:
+        env_path = os.environ.get("KYBERNA_DUCKDB_PATH")
+        if env_path:
+            return Path(env_path)
     return get_data_dir(base) / "kyberna.duckdb"
 
 

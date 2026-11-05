@@ -8,6 +8,7 @@ from src.core.logging import get_logger
 from src.core.paths import get_data_dir
 from src.core.types import ScenarioId
 from src.ml.abc_xyz import build_abc_xyz_mart
+from src.ml.churn import build_customer_risk_mart
 from src.ml.rfm import build_rfm_mart
 
 logger = get_logger(__name__)
@@ -139,5 +140,9 @@ def build_gold_marts(
     # Mart analítico da Segmentação RFM
     rfm_df = build_rfm_mart(con, scenario_id=scenario_id)
     counts["mart_rfm"] = len(rfm_df)
+
+    # Mart analítico de Risco de Churn e Ciclo de Recompra
+    churn_df = build_customer_risk_mart(con, scenario_id=scenario_id)
+    counts["mart_customer_risk"] = len(churn_df)
 
     return counts

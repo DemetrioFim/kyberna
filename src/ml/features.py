@@ -87,6 +87,8 @@ def compute_customer_features(
         - n_skus: número de SKUs distintos comprados
         - revenue_3m: faturamento bruto nos últimos 90 dias
         - revenue_6m: faturamento bruto nos últimos 180 dias
+        - revenue_12m: faturamento bruto nos últimos 365 dias (anualizado)
+        - margin_12m: margem de contribuição nos últimos 365 dias
         - trend_3m_vs_6m: índice de aceleração/desaceleração da receita (2 * 3m / 6m)
         - Estatísticas do ciclo de recompra:
             - n_intervals: número de intervalos entre compras distintas
@@ -189,7 +191,21 @@ def compute_customer_features(
                          THEN gross_revenue ELSE 0 END
                 ),
                 2
-            ) AS revenue_6m
+            ) AS revenue_6m,
+            ROUND(
+                SUM(
+                    CASE WHEN full_date > DATE '{cutoff_str}' - INTERVAL 365 DAY
+                         THEN gross_revenue ELSE 0 END
+                ),
+                2
+            ) AS revenue_12m,
+            ROUND(
+                SUM(
+                    CASE WHEN full_date > DATE '{cutoff_str}' - INTERVAL 365 DAY
+                         THEN contribution_margin ELSE 0 END
+                ),
+                2
+            ) AS margin_12m
         FROM filtered_sales
         GROUP BY customer_id
     )
@@ -210,6 +226,8 @@ def compute_customer_features(
         t.avg_ticket,
         t.revenue_3m,
         t.revenue_6m,
+        t.revenue_12m,
+        t.margin_12m,
         ROUND(
             (t.revenue_3m * 2.0) / NULLIF(t.revenue_6m, 0),
             2

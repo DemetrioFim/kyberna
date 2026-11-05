@@ -292,6 +292,31 @@ class GoldRfmSchema(pa.DataFrameModel):
         coerce = True
 
 
+class GoldCustomerRiskSchema(pa.DataFrameModel):
+    """Contrato do mart analítico de ciclo individual de recompra e risco heurístico de Churn."""
+
+    scenario_id: str = Field(isin=VALID_SCENARIO_IDS, nullable=False)
+    as_of_date: str = Field(nullable=False)
+    customer_id: str = Field(nullable=False)
+    recency_days: int = Field(ge=0, nullable=False)
+    frequency: int = Field(ge=1, nullable=False)
+    expected_cycle_days: float = Field(gt=0.0, nullable=False)
+    cycle_std_days: float = Field(ge=0.0, nullable=False)
+    delay_ratio: float = Field(ge=0.0, nullable=False)
+    churn_probability: float = Field(ge=0.0, le=1.0001, nullable=False)
+    risk_status: str = Field(
+        isin=["No Ciclo", "Atenção", "Em Risco Imediato", "Adormecido / Perdido"],
+        nullable=False,
+    )
+    annual_revenue_at_risk: float = Field(ge=0.0, nullable=False)
+    annual_margin_at_risk: float = Field(nullable=False)
+    snapshot_date: str = Field(nullable=False)
+
+    class Config:
+        strict = False
+        coerce = True
+
+
 # ==============================================================================
 # Helper Unificado de Validação
 # ==============================================================================
