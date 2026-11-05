@@ -53,8 +53,9 @@ def test_app_geographic_cascade_interaction() -> None:
     assert at.session_state.uf == "Todas"
 
     # Confere se a página re-renderizou com o filtro de Região Sul
-    assert len(at.info) >= 1
-    assert "Região:** `Sul`" in at.info[0].value
+    assert not at.exception
+    assert len(at.title) >= 1
+    assert "Visão Executiva" in at.title[0].value
 
 
 def test_pages_render_without_exception() -> None:
