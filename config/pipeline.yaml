@@ -46,6 +46,50 @@ thresholds:
   # Critérios de Risco de Churn e Inatividade
   churn_inactivity_days: 120    # Clientes sem compra há mais de 120 dias
 
+  # Segmentação RFM B2B (Recência, Frequência, Margem de Contribuição)
+  rfm:
+    recency_metric: "recency_days"
+    frequency_metric: "frequency"
+    monetary_metric: "contribution_margin"  # Princípio Kyberna: Margem acima de Volume
+    quantiles: 5
+    segments:
+      champions:
+        name: "Campeões"
+        description: "Clientes mais valiosos: compram com alta frequência, recência recente e geram a maior margem líquida."
+        action: "Tratamento VIP, acesso antecipado a lançamentos, bonificação de mix e canal direto com diretoria."
+      cant_lose:
+        name: "Não Pode Perder"
+        description: "Clientes de altíssima rentabilidade e histórico consistente que estão se distanciando (risco crítico)."
+        action: "Visita imediata da gerência comercial / diretoria, diagnóstico de insatisfação e renegociação personalizada de condições."
+      loyal:
+        name: "Fiéis"
+        description: "Base sólida da carteira: compram regularmente com rentabilidade saudável e boa frequência."
+        action: "Programas de fidelidade, incentivos de cross-sell (White Space) e manutenção de relacionamento próximo."
+      promising:
+        name: "Promissores"
+        description: "Compradores recentes com boa margem unitária/ticket, mas baixa frequência histórica."
+        action: "Estimular o segundo e terceiro pedidos com ofertas personalizadas de famílias complementares."
+      new_customers:
+        name: "Novos Clientes"
+        description: "Primeira compra faturada recentemente; início do ciclo de relacionamento."
+        action: "Onboarding assistido pelo RCA, pesquisa de satisfação pós-venda e catálogo completo de produtos."
+      at_risk:
+        name: "Em Risco"
+        description: "Clientes que compravam com boa frequência, mas cujo intervalo sem compras excedeu o esperado."
+        action: "Contato proativo do RCA com tabela de ofertas de reativação e apuração de motivos de afastamento."
+      need_attention:
+        name: "Precisam de Atenção"
+        description: "Clientes intermediários com recência e frequência medianas; correm o risco de esfriar."
+        action: "Apresentação de novidades do catálogo, condições facilitadas de frete e sugestões de abastecimento."
+      hibernating:
+        name: "Hibernando"
+        description: "Baixa frequência e longa inatividade, mas com histórico anterior de compras."
+        action: "Campanhas sazonais de reativação via WhatsApp, saldões promocionais e recontato comercial."
+      lost:
+        name: "Perdidos"
+        description: "Piores indicadores: compra única distante no passado e margem líquida residual ou negativa."
+        action: "Comunicação automatizada de baixo custo ou exclusão de roteiros presenciais de visitação."
+
   # Análise de Estoque e Capital de Giro
   excess_inventory_days: 120    # Estoque parado acima de 120 dias de cobertura
   min_stock_coverage_days: 15   # Nível de alerta de ruptura (dias de venda média)

@@ -252,6 +252,46 @@ class GoldAbcXyzSchema(pa.DataFrameModel):
         coerce = True
 
 
+class GoldRfmSchema(pa.DataFrameModel):
+    """Contrato do mart analítico da Segmentação RFM baseada em Margem de Contribuição."""
+
+    scenario_id: str = Field(isin=VALID_SCENARIO_IDS, nullable=False)
+    as_of_date: str = Field(nullable=False)
+    customer_id: str = Field(nullable=False)
+    recency_days: int = Field(ge=0, nullable=False)
+    frequency: int = Field(ge=1, nullable=False)
+    gross_revenue: float = Field(ge=0.0, nullable=False)
+    net_revenue: float = Field(nullable=False)
+    contribution_margin: float = Field(nullable=False)
+    margin_pct: float | None = Field(nullable=True)
+    r_score: int = Field(isin=[1, 2, 3, 4, 5], nullable=False)
+    f_score: int = Field(isin=[1, 2, 3, 4, 5], nullable=False)
+    m_score: int = Field(isin=[1, 2, 3, 4, 5], nullable=False)
+    rfm_cell: str = Field(nullable=False)
+    rfm_score: float = Field(ge=1.0, le=5.0, nullable=False)
+    rfm_segment: str = Field(
+        isin=[
+            "Campeões",
+            "Não Pode Perder",
+            "Fiéis",
+            "Promissores",
+            "Novos Clientes",
+            "Em Risco",
+            "Precisam de Atenção",
+            "Hibernando",
+            "Perdidos",
+        ],
+        nullable=False,
+    )
+    rfm_segment_description: str = Field(nullable=False)
+    action_prescription: str = Field(nullable=False)
+    snapshot_date: str = Field(nullable=False)
+
+    class Config:
+        strict = False
+        coerce = True
+
+
 # ==============================================================================
 # Helper Unificado de Validação
 # ==============================================================================

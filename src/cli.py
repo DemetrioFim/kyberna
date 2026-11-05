@@ -19,6 +19,7 @@ from src.etl.silver.clean import build_silver_sales
 from src.etl.silver.enrich import enrich_silver_dimensions
 from src.etl.silver.time_anchor import apply_time_anchor
 from src.ml.abc_xyz import build_abc_xyz_mart, compute_abc_xyz_matrix_summary
+from src.ml.rfm import build_rfm_mart, compute_rfm_segment_summary
 
 app = typer.Typer(
     name="kyberna",
@@ -321,6 +322,40 @@ def ml_abc_xyz(
                     "revenue_pct",
                     "contribution_margin",
                     "margin_pct",
+                ]
+            ].to_string(index=False)
+        )
+    finally:
+        con.close()
+
+
+@ml_app.command("rfm")
+def ml_rfm(
+    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
+    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
+) -> None:
+    """Calcula a segmentação RFM baseada em Margem de Contribuição e salva mart_rfm."""
+    con = duckdb.connect(str(get_duckdb_path()))
+    try:
+        with timed_step("ml_rfm"):
+            df = build_rfm_mart(
+                con,
+                as_of_date=as_of,
+                scenario_id=scenario,  # type: ignore[arg-type]
+            )
+            summary = compute_rfm_segment_summary(df)
+
+        typer.echo(f"\nSegmentação RFM B2B concluída para '{scenario}' ({len(df):,} clientes):")
+        typer.echo(
+            summary[
+                [
+                    "rfm_segment",
+                    "customer_count",
+                    "customer_share_pct",
+                    "gross_revenue",
+                    "contribution_margin",
+                    "margin_share_pct",
+                    "avg_ticket",
                 ]
             ].to_string(index=False)
         )

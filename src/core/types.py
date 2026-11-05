@@ -23,6 +23,7 @@ GoldTable = Literal[
     "fact_sales",
     "mart_margin_monthly",
     "mart_abc_xyz",
+    "mart_rfm",
     "mart_customer_risk",
     "mart_white_space",
     "mart_rep_performance",
