@@ -32,4 +32,3 @@ def test_executive_page_abc_xyz_cell_selection() -> None:
 
     assert not at.exception
     assert at.session_state.selected_abc_xyz_cell == "AX"
-

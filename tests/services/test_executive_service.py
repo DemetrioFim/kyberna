@@ -153,4 +153,3 @@ def test_executive_dashboard_build_latency_and_payload(repo: DuckDBRepository) -
     assert len(dto.top_customer_destroyers_df) == 10
     assert dto.prescription_impact_brl is not None
     assert dto.prescription_impact_brl > 0
-

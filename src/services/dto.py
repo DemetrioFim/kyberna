@@ -92,4 +92,3 @@ class ExecutivePageDTO(BaseModel):
     prescription_title: str
     prescription_html: str
     prescription_impact_brl: float | None = None
-

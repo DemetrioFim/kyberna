@@ -46,20 +46,15 @@ def kpi_card_html(
     subfooter_content = ""
     if subfooter_left or delta_html:
         left_span = f"<span>{html.escape(subfooter_left)}</span>" if subfooter_left else "<span></span>"
-        subfooter_content = f"""
-        <div class="kpi-subfooter">
-            {left_span}
-            {delta_html}
-        </div>
-        """
+        subfooter_content = f'<div class="kpi-subfooter">{left_span}{delta_html}</div>'
 
-    return f"""
-    <div class="kpi-card {card_class}">
-        <div class="kpi-title"{title_title_attr}>{title_escaped}</div>
-        <div class="kpi-value">{value_escaped}</div>
-        {subfooter_content}
-    </div>
-    """
+    return (
+        f'<div class="kpi-card {card_class}">'
+        f'<div class="kpi-title"{title_title_attr}>{title_escaped}</div>'
+        f'<div class="kpi-value">{value_escaped}</div>'
+        f"{subfooter_content}"
+        f"</div>"
+    )
 
 
 def render_kpi_card(

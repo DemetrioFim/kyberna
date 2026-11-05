@@ -354,17 +354,17 @@ def build_executive_dashboard(
     headline_title = "Manchete Executiva de Performance e Margem Real"
     if not top_dest_c.empty and not top_gen_c.empty:
         headline_text = (
-            f"Faturamento de **{format_brl(kpis.gross_revenue, compact=True)}** gerou "
-            f"**{format_brl(kpis.contribution_margin, compact=True)}** em Margem Real "
-            f"(**{kpis.contribution_margin_pct:.1f}%**). "
+            f"Faturamento de <strong>{format_brl(kpis.gross_revenue, compact=True)}</strong> gerou "
+            f"<strong>{format_brl(kpis.contribution_margin, compact=True)}</strong> em Margem Real "
+            f"(<strong>{kpis.contribution_margin_pct:.1f}%</strong>). "
             f"A dispersão entre lojistas ({top_dest_c['margin_pct'].min():.1f}% a "
             f"{top_gen_c['margin_pct'].max():.1f}%) revela potencial de captura através do "
             f"reajuste de descontos comerciais e otimização logística."
         )
     else:
         headline_text = (
-            f"Faturamento de **{format_brl(kpis.gross_revenue, compact=True)}** com Margem Real "
-            f"de **{kpis.contribution_margin_pct:.1f}%**."
+            f"Faturamento de <strong>{format_brl(kpis.gross_revenue, compact=True)}</strong> com Margem Real "
+            f"de <strong>{kpis.contribution_margin_pct:.1f}%</strong>."
         )
 
     prescription_title = "🎯 Diagnóstico Prescritivo: Proteção e Captura de Margem no Bolso"

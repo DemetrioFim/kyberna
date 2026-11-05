@@ -83,7 +83,7 @@ def _render_kpi_cards(dto: ExecutivePageDTO, customer_plural: str) -> None:
         render_kpi_card(
             title=f"{customer_plural} Ativos",
             value=format_int(dto.kpis.active_customers),
-            subfooter_left=f"Ticket: {format_brl(dto.kpis.avg_ticket, compact=True)}",
+            subfooter_left=f"Ticket: {format_brl(dto.kpis.avg_ticket, compact=False, decimals=0)}",
             delta_html=cust_delta,
             accent="red",
             help_text=f"Total de {customer_plural.lower()} que compraram no período",
@@ -248,21 +248,15 @@ def render_page() -> None:
     )
 
     # 1. Manchete Executiva Dinâmica
-    st.markdown(
-        f"""
-        <div style="background: rgba(13, 148, 136, 0.08); border-left: 4px solid #0d9488;
-                    padding: 0.85rem 1.25rem; border-radius: 6px; margin: 1rem 0 1.5rem 0;">
-            <div style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase;
-                        letter-spacing: 0.05em; color: #0d9488; margin-bottom: 0.25rem;">
-                {dto.headline_title}
-            </div>
-            <div style="font-size: 1rem; line-height: 1.45;">
-                {dto.headline_text}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    manchete_html = (
+        '<div style="background: rgba(13, 148, 136, 0.08); border-left: 4px solid #0d9488; '
+        'padding: 0.85rem 1.25rem; border-radius: 6px; margin: 1rem 0 1.5rem 0;">'
+        '<div style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; '
+        f'letter-spacing: 0.05em; color: #0d9488; margin-bottom: 0.25rem;">{dto.headline_title}</div>'
+        f'<div style="font-size: 1rem; line-height: 1.45;">{dto.headline_text}</div>'
+        "</div>"
     )
+    st.markdown(manchete_html, unsafe_allow_html=True)
 
     # 2. Linha de 5 KPI Cards
     _render_kpi_cards(dto, scenario.labels.customer_plural)
