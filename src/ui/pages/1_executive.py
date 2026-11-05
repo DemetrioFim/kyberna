@@ -10,7 +10,7 @@ from src.ui.components.charts import (
     dual_trend,
     waterfall_margin,
 )
-from src.ui.components.kpi_card import render_kpi_card
+from src.ui.components.kpi_card import info_tooltip_html, render_kpi_card
 from src.ui.components.prescription import (
     render_prescription_box,
     section_header,
@@ -37,7 +37,12 @@ def _render_kpi_cards(dto: ExecutivePageDTO, customer_plural: str) -> None:
             subfooter_left=f"{format_int(dto.kpis.total_units)} un",
             delta_html=gross_delta,
             accent="teal",
-            help_text="Receita bruta total faturada a preço de tabela",
+            help_text=(
+                "Receita bruta total faturada a preço de tabela (Unidades x Preço de Lista), "
+                "antes de deduções comerciais e impostos.<br><br>"
+                "<strong>No rodapé:</strong> volume físico total expedido e variação contra "
+                "o período anterior."
+            ),
         )
 
     with col2:
@@ -49,7 +54,11 @@ def _render_kpi_cards(dto: ExecutivePageDTO, customer_plural: str) -> None:
             subfooter_left=f"Impostos: {tax_pct:.1f}%",
             delta_html=net_delta,
             accent="brass",
-            help_text="Receita faturada deduzida de descontos comerciais e impostos (ICMS/PIS/COFINS)",
+            help_text=(
+                "Faturamento efetivo após dedução de descontos comerciais e tributos sobre vendas "
+                "(ICMS + PIS + COFINS). Nota: IPI é calculado por fora.<br><br>"
+                "<strong>No rodapé:</strong> alíquota média de impostos sobre a receita bruta."
+            ),
         )
 
     with col3:
@@ -60,7 +69,10 @@ def _render_kpi_cards(dto: ExecutivePageDTO, customer_plural: str) -> None:
             subfooter_left=f"CPV: {format_brl(dto.kpis.cogs, compact=True)}",
             delta_html=cm_delta,
             accent="green",
-            help_text="Margem real líquida que sobra no bolso após custos variáveis e frete",
+            help_text=(
+                "Lucro operacional líquido que sobra no bolso após pagar Custo da Mercadoria (CPV), "
+                "Comissões de RCAs e Frete CIF (Receita Líquida - CPV - Comissões - Frete)."
+            ),
         )
 
     with col4:
@@ -71,7 +83,10 @@ def _render_kpi_cards(dto: ExecutivePageDTO, customer_plural: str) -> None:
             subfooter_left="Margem / Fat. Bruto",
             delta_html=margin_delta,
             accent="gold",
-            help_text="Percentual da margem de contribuição sobre o faturamento bruto",
+            help_text=(
+                "Índice de rentabilidade real (Margem de Contribuição ÷ Faturamento Bruto). "
+                "Indica quantos centavos de cada R$ 1,00 faturado efetivamente viram lucro líquido."
+            ),
         )
 
     with col5:
@@ -86,7 +101,11 @@ def _render_kpi_cards(dto: ExecutivePageDTO, customer_plural: str) -> None:
             subfooter_left=f"Ticket: {format_brl(dto.kpis.avg_ticket, compact=False, decimals=0)}",
             delta_html=cust_delta,
             accent="red",
-            help_text=f"Total de {customer_plural.lower()} que compraram no período",
+            help_text=(
+                f"Quantidade de {customer_plural.lower()} distintos (CNPJs) com pelo menos um "
+                "pedido faturado no período.<br><br>"
+                "<strong>No rodapé:</strong> Ticket Médio faturado por pedido e variação de clientes ativos."
+            ),
         )
 
 
@@ -98,6 +117,11 @@ def _render_visual_section(dto: ExecutivePageDTO, theme_mode: str) -> None:
         section_header(
             "Decomposição da Margem Real",
             "Do faturamento bruto até o lucro líquido no bolso",
+            help_text=(
+                "Demonstração visual contábil (Waterfall) das deduções da receita bruta: "
+                "Descontos comerciais, Impostos sobre vendas, CPV, Comissões de RCAs e Frete CIF "
+                "até a Margem de Contribuição líquida final."
+            ),
         )
         fig_wat = waterfall_margin(dto.waterfall_df, theme_mode=theme_mode)
         st.plotly_chart(fig_wat, use_container_width=True)
@@ -106,6 +130,11 @@ def _render_visual_section(dto: ExecutivePageDTO, theme_mode: str) -> None:
         section_header(
             "Evolução: Volume vs. Margem %",
             "Identifique visualmente o efeito boca de jacaré",
+            help_text=(
+                "Evolução histórica mensal do Faturamento Bruto (barras) versus Margem Líquida % (linha). "
+                "O 'efeito boca de jacaré' surge quando o volume cresce mas a margem despenca por "
+                "descontos excessivos."
+            ),
         )
         fig_trend = dual_trend(dto.monthly_trend_df, theme_mode=theme_mode)
         st.plotly_chart(fig_trend, use_container_width=True)
@@ -199,6 +228,10 @@ def _render_drivers_section(dto: ExecutivePageDTO, labels: ScenarioLabels) -> No
     section_header(
         "Destaques de Margem: Geradores vs. Destratores",
         "Identifique onde o lucro é gerado e onde ocorrem vazamentos por descontos e frete",
+        help_text=(
+            "Ranqueamento dos 10 maiores geradores absolutos de margem de contribuição (R$) "
+            "em contraste com os 10 itens com menor margem percentual (ou negativa) para revisão imediata."
+        ),
     )
 
     tab_products, tab_customers = st.tabs(
@@ -247,12 +280,23 @@ def render_page() -> None:
         selected_cell=state.selected_abc_xyz_cell,
     )
 
-    # 1. Manchete Executiva Dinâmica
+    # 1. Manchete Executiva Dinâmica com Ícone Informativo
+    headline_info = info_tooltip_html(
+        "Síntese executiva automatizada calculada a partir da dispersão de margem "
+        "dos clientes e do faturamento total.",
+        align="left",
+    )
+    title_div_style = (
+        "font-size: 0.82rem; font-weight: 700; text-transform: uppercase; "
+        "letter-spacing: 0.05em; color: #0d9488; margin-bottom: 0.25rem; "
+        "display: flex; align-items: center; gap: 0.5rem;"
+    )
     manchete_html = (
         '<div style="background: rgba(13, 148, 136, 0.08); border-left: 4px solid #0d9488; '
         'padding: 0.85rem 1.25rem; border-radius: 6px; margin: 1rem 0 1.5rem 0;">'
-        '<div style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; '
-        f'letter-spacing: 0.05em; color: #0d9488; margin-bottom: 0.25rem;">{dto.headline_title}</div>'
+        f'<div style="{title_div_style}">'
+        f"<span>{dto.headline_title}</span>{headline_info}"
+        "</div>"
         f'<div style="font-size: 1rem; line-height: 1.45;">{dto.headline_text}</div>'
         "</div>"
     )
@@ -270,6 +314,11 @@ def render_page() -> None:
     section_header(
         "Matriz 3x3 ABC/XYZ & Gestão Prescritiva de Portfólio",
         "Cruza a contribuição na margem (ABC) com a volatilidade da demanda semanal (XYZ)",
+        help_text=(
+            "Classificação bidimensional de SKUs: ABC por contribuição acumulada na margem "
+            "(A=80%, B=15%, C=5%) e XYZ por estabilidade semanal da demanda "
+            "(X estável CV≤0.5, Y moderado 0.5<CV≤1.0, Z errático CV>1.0)."
+        ),
     )
     _render_abc_xyz_fragment(dto, theme_mode=state.theme_mode)
     st.markdown("---")
@@ -285,6 +334,11 @@ def render_page() -> None:
         recommendation_html=dto.prescription_html,
         impact_brl=dto.prescription_impact_brl,
         action_hint=action_msg,
+        help_text=(
+            "Diagnóstico prescritivo gerado a partir do desvio de margem dos clientes que operam "
+            "abaixo do piso saudável (22%). Estima o impacto de proteção de margem ao aplicar "
+            "ajustes comerciais."
+        ),
     )
 
 

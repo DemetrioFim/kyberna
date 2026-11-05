@@ -283,6 +283,7 @@ for i, row in df.iterrows(): ...
 - Todo widget interativo tem `key` única e descritiva (`key="sim_price_change_pct"`) para testes.
 - Gráficos sempre com `template="kyberna_light"` ou `template="kyberna_dark"` (conforme tema ativo registrado em `src/ui/theme.py`) e `use_container_width=True`/largura responsiva.
 - Formatação brasileira: `R$ 1.234.567,89`, `12,3%`, datas `dd/mm/aaaa` via `src/ui/formatting.py`.
+- **Obrigatoriedade de Ícones Informativos (`ⓘ`):** Todo KPI Card (`render_kpi_card`), cabeçalho de seção analítica (`section_header`) e bloco prescritivo (`render_prescription_box`) em todas as telas (`M2` a `M7`) **deve obrigatoriamente** exibir o ícone azul de informação (`.kyb-info-icon`) com tooltip explicativo detalhando (1) o conceito da métrica, (2) a fórmula resumida e (3) a leitura executiva. O argumento `help_text: str` é obrigatório na assinatura de `render_kpi_card` e validado contra strings vazias.
 
 ### 5.6 Identidade visual Kyberna (Light Mode ☀️ & Dark Mode 🌙)
 

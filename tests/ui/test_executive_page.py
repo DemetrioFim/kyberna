@@ -18,6 +18,15 @@ def test_executive_page_full_render() -> None:
     # Confere presença das abas de Produtos e Clientes
     assert len(at.tabs) >= 2
 
+    # Confere presença dos ícones azuis de ajuda em cards e seções
+    all_markdown = " ".join(m.value for m in at.markdown)
+    assert "kyb-info-icon" in all_markdown
+    assert "kyb-tooltip-popover" in all_markdown
+    assert "Faturamento Bruto" in all_markdown
+    assert "Receita Líquida" in all_markdown
+    assert "Margem Contribuição" in all_markdown
+    assert "Margem Líquida %" in all_markdown
+
 
 def test_executive_page_abc_xyz_cell_selection() -> None:
     """Valida a interação de seleção de célula na Matriz ABC/XYZ."""
