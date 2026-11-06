@@ -87,7 +87,7 @@ def cycle_delay_scatter(
                     "color": color,
                     "size": 10,
                     "opacity": 0.85,
-                    "line": {"color": tokens["card_bg"], "width": 1},
+                    "line": {"color": tokens.get("surface_card", "#ffffff"), "width": 1},
                 },
             )
         )
@@ -157,7 +157,6 @@ def white_space_heatmap(
     theme_mode: str = "light",
 ) -> go.Figure:
     """Gera o Heatmap de potencial financeiro da Matriz White Space (Família x Segmento RFM)."""
-    tokens = get_theme_tokens(theme_mode)
     template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
 
     if df.empty:
@@ -179,8 +178,7 @@ def white_space_heatmap(
 
     # Textos formatados para hover e exibição interna
     custom_text = [
-        [format_brl(val, compact=True, decimals=1) if val > 0 else "-" for val in row]
-        for row in z_values
+        [format_brl(val, compact=True, decimals=1) if val > 0 else "-" for val in row] for row in z_values
     ]
 
     fig = go.Figure(
@@ -195,10 +193,7 @@ def white_space_heatmap(
             colorbar={"title": "Potencial R$"},
             hoverongaps=False,
             hovertemplate=(
-                "Família: %{y}<br>"
-                "Segmento: %{x}<br>"
-                "Potencial Estimado: R$ %{z:,.2f}<br>"
-                "<extra></extra>"
+                "Família: %{y}<br>Segmento: %{x}<br>Potencial Estimado: R$ %{z:,.2f}<br><extra></extra>"
             ),
         )
     )

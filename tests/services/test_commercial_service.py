@@ -166,8 +166,6 @@ def test_commercial_dashboard_filters(repo: DuckDBRepository) -> None:
     assert dto_sudeste.kpis.total_customers < 300
     assert dto_sudeste.kpis.total_customers > 0
 
-    dto_sp = build_commercial_dashboard(
-        repo, scenario_id="c1_toys", regiao="Sudeste", uf="SP"
-    )
+    dto_sp = build_commercial_dashboard(repo, scenario_id="c1_toys", regiao="Sudeste", uf="SP")
     assert dto_sp.kpis.total_customers <= dto_sudeste.kpis.total_customers
     assert (dto_sp.priority_risk_df["state"] == "SP").all()

@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 def build_commercial_filter_clauses(
     scenario_id: ScenarioId,
     *,
+    prefix: str = "cr",
     regiao: str = "Todas",
     uf: str = "Todas",
     sales_reps: Sequence[str] = (),
@@ -23,7 +24,7 @@ def build_commercial_filter_clauses(
     rfm_segment: str = "Todos",
 ) -> tuple[str, list[Any]]:
     """Constrói a cláusula WHERE e parâmetros para consultas de clientes e inteligência comercial."""
-    clauses: list[str] = ["c.scenario_id = ?"]
+    clauses: list[str] = [f"{prefix}.scenario_id = ?"]
     params: list[Any] = [scenario_id]
 
     if regiao != "Todas":
@@ -65,6 +66,7 @@ def query_commercial_kpis_data(
     """Consulta os KPIs agregados de clientes, risco de churn e potencial White Space."""
     where_sql, params = build_commercial_filter_clauses(
         scenario_id,
+        prefix="cr",
         regiao=regiao,
         uf=uf,
         sales_reps=sales_reps,
@@ -83,10 +85,9 @@ def query_commercial_kpis_data(
             cr.delay_ratio
         FROM gold.dim_customer c
         LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id
-        LEFT JOIN gold.mart_customer_risk cr
-            ON c.customer_id = cr.customer_id AND cr.scenario_id = c.scenario_id
+        JOIN gold.mart_customer_risk cr ON c.customer_id = cr.customer_id
         LEFT JOIN gold.mart_rfm rfm
-            ON c.customer_id = rfm.customer_id AND rfm.scenario_id = c.scenario_id
+            ON c.customer_id = rfm.customer_id AND rfm.scenario_id = cr.scenario_id
         {where_sql}
     ),
     ws_scoped AS (
@@ -95,6 +96,7 @@ def query_commercial_kpis_data(
             SUM(ws.potential_revenue_brl) AS ws_rev,
             SUM(ws.potential_margin_brl) AS ws_margin
         FROM gold.mart_white_space ws
+        JOIN base_customers b ON ws.customer_id = b.customer_id
         WHERE ws.scenario_id = '{scenario_id}'
         GROUP BY ws.customer_id
     )
@@ -165,6 +167,7 @@ def query_priority_risk_customers(
     """Consulta a lista priorizada de clientes para ação comercial ordenada por valor em risco."""
     where_sql, params = build_commercial_filter_clauses(
         scenario_id,
+        prefix="cr",
         regiao=regiao,
         uf=uf,
         sales_reps=sales_reps,
@@ -202,10 +205,9 @@ def query_priority_risk_customers(
         COALESCE(c.whatsapp, '') AS whatsapp
     FROM gold.dim_customer c
     LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id
-    JOIN gold.mart_customer_risk cr
-        ON c.customer_id = cr.customer_id AND cr.scenario_id = c.scenario_id
+    JOIN gold.mart_customer_risk cr ON c.customer_id = cr.customer_id
     LEFT JOIN gold.mart_rfm rfm
-        ON c.customer_id = rfm.customer_id AND rfm.scenario_id = c.scenario_id
+        ON c.customer_id = rfm.customer_id AND rfm.scenario_id = cr.scenario_id
     LEFT JOIN top_ws ws ON c.customer_id = ws.customer_id
     {where_sql}
     ORDER BY cr.annual_revenue_at_risk DESC, cr.delay_ratio DESC
@@ -225,6 +227,7 @@ def query_rfm_summary_data(
     """Consulta o resumo dos 9 segmentos RFM sob os filtros ativos."""
     where_sql, params = build_commercial_filter_clauses(
         scenario_id,
+        prefix="rfm",
         regiao=regiao,
         uf=uf,
         sales_reps=sales_reps,
@@ -241,11 +244,14 @@ def query_rfm_summary_data(
             2
         ) AS margin_pct,
         ROUND(AVG(rfm.gross_revenue / NULLIF(rfm.frequency, 0)), 2) AS avg_ticket,
-        COUNT(CASE WHEN cr.risk_status IN ('Em Risco Imediato', 'Adormecido / Perdido') THEN 1 END)::INTEGER AS at_risk_count
+        COUNT(
+            CASE WHEN cr.risk_status IN ('Em Risco Imediato', 'Adormecido / Perdido') THEN 1 END
+        )::INTEGER AS at_risk_count
     FROM gold.dim_customer c
     LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id
-    JOIN gold.mart_rfm rfm ON c.customer_id = rfm.customer_id AND rfm.scenario_id = c.scenario_id
-    LEFT JOIN gold.mart_customer_risk cr ON c.customer_id = cr.customer_id AND cr.scenario_id = c.scenario_id
+    JOIN gold.mart_rfm rfm ON c.customer_id = rfm.customer_id
+    LEFT JOIN gold.mart_customer_risk cr
+        ON c.customer_id = cr.customer_id AND cr.scenario_id = rfm.scenario_id
     {where_sql}
     GROUP BY rfm.rfm_segment
     ORDER BY gross_revenue DESC
@@ -270,6 +276,7 @@ def query_white_space_matrix_data(
     """Consulta a distribuição de oportunidades White Space por Família Recomendada e Segmento RFM."""
     where_sql, params = build_commercial_filter_clauses(
         scenario_id,
+        prefix="ws",
         regiao=regiao,
         uf=uf,
         sales_reps=sales_reps,
@@ -278,14 +285,17 @@ def query_white_space_matrix_data(
     sql = f"""
     SELECT
         ws.recommended_family,
-        rfm.rfm_segment,
+        COALESCE(rfm.rfm_segment, 'Outros') AS rfm_segment,
         COUNT(ws.customer_id)::INTEGER AS opportunities_count,
         ROUND(SUM(ws.potential_revenue_brl), 2) AS potential_revenue_brl,
         ROUND(SUM(ws.potential_margin_brl), 2) AS potential_margin_brl
     FROM gold.mart_white_space ws
-    JOIN gold.dim_customer c ON ws.customer_id = c.customer_id AND ws.scenario_id = c.scenario_id
+    JOIN gold.dim_customer c ON ws.customer_id = c.customer_id
     LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id
-    LEFT JOIN gold.mart_rfm rfm ON c.customer_id = rfm.customer_id AND rfm.scenario_id = c.scenario_id
+    LEFT JOIN gold.mart_rfm rfm
+        ON c.customer_id = rfm.customer_id AND rfm.scenario_id = ws.scenario_id
+    LEFT JOIN gold.mart_customer_risk cr
+        ON c.customer_id = cr.customer_id AND cr.scenario_id = ws.scenario_id
     {where_sql}
     GROUP BY ws.recommended_family, rfm.rfm_segment
     ORDER BY potential_revenue_brl DESC

@@ -32,7 +32,8 @@ def _render_kpi_cards(dto: CommercialPageDTO, customer_plural: str) -> None:
             accent="red",
             help_text=(
                 f"Total de {customer_plural.lower()} que excederam em mais de 50% seu ciclo médio "
-                "de recompra (delay ratio > 1.5), classificados em 'Em Risco Imediato' ou 'Adormecido'.<br><br>"
+                "de recompra (delay ratio > 1.5), classificados em 'Em Risco Imediato' "
+                "ou 'Adormecido'.<br><br>"
                 "<strong>No rodapé:</strong> participação percentual sobre o total de clientes da carteira."
             ),
         )
@@ -122,13 +123,9 @@ def _render_risk_section(dto: CommercialPageDTO, theme_mode: str, customer_label
                     "sales_rep_name": st.column_config.TextColumn("RCA"),
                     "risk_status": st.column_config.TextColumn("Status"),
                     "delay_ratio": st.column_config.NumberColumn("Atraso", format="%.2fx"),
-                    "annual_revenue_at_risk": st.column_config.NumberColumn(
-                        "R$ em Risco", format="R$ %,.2f"
-                    ),
+                    "annual_revenue_at_risk": st.column_config.NumberColumn("R$ em Risco", format="R$ %,.2f"),
                     "top_opportunity_family": st.column_config.TextColumn("Oportunidade Mix"),
-                    "top_opportunity_brl": st.column_config.NumberColumn(
-                        "Potencial R$", format="R$ %,.2f"
-                    ),
+                    "top_opportunity_brl": st.column_config.NumberColumn("Potencial R$", format="R$ %,.2f"),
                 },
             )
         else:
@@ -176,7 +173,8 @@ def _render_rep_efficiency_section(
         "Dispersão de Faturamento vs. Margem Líquida % com tamanho de bolha = R$ em Risco",
         help_text=(
             "Cortes nas medianas da equipe: 'Estrela' (alto volume e alta margem); "
-            "'Volume sem margem' (excesso de descontos); 'Margem sem volume' (preço defendido com baixa escala); "
+            "'Volume sem margem' (excesso de descontos); "
+            "'Margem sem volume' (preço defendido com baixa escala); "
             "'Atenção' (abaixo da mediana em ambos os eixos)."
         ),
     )
@@ -226,19 +224,11 @@ def _render_rep_efficiency_section(
                 column_config={
                     "sales_rep_name": st.column_config.TextColumn(rep_label),
                     "quadrant": st.column_config.TextColumn("Quadrante"),
-                    "gross_revenue": st.column_config.NumberColumn(
-                        "Faturamento", format="R$ %,.2f"
-                    ),
+                    "gross_revenue": st.column_config.NumberColumn("Faturamento", format="R$ %,.2f"),
                     "margin_pct": st.column_config.NumberColumn("Margem %", format="%.1f%%"),
-                    "avg_discount_pct": st.column_config.NumberColumn(
-                        "Desconto Médio", format="%.1f%%"
-                    ),
-                    "revenue_at_risk_brl": st.column_config.NumberColumn(
-                        "Risco Carteira", format="R$ %,.2f"
-                    ),
-                    "action_prescription": st.column_config.TextColumn(
-                        "Ação Recomendada", width="medium"
-                    ),
+                    "avg_discount_pct": st.column_config.NumberColumn("Desconto Médio", format="%.1f%%"),
+                    "revenue_at_risk_brl": st.column_config.NumberColumn("Risco Carteira", format="R$ %,.2f"),
+                    "action_prescription": st.column_config.TextColumn("Ação Recomendada", width="medium"),
                 },
             )
 
@@ -250,16 +240,25 @@ def render_page() -> None:
     labels = scenario_cfg.labels
     theme_mode = state.theme_mode
 
+    st.title("🎯 Radar Comercial & Antecipação de Churn")
+    st.caption(
+        f"Gestão proativa de recompra, detecção precoce de evasão e inteligência de cross-sell "
+        f"por representante: **{scenario_cfg.display_name}** ({scenario_cfg.company_profile})."
+    )
+
     # Barra de Manchete Executiva Dinâmica
+    headline_title = f"🎯 Radar Comercial & Antecipação de Churn · {scenario_cfg.display_name}"
+    headline_sub = (
+        "Gestão proativa de recompra, detecção precoce de evasão e inteligência de cross-sell "
+        "por representante."
+    )
     st.markdown(
-        f"""
-        <div class="kpi-headline" style="margin-bottom: 1.25rem;">
-            <div class="kpi-headline-title">🎯 Radar Comercial & Antecipação de Churn · {scenario_cfg.display_name}</div>
-            <div class="kpi-headline-text">
-                Gestão proativa de recompra, detecção precoce de evasão e inteligência de cross-sell por representante.
-            </div>
-        </div>
-        """,
+        (
+            "<div class='kpi-headline' style='margin-bottom: 1.25rem;'>"
+            f"<div class='kpi-headline-title'>{headline_title}</div>"
+            f"<div class='kpi-headline-text'>{headline_sub}</div>"
+            "</div>"
+        ),
         unsafe_allow_html=True,
     )
 
@@ -299,6 +298,11 @@ def render_page() -> None:
     )
     render_prescription_box(
         title=dto.prescription_title,
-        body_html=dto.prescription_html,
+        recommendation_html=dto.prescription_html,
         impact_brl=dto.prescription_impact_brl,
+        action_hint="Priorize o contato com os lojistas do topo da lista antes do fechamento semanal.",
+        help_text="Diretrizes táticas consolidadas com base no valor em risco e oportunidades de cross-sell.",
     )
+
+
+render_page()

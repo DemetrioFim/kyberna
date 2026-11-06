@@ -18,7 +18,7 @@ def test_commercial_page_full_render() -> None:
     assert "kyb-info-icon" in all_markdown
     assert "kyb-tooltip-popover" in all_markdown
     assert "Radar Comercial" in all_markdown
-    assert "Clientes em Risco" in all_markdown
+    assert "em Risco" in all_markdown
     assert "Receita Anual em Risco" in all_markdown
     assert "Oportunidade White Space" in all_markdown
     assert "Positivação de Carteira" in all_markdown

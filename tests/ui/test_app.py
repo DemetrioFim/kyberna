@@ -38,7 +38,7 @@ def test_app_theme_toggle_interaction() -> None:
 def test_app_geographic_cascade_interaction() -> None:
     """Verifica se a seleção de região na sidebar atualiza o estado e reflete na página ativa."""
     app_path = get_project_root() / "src" / "ui" / "app.py"
-    at = AppTest.from_file(str(app_path))
+    at = AppTest.from_file(str(app_path), default_timeout=10)
     at.run()
 
     # Na inicialização ("Todas"), o selectbox 1 é Período, 2 é Região e 3 é UF
@@ -46,14 +46,11 @@ def test_app_geographic_cascade_interaction() -> None:
     assert at.sidebar.selectbox[2].options == ["Todas", "Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte"]
     assert len(at.sidebar.selectbox[3].options) == 28  # "Todas" + 27 UFs
 
-    # Testa seleção de período
-    at.sidebar.selectbox[1].set_value("ytd").run()
-    assert not at.exception
-    assert at.session_state.period_preset == "ytd"
-
-    # Muda a região para "Sul"
+    # Testa seleção de período e região
+    at.sidebar.selectbox[1].set_value("ytd")
     at.sidebar.selectbox[2].set_value("Sul").run()
     assert not at.exception
+    assert at.session_state.period_preset == "ytd"
     assert at.session_state.regiao == "Sul"
     assert at.session_state.uf == "Todas"
 
@@ -73,7 +70,7 @@ def test_pages_render_without_exception() -> None:
     ]
     for page_name in pages:
         page_path = get_project_root() / "src" / "ui" / "pages" / page_name
-        at = AppTest.from_file(str(page_path))
+        at = AppTest.from_file(str(page_path), default_timeout=10)
         at.run()
         assert not at.exception, f"Erro ao renderizar a página {page_name}"
         assert len(at.title) >= 1

@@ -68,18 +68,22 @@ def build_commercial_prescription(
     top_ws_potential = float(priority_df.head(top_count)["top_opportunity_brl"].sum())
 
     title = "Plano Tático de Reativação e Oferta de Sortimento"
-    html = f"""
-    <p>
-        Priorize a abordagem imediata dos <b>Top {top_count} lojistas</b> com maior valor exposto.
-        Este grupo isolado responde por <b>{format_brl(top_revenue_at_risk)}</b> de receita anualizada
-        e <b>{format_brl(top_margin_at_risk)}</b> de margem de contribuição líquida.
-    </p>
-    <ul style="margin-left: 20px; line-height: 1.6;">
-        <li><b>Ação de Reativação Imediata:</b> Acione os RCAs responsáveis para contato presencial ou WhatsApp com oferta especial de frete ou condição nos clientes com atraso superior a 50% (delay ratio > 1.5).</li>
-        <li><b>Abordagem de Mix (White Space):</b> Em cada contato de resgate, utilize o argumento prescrito e o SKU âncora recomendado, capturando até <b>{format_brl(top_ws_potential)}</b> em pedidos imediatos de reposição.</li>
-        <li><b>Gestão de Alçada:</b> Para representantes no quadrante <i>'Volume sem margem'</i>, travar concessão de descontos acima da política e vincular a comissão à rentabilidade líquida da venda.</li>
-    </ul>
-    """
+    html = (
+        f"<p>Priorize a abordagem imediata dos <b>Top {top_count} lojistas</b> com maior valor exposto. "
+        f"Este grupo isolado responde por <b>{format_brl(top_revenue_at_risk)}</b> de receita anualizada "
+        f"e <b>{format_brl(top_margin_at_risk)}</b> de margem de contribuição líquida.</p>"
+        "<ul style='margin-left: 20px; line-height: 1.6;'>"
+        "<li><b>Ação de Reativação Imediata:</b> Acione os RCAs responsáveis para contato presencial ou "
+        "WhatsApp com oferta especial de frete ou condição nos clientes com atraso superior a 50% "
+        "(delay ratio > 1.5).</li>"
+        "<li><b>Abordagem de Mix (White Space):</b> Em cada contato de resgate, utilize "
+        "o argumento prescrito e o SKU âncora recomendado, capturando até "
+        f"<b>{format_brl(top_ws_potential)}</b> em pedidos imediatos de reposição.</li>"
+        "<li><b>Gestão de Alçada:</b> Para representantes no quadrante <i>'Volume sem margem'</i>, "
+        "travar concessão de descontos acima da política e vincular a comissão à rentabilidade "
+        "líquida da venda.</li>"
+        "</ul>"
+    )
     return title, html, top_margin_at_risk
 
 
@@ -163,9 +167,7 @@ def build_commercial_dashboard(
     )
 
     headline_title, headline_text = build_commercial_headline(kpis)
-    prescription_title, prescription_html, impact_brl = build_commercial_prescription(
-        kpis, priority_df
-    )
+    prescription_title, prescription_html, impact_brl = build_commercial_prescription(kpis, priority_df)
 
     return CommercialPageDTO(
         scenario_id=scenario_id,
