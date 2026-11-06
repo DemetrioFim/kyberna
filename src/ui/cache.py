@@ -4,7 +4,8 @@ import streamlit as st
 
 from src.core.types import ScenarioId
 from src.db.repository import DataRepository, get_repository
-from src.services.dto import ExecutivePageDTO
+from src.services.commercial_service import build_commercial_dashboard
+from src.services.dto import CommercialPageDTO, ExecutivePageDTO
 from src.services.executive_service import (
     build_executive_dashboard,
     get_filter_options,
@@ -59,4 +60,29 @@ def cached_executive_dashboard(
         period_label=bounds.period_label,
         comparison_label=bounds.comparison_label,
         as_of_date_label=bounds.as_of_date_label,
+    )
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def cached_commercial_dashboard(
+    scenario_id: ScenarioId,
+    *,
+    regiao: str = "Todas",
+    uf: str = "Todas",
+    sales_reps: tuple[str, ...] = (),
+    risk_status: str = "Todos",
+    rfm_segment: str = "Todos",
+    as_of_date_label: str = "31/12/2024",
+) -> CommercialPageDTO:
+    """Consulta e agrega os dados do Radar Comercial com cache em memória (TTL 5 min)."""
+    repo = get_cached_repository()
+    return build_commercial_dashboard(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        sales_reps=sales_reps,
+        risk_status=risk_status,
+        rfm_segment=rfm_segment,
+        as_of_date_label=as_of_date_label,
     )

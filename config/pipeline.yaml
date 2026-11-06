@@ -138,6 +138,27 @@ thresholds:
     min_confidence_score: 0.10        # Limiar de confiança para sugestão
     max_total_potential_share: 0.30   # Trava de sanidade comercial: potencial total < 30% da receita anual
 
+  # Eficiência Comercial de Representantes (Quadrante de RCAs)
+  rep_performance:
+    quadrants:
+      star:
+        name: "Estrela"
+        description: "Alta receita e alta margem de contribuição (ambas acima da mediana da equipe)."
+        action: "Manter autonomia, reconhecer performance, premiar mix rentável e disseminar boas práticas."
+      volume_no_margin:
+        name: "Volume sem margem"
+        description: "Alta receita porém margem abaixo da mediana (concessão excessiva de descontos)."
+        action: "Travar alçada de descontos, condicionar comissão à margem líquida e auditar tabela de preços."
+      margin_no_volume:
+        name: "Margem sem volume"
+        description: "Alta margem percentual porém receita abaixo da mediana (disciplina de preço com baixa positivação)."
+        action: "Expandir carteira ativa, explorar oportunidades de White Space e aumentar frequência de visitas."
+      attention:
+        name: "Atenção"
+        description: "Baixa receita e baixa rentabilidade (ambas abaixo da mediana da equipe)."
+        action: "Plano de recuperação comercial individual, reciclagem em negociação e acompanhamento semanal pela gerência."
+
+
 
   # Análise de Estoque e Capital de Giro
   excess_inventory_days: 120    # Estoque parado acima de 120 dias de cobertura

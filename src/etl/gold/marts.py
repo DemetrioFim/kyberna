@@ -9,6 +9,7 @@ from src.core.paths import get_data_dir
 from src.core.types import ScenarioId
 from src.ml.abc_xyz import build_abc_xyz_mart
 from src.ml.churn import build_customer_risk_mart
+from src.ml.rep_performance import build_rep_performance_mart
 from src.ml.rfm import build_rfm_mart
 from src.ml.white_space import build_white_space_mart
 
@@ -149,5 +150,9 @@ def build_gold_marts(
     # Mart analítico da Matriz White Space e Recomendações de Cross-Sell B2B
     white_space_df = build_white_space_mart(con, scenario_id=scenario_id)
     counts["mart_white_space"] = len(white_space_df)
+
+    # Mart analítico de Eficiência Comercial de Representantes (RCAs)
+    rep_perf_df = build_rep_performance_mart(con, scenario_id=scenario_id)
+    counts["mart_rep_performance"] = len(rep_perf_df)
 
     return counts

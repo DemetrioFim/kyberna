@@ -342,6 +342,45 @@ class GoldWhiteSpaceSchema(pa.DataFrameModel):
         coerce = True
 
 
+class GoldRepPerformanceSchema(pa.DataFrameModel):
+    """Contrato do mart analítico de Eficiência Comercial de Representantes (Quadrante de RCAs)."""
+
+    scenario_id: str = Field(isin=VALID_SCENARIO_IDS, nullable=False)
+    as_of_date: str = Field(nullable=False)
+    sales_rep_id: str = Field(nullable=False)
+    sales_rep_name: str = Field(nullable=False)
+    region: str = Field(nullable=False)
+    commission_rate: float = Field(ge=0.0, le=0.20, nullable=False)
+    portfolio_customers: int = Field(ge=0, nullable=False)
+    active_customers: int = Field(ge=0, nullable=False)
+    positivation_pct: float = Field(ge=0.0, le=100.0, nullable=False)
+    avg_families_per_customer: float = Field(ge=0.0, nullable=False)
+    orders_count: int = Field(ge=0, nullable=False)
+    gross_revenue: float = Field(ge=0.0, nullable=False)
+    discount_amount: float = Field(ge=0.0, nullable=False)
+    avg_discount_pct: float = Field(ge=0.0, le=100.0, nullable=False)
+    net_revenue: float = Field(nullable=False)
+    commission_amount: float = Field(ge=0.0, nullable=False)
+    contribution_margin: float = Field(nullable=False)
+    margin_pct: float = Field(nullable=False)
+    at_risk_customers_count: int = Field(ge=0, nullable=False)
+    at_risk_customers_pct: float = Field(ge=0.0, le=100.0, nullable=False)
+    revenue_at_risk_brl: float = Field(ge=0.0, nullable=False)
+    margin_at_risk_brl: float = Field(nullable=False)
+    white_space_potential_brl: float = Field(ge=0.0, nullable=False)
+    white_space_margin_brl: float = Field(nullable=False)
+    quadrant: str = Field(
+        isin=["Estrela", "Volume sem margem", "Margem sem volume", "Atenção"],
+        nullable=False,
+    )
+    action_prescription: str = Field(nullable=False)
+    snapshot_date: str = Field(nullable=False)
+
+    class Config:
+        strict = False
+        coerce = True
+
+
 # ==============================================================================
 # Helper Unificado de Validação
 # ==============================================================================

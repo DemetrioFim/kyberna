@@ -20,6 +20,7 @@ from src.etl.silver.enrich import enrich_silver_dimensions
 from src.etl.silver.time_anchor import apply_time_anchor
 from src.ml.abc_xyz import build_abc_xyz_mart, compute_abc_xyz_matrix_summary
 from src.ml.churn import build_customer_risk_mart, compute_customer_risk_summary
+from src.ml.rep_performance import build_rep_performance_mart, compute_rep_performance_summary
 from src.ml.rfm import build_rfm_mart, compute_rfm_segment_summary
 from src.ml.white_space import build_white_space_mart
 
@@ -430,6 +431,45 @@ def ml_white_space(
             ]
         ]
         typer.echo(top_sample.to_string(index=False))
+    finally:
+        con.close()
+
+
+@ml_app.command("rep-performance")
+def ml_rep_performance(
+    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
+    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
+) -> None:
+    """Analisa a eficiência comercial de RCAs e classifica no Quadrante de Performance."""
+    con = duckdb.connect(str(get_duckdb_path()))
+    try:
+        with timed_step("ml_rep_performance"):
+            df = build_rep_performance_mart(
+                con,
+                as_of_date=as_of,
+                scenario_id=scenario,  # type: ignore[arg-type]
+            )
+            summary = compute_rep_performance_summary(df)
+
+        typer.echo(
+            f"\nQuadrante de Representantes (RCAs) construído para '{scenario}' ({len(df):,} representantes):"
+        )
+        typer.echo(
+            summary[
+                [
+                    "quadrant",
+                    "reps_count",
+                    "reps_pct",
+                    "gross_revenue",
+                    "revenue_pct",
+                    "contribution_margin",
+                    "margin_pct",
+                    "avg_discount_pct",
+                    "revenue_at_risk_brl",
+                    "white_space_potential_brl",
+                ]
+            ].to_string(index=False)
+        )
     finally:
         con.close()
 

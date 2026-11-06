@@ -96,3 +96,36 @@ class ExecutivePageDTO(BaseModel):
     comparison_label: str = "Histórico Global Consolidado"
     as_of_date_label: str = "31/12/2024"
     monthly_sales_table_df: pd.DataFrame | None = None
+
+
+class CommercialKpisDTO(BaseModel):
+    """Métricas comerciais consolidadas do radar comercial e risco de churn."""
+
+    total_customers: int
+    active_customers: int
+    at_risk_customers: int
+    at_risk_customers_pct: float
+    annual_revenue_at_risk_brl: float
+    annual_margin_at_risk_brl: float
+    white_space_potential_revenue_brl: float
+    white_space_potential_margin_brl: float
+    avg_positivation_pct: float
+
+
+class CommercialPageDTO(BaseModel):
+    """Payload completo e tipado consumido pela Tela 2 (Radar Comercial, RFM & Antecipação de Churn)."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    scenario_id: ScenarioId
+    kpis: CommercialKpisDTO
+    headline_title: str
+    headline_text: str
+    priority_risk_df: pd.DataFrame
+    rfm_summary_df: pd.DataFrame
+    white_space_matrix_df: pd.DataFrame
+    rep_performance_df: pd.DataFrame
+    prescription_title: str
+    prescription_html: str
+    prescription_impact_brl: float | None = None
+    as_of_date_label: str = "31/12/2024"
