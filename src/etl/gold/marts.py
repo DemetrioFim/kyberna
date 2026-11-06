@@ -10,6 +10,7 @@ from src.core.types import ScenarioId
 from src.ml.abc_xyz import build_abc_xyz_mart
 from src.ml.churn import build_customer_risk_mart
 from src.ml.rfm import build_rfm_mart
+from src.ml.white_space import build_white_space_mart
 
 logger = get_logger(__name__)
 
@@ -144,5 +145,9 @@ def build_gold_marts(
     # Mart analítico de Risco de Churn e Ciclo de Recompra
     churn_df = build_customer_risk_mart(con, scenario_id=scenario_id)
     counts["mart_customer_risk"] = len(churn_df)
+
+    # Mart analítico da Matriz White Space e Recomendações de Cross-Sell B2B
+    white_space_df = build_white_space_mart(con, scenario_id=scenario_id)
+    counts["mart_white_space"] = len(white_space_df)
 
     return counts

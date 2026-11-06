@@ -13,8 +13,10 @@ from src.services.executive_service import (
     get_abc_xyz_overview,
     get_filter_options,
     get_monthly_margin_trend,
+    get_monthly_sales_table,
     get_top_margin_drivers,
 )
+from src.ui.state import resolve_period_bounds
 
 
 @pytest.fixture
@@ -153,3 +155,48 @@ def test_executive_dashboard_build_latency_and_payload(repo: DuckDBRepository) -
     assert len(dto.top_customer_destroyers_df) == 10
     assert dto.prescription_impact_brl is not None
     assert dto.prescription_impact_brl > 0
+    assert not dto.monthly_sales_table_df.empty
+    assert "gross_revenue" in dto.monthly_sales_table_df.columns
+    assert "margin_pct" in dto.monthly_sales_table_df.columns
+    assert "mom_gross_pct" in dto.monthly_sales_table_df.columns
+
+
+def test_executive_dashboard_temporal_presets_and_monthly_table(repo: DuckDBRepository) -> None:
+    """Valida filtros temporais (YTD 12M, Mês Específico) e a geração da tabela de demonstrativo mensal."""
+    # Teste com filtro YTD (Ano 2024) resolvido
+    bounds_ytd = resolve_period_bounds("ytd")
+    dto_ytd = build_executive_dashboard(
+        repo,
+        scenario_id="c1_toys",
+        start_date_key=bounds_ytd.start_date_key,
+        end_date_key=bounds_ytd.end_date_key,
+        comp_start_date_key=bounds_ytd.comparison_start_date_key,
+        comp_end_date_key=bounds_ytd.comparison_end_date_key,
+        period_label=bounds_ytd.period_label,
+        comparison_label=bounds_ytd.comparison_label,
+    )
+    assert "2024" in dto_ytd.period_label
+    assert dto_ytd.kpis.gross_revenue < 19703059.08  # Subconjunto do faturamento total de 24m
+    assert dto_ytd.kpis.gross_revenue_delta_pct is not None
+    assert dto_ytd.kpis.contribution_margin_delta_pct is not None
+    assert len(dto_ytd.monthly_sales_table_df) == 12
+
+    # Teste com filtro de Mês Específico (2024-12)
+    bounds_month = resolve_period_bounds("custom_month", selected_month="2024-12")
+    dto_month = build_executive_dashboard(
+        repo,
+        scenario_id="c1_toys",
+        start_date_key=bounds_month.start_date_key,
+        end_date_key=bounds_month.end_date_key,
+        comp_start_date_key=bounds_month.comparison_start_date_key,
+        comp_end_date_key=bounds_month.comparison_end_date_key,
+        period_label=bounds_month.period_label,
+        comparison_label=bounds_month.comparison_label,
+    )
+    assert "Dezembro" in dto_month.period_label
+    assert dto_month.kpis.total_orders < dto_ytd.kpis.total_orders
+    assert not dto_month.monthly_sales_table_df.empty
+
+    # Teste de chamada direta à função de demonstrativo mensal
+    table_direct = get_monthly_sales_table(repo, scenario_id="c1_toys")
+    assert len(table_direct) == 24

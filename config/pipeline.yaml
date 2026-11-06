@@ -125,6 +125,20 @@ thresholds:
         description: "Piores indicadores: compra única distante no passado e margem líquida residual ou negativa."
         action: "Comunicação automatizada de baixo custo ou exclusão de roteiros presenciais de visitação."
 
+  # Matriz White Space e Recomendação de Cross-Sell B2B (Apriori + Lookalike)
+  white_space:
+    top_n_recommendations: 3          # Top-N oportunidades sugeridas por cliente
+    lookalike_n_neighbors: 15         # Quantidade de vizinhos similares no NearestNeighbors
+    item_affinity_weight: 0.40        # Peso da afinidade item-item (Apriori + cosseno entre famílias)
+    lookalike_weight: 0.60            # Peso do lookalike de clientes (mix relativo + porte + região)
+    apriori_min_support: 0.03         # Frequência mínima de cestas conjuntas (Suporte Apriori)
+    apriori_min_confidence: 0.15      # Probabilidade condicional mínima P(B|A) (Confiança Apriori)
+    active_window_days: 180           # Janela de dias para considerar compra ativa do cliente
+    min_active_share: 0.05            # Share mínimo no período ativo para excluir recomendação (5%)
+    min_confidence_score: 0.10        # Limiar de confiança para sugestão
+    max_total_potential_share: 0.30   # Trava de sanidade comercial: potencial total < 30% da receita anual
+
+
   # Análise de Estoque e Capital de Giro
   excess_inventory_days: 120    # Estoque parado acima de 120 dias de cobertura
   min_stock_coverage_days: 15   # Nível de alerta de ruptura (dias de venda média)

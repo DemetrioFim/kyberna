@@ -21,6 +21,7 @@ from src.etl.silver.time_anchor import apply_time_anchor
 from src.ml.abc_xyz import build_abc_xyz_mart, compute_abc_xyz_matrix_summary
 from src.ml.churn import build_customer_risk_mart, compute_customer_risk_summary
 from src.ml.rfm import build_rfm_mart, compute_rfm_segment_summary
+from src.ml.white_space import build_white_space_mart
 
 app = typer.Typer(
     name="kyberna",
@@ -396,6 +397,39 @@ def ml_churn(
                 ]
             ].to_string(index=False)
         )
+    finally:
+        con.close()
+
+
+@ml_app.command("white-space")
+def ml_white_space(
+    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
+    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
+) -> None:
+    """Calcula matriz White Space e recomendações de Cross-Sell via Apriori e Lookalike."""
+    con = duckdb.connect(str(get_duckdb_path()))
+    try:
+        with timed_step("ml_white_space"):
+            df = build_white_space_mart(
+                con,
+                as_of_date=as_of,
+                scenario_id=scenario,  # type: ignore[arg-type]
+            )
+
+        typer.echo(f"\nMatriz White Space construída para '{scenario}' ({len(df):,} recomendações geradas):")
+        top_sample = df.head(10)[
+            [
+                "customer_id",
+                "recommended_family",
+                "rank_order",
+                "opportunity_score",
+                "item_affinity_score",
+                "lookalike_score",
+                "potential_revenue_brl",
+                "potential_margin_brl",
+            ]
+        ]
+        typer.echo(top_sample.to_string(index=False))
     finally:
         con.close()
 

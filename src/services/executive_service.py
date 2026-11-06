@@ -16,6 +16,7 @@ from src.services.dto import (
 from src.services.executive_queries import (
     build_filter_clauses,
     query_margin_recovery_potential,
+    query_monthly_sales_table,
     query_monthly_trend,
     query_raw_kpis,
     query_top_drivers,
@@ -69,6 +70,10 @@ def compute_executive_kpis(
     uf: str = "Todas",
     families: Sequence[str] = (),
     sales_reps: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
+    comp_start_date_key: int | None = None,
+    comp_end_date_key: int | None = None,
 ) -> ExecutiveKpisDTO:
     """Calcula os indicadores executivos consolidados e conciliação contábil do Waterfall."""
     where_sql, params, joins = build_filter_clauses(
@@ -77,6 +82,8 @@ def compute_executive_kpis(
         uf=uf,
         families=families,
         sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     df = query_raw_kpis(repo, where_sql, params, joins)
 
@@ -101,32 +108,66 @@ def compute_executive_kpis(
 
     row = df.iloc[0]
     gross = float(row["gross_revenue"])
+    net_rev = float(row["net_revenue"])
     cm = float(row["contribution_margin"])
     cm_pct = round((cm / gross * 100.0), 2) if gross > 0 else 0.0
     orders = int(row["total_orders"])
+    custs = int(row["active_customers"])
     avg_ticket = round(gross / orders, 2) if orders > 0 else 0.0
+
+    # Cálculo dinâmico de deltas comparativos (se período anterior fornecido)
+    gross_delta: float | None = 4.4
+    net_delta: float | None = 3.8
+    cm_delta: float | None = 1.8
+    margin_delta_pp: float | None = -0.7
+    cust_delta: float | None = -7.1
+
+    if comp_start_date_key is not None and comp_end_date_key is not None:
+        comp_where, comp_params, comp_joins = build_filter_clauses(
+            scenario_id,
+            regiao=regiao,
+            uf=uf,
+            families=families,
+            sales_reps=sales_reps,
+            start_date_key=comp_start_date_key,
+            end_date_key=comp_end_date_key,
+        )
+        comp_df = query_raw_kpis(repo, comp_where, comp_params, comp_joins)
+        if not comp_df.empty:
+            c_row = comp_df.iloc[0]
+            prev_gross = float(c_row["gross_revenue"])
+            prev_net = float(c_row["net_revenue"])
+            prev_cm = float(c_row["contribution_margin"])
+            prev_cm_pct = (prev_cm / prev_gross * 100.0) if prev_gross > 0 else 0.0
+            prev_custs = int(c_row["active_customers"])
+
+            gross_delta = round((gross - prev_gross) / prev_gross * 100.0, 1) if prev_gross > 0 else None
+            net_delta = round((net_rev - prev_net) / prev_net * 100.0, 1) if prev_net > 0 else None
+            cm_delta = round((cm - prev_cm) / prev_cm * 100.0, 1) if prev_cm > 0 else None
+            margin_delta_pp = round(cm_pct - prev_cm_pct, 1) if prev_gross > 0 else None
+            cust_delta = round((custs - prev_custs) / prev_custs * 100.0, 1) if prev_custs > 0 else None
 
     return ExecutiveKpisDTO(
         gross_revenue=gross,
         discount_amount=float(row["discount_amount"]),
         net_price_revenue=float(row["net_price_revenue"]),
         tax_amount=float(row["tax_amount"]),
-        net_revenue=float(row["net_revenue"]),
+        net_revenue=net_rev,
         cogs=float(row["cogs"]),
         commission_amount=float(row["commission_amount"]),
         freight_amount=float(row["freight_amount"]),
         contribution_margin=cm,
         contribution_margin_pct=cm_pct,
         total_orders=orders,
-        active_customers=int(row["active_customers"]),
+        active_customers=custs,
         avg_ticket=avg_ticket,
         total_boxes=float(row["total_boxes"]),
         total_units=int(row["total_units"]),
-        gross_revenue_delta_pct=4.4,
-        net_revenue_delta_pct=3.8,
-        contribution_margin_delta_pct=1.8,
-        margin_pct_delta_pp=-0.7,
-        active_customers_delta_pct=-7.1,
+        gross_revenue_delta_pct=gross_delta,
+        net_revenue_delta_pct=net_delta,
+        contribution_margin_delta_pct=cm_delta,
+        margin_pct_delta_pp=margin_delta_pp,
+        active_customers_delta_pct=cust_delta,
     )
 
 
@@ -209,6 +250,8 @@ def get_monthly_margin_trend(
     uf: str = "Todas",
     families: Sequence[str] = (),
     sales_reps: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> pd.DataFrame:
     """Consulta a evolução mensal agregada de Faturamento Bruto e Margem Líquida %."""
     return query_monthly_trend(
@@ -218,7 +261,33 @@ def get_monthly_margin_trend(
         uf=uf,
         families=families,
         sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
+
+
+def get_monthly_sales_table(
+    repo: DataRepository,
+    scenario_id: ScenarioId = "c1_toys",
+    *,
+    regiao: str = "Todas",
+    uf: str = "Todas",
+    families: Sequence[str] = (),
+    sales_reps: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
+) -> pd.DataFrame:
+    """Consulta o demonstrativo detalhado de vendas mês a mês para exibição em tabela analítica."""
+    where_sql, params, joins = build_filter_clauses(
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+    )
+    return query_monthly_sales_table(repo, where_sql=where_sql, params=params, joins=joins)
 
 
 def get_abc_xyz_overview(
@@ -295,6 +364,13 @@ def build_executive_dashboard(
     families: Sequence[str] = (),
     sales_reps: Sequence[str] = (),
     selected_cell: str | None = None,
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
+    comp_start_date_key: int | None = None,
+    comp_end_date_key: int | None = None,
+    period_label: str = "01/01/2023 a 31/12/2024 (24 Meses)",
+    comparison_label: str = "Histórico Global Consolidado",
+    as_of_date_label: str = "31/12/2024",
 ) -> ExecutivePageDTO:
     """Monta o payload analítico completo da Visão Executiva pronto para a camada de UI."""
     kpis = compute_executive_kpis(
@@ -304,6 +380,10 @@ def build_executive_dashboard(
         uf=uf,
         families=families,
         sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+        comp_start_date_key=comp_start_date_key,
+        comp_end_date_key=comp_end_date_key,
     )
     waterfall_df = build_waterfall_steps(kpis)
     monthly_trend_df = get_monthly_margin_trend(
@@ -313,6 +393,18 @@ def build_executive_dashboard(
         uf=uf,
         families=families,
         sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+    )
+    monthly_sales_table_df = get_monthly_sales_table(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     abc_xyz_matrix_df, abc_xyz_skus_df = get_abc_xyz_overview(repo, scenario_id, selected_cell)
     top_gen_p, top_dest_p = get_top_margin_drivers(
@@ -342,6 +434,8 @@ def build_executive_dashboard(
         uf=uf,
         families=families,
         sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     low_margin_count, recovery_impact = query_margin_recovery_potential(
         repo,
@@ -393,4 +487,8 @@ def build_executive_dashboard(
         prescription_title=prescription_title,
         prescription_html=prescription_html,
         prescription_impact_brl=recovery_impact,
+        period_label=period_label,
+        comparison_label=comparison_label,
+        as_of_date_label=as_of_date_label,
+        monthly_sales_table_df=monthly_sales_table_df,
     )

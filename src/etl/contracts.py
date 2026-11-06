@@ -317,6 +317,31 @@ class GoldCustomerRiskSchema(pa.DataFrameModel):
         coerce = True
 
 
+class GoldWhiteSpaceSchema(pa.DataFrameModel):
+    """Contrato do mart analítico da Matriz White Space e Recomendações de Cross-Sell B2B."""
+
+    scenario_id: str = Field(isin=VALID_SCENARIO_IDS, nullable=False)
+    as_of_date: str = Field(nullable=False)
+    customer_id: str = Field(nullable=False)
+    recommended_family: str = Field(nullable=False)
+    rank_order: int = Field(isin=[1, 2, 3], nullable=False)
+    opportunity_score: float = Field(ge=0.0, le=1.0001, nullable=False)
+    item_affinity_score: float = Field(ge=0.0, le=1.0001, nullable=False)
+    lookalike_score: float = Field(ge=0.0, le=1.0001, nullable=False)
+    peer_penetration_pct: float = Field(ge=0.0, le=100.0, nullable=False)
+    peer_median_annual_revenue: float = Field(ge=0.0, nullable=False)
+    churn_probability: float = Field(ge=0.0, le=1.0001, nullable=False)
+    potential_revenue_brl: float = Field(ge=0.0, nullable=False)
+    potential_margin_brl: float = Field(nullable=False)
+    explanation_text: str = Field(nullable=False)
+    action_pitch: str = Field(nullable=False)
+    snapshot_date: str = Field(nullable=False)
+
+    class Config:
+        strict = False
+        coerce = True
+
+
 # ==============================================================================
 # Helper Unificado de Validação
 # ==============================================================================

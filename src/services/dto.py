@@ -92,3 +92,7 @@ class ExecutivePageDTO(BaseModel):
     prescription_title: str
     prescription_html: str
     prescription_impact_brl: float | None = None
+    period_label: str = "01/01/2023 a 31/12/2024 (24 Meses)"
+    comparison_label: str = "Histórico Global Consolidado"
+    as_of_date_label: str = "31/12/2024"
+    monthly_sales_table_df: pd.DataFrame | None = None

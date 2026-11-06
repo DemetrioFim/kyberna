@@ -18,9 +18,10 @@ def _sidebar_entrypoint() -> None:
     """Script isolado de teste para exercitar o ciclo de vida completo da sidebar."""
     import src.ui.components.sidebar as st_sidebar
     import src.ui.state as st_state
+    from src.db.duckdb_repo import DuckDBRepository
 
     st_state.init_app_state()
-    st_sidebar.render_sidebar()
+    st_sidebar.render_sidebar(repo=DuckDBRepository())
 
 
 def test_app_state_defaults() -> None:
@@ -107,22 +108,27 @@ def test_sidebar_scenario_label_switching() -> None:
 
 
 def test_sidebar_cascade_and_filters_persistence() -> None:
-    """AppTest: Garante que seleção geográfica e filtros persistem na sessão."""
+    """AppTest: Garante que seleção temporal, geográfica e filtros persistem na sessão."""
     at = AppTest.from_function(_sidebar_entrypoint)
     at.run()
 
-    # Seleciona Região Sul
-    at.sidebar.selectbox[1].set_value("Sul").run()
+    # Seleciona Período YTD (selectbox 1)
+    at.sidebar.selectbox[1].set_value("ytd").run()
+    assert not at.exception
+    assert at.session_state.period_preset == "ytd"
+
+    # Seleciona Região Sul (selectbox 2)
+    at.sidebar.selectbox[2].set_value("Sul").run()
     assert not at.exception
     assert at.session_state.regiao == "Sul"
 
-    # Seleciona UF PR
-    at.sidebar.selectbox[2].set_value("PR").run()
+    # Seleciona UF PR (selectbox 3)
+    at.sidebar.selectbox[3].set_value("PR").run()
     assert not at.exception
     assert at.session_state.uf == "PR"
 
     # Muda Região para Sudeste -> Deve resetar UF para "Todas"
-    at.sidebar.selectbox[1].set_value("Sudeste").run()
+    at.sidebar.selectbox[2].set_value("Sudeste").run()
     assert not at.exception
     assert at.session_state.regiao == "Sudeste"
     assert at.session_state.uf == "Todas"

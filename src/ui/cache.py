@@ -9,6 +9,7 @@ from src.services.executive_service import (
     build_executive_dashboard,
     get_filter_options,
 )
+from src.ui.state import resolve_period_bounds
 
 
 @st.cache_resource(show_spinner=False)
@@ -37,9 +38,12 @@ def cached_executive_dashboard(
     families: tuple[str, ...] = (),
     sales_reps: tuple[str, ...] = (),
     selected_cell: str | None = None,
+    period_preset: str = "all",
+    selected_month: str | None = None,
 ) -> ExecutivePageDTO:
     """Consulta e agrega os dados da Visão Executiva com cache em memória (TTL 5 min)."""
     repo = get_cached_repository()
+    bounds = resolve_period_bounds(period_preset, selected_month)
     return build_executive_dashboard(
         repo,
         scenario_id,
@@ -48,4 +52,11 @@ def cached_executive_dashboard(
         families=families,
         sales_reps=sales_reps,
         selected_cell=selected_cell,
+        start_date_key=bounds.start_date_key,
+        end_date_key=bounds.end_date_key,
+        comp_start_date_key=bounds.comparison_start_date_key,
+        comp_end_date_key=bounds.comparison_end_date_key,
+        period_label=bounds.period_label,
+        comparison_label=bounds.comparison_label,
+        as_of_date_label=bounds.as_of_date_label,
     )

@@ -41,13 +41,18 @@ def test_app_geographic_cascade_interaction() -> None:
     at = AppTest.from_file(str(app_path))
     at.run()
 
-    # Na inicialização ("Todas"), todas as 27 UFs estão disponíveis
-    assert len(at.sidebar.selectbox) >= 3
-    assert at.sidebar.selectbox[1].options == ["Todas", "Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte"]
-    assert len(at.sidebar.selectbox[2].options) == 28  # "Todas" + 27 UFs
+    # Na inicialização ("Todas"), o selectbox 1 é Período, 2 é Região e 3 é UF
+    assert len(at.sidebar.selectbox) >= 4
+    assert at.sidebar.selectbox[2].options == ["Todas", "Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte"]
+    assert len(at.sidebar.selectbox[3].options) == 28  # "Todas" + 27 UFs
+
+    # Testa seleção de período
+    at.sidebar.selectbox[1].set_value("ytd").run()
+    assert not at.exception
+    assert at.session_state.period_preset == "ytd"
 
     # Muda a região para "Sul"
-    at.sidebar.selectbox[1].set_value("Sul").run()
+    at.sidebar.selectbox[2].set_value("Sul").run()
     assert not at.exception
     assert at.session_state.regiao == "Sul"
     assert at.session_state.uf == "Todas"

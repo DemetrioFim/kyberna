@@ -35,6 +35,42 @@ flowchart LR
 
 ---
 
+### 🛡️ Guia Rápido de Integração & Anti-Alucinação para Agentes Desenvolvedores
+
+> [!IMPORTANT]
+> **Leia este bloco antes de implementar qualquer tarefa pendente (`[ ]`).** Ele consolida os contratos reais do código já implementado para evitar imports inexistentes, quebra de tipagem (`mypy --strict`) ou violação de limites arquiteturais:
+>
+> 1. **Limite Estrito de 400 Linhas por Arquivo (`GEMINI.md` §3)**:
+>    - Nenhum arquivo em `src/` pode ultrapassar **400 linhas**.
+>    - Em serviços de UI (`src/services/*_service.py`), separe sempre as consultas SQL em `src/services/<modulo>_queries.py` (siga o padrão já implementado em [`src/services/executive_service.py`](./src/services/executive_service.py) + [`src/services/executive_queries.py`](./src/services/executive_queries.py)).
+>    - Em fábricas de gráficos (`src/ui/components/charts.py`), o arquivo atual já tem ~257 linhas (`waterfall_margin`, `dual_trend`, `abc_xyz_heatmap`, `quadrant_scatter`). Para novos gráficos de `M3` e `M4`, crie submódulos dedicados (ex.: `src/ui/components/commercial_charts.py`, `src/ui/components/inventory_charts.py` ou `src/ui/components/simulator_charts.py`) e reexporte em `charts.py` se necessário.
+> 2. **Receita Padrão para Todo Módulo de ML / Mart Analítico (`src/ml/<modulo>.py`)**:
+>    - **Assinatura padrão do builder**: `build_<nome>_mart(con: duckdb.DuckDBPyConnection, *, as_of_date: str | date | None = None, scenario_id: ScenarioId = "c1_toys") -> pd.DataFrame`.
+>    - **Resolução de data de corte sem vazamento**: use `resolved_date = resolve_as_of_date(con, as_of_date, scenario_id)` de [`src/ml/features.py`](./src/ml/features.py).
+>    - **Contrato Pandera**: defina `Gold<Nome>Schema(pa.DataFrameModel)` em [`src/etl/contracts.py`](./src/etl/contracts.py) (usando `import pandera.pandas as pa` e `from pandera.pandas import Field`) e valide com `validate_contract(df, Gold<Nome>Schema, layer="gold")`.
+>    - **Persistência Dupla no DuckDB + Parquet Zstandard**:
+>      ```python
+>      con.execute("CREATE SCHEMA IF NOT EXISTS gold")
+>      con.execute(f"CREATE SCHEMA IF NOT EXISTS {scenario_id}")
+>      con.register("_tmp_mart_df", validated_df)
+>      con.execute(f"CREATE OR REPLACE TABLE {scenario_id}.mart_<nome> AS SELECT * FROM _tmp_mart_df")
+>      con.execute(f"CREATE OR REPLACE TABLE gold.mart_<nome> AS SELECT * FROM _tmp_mart_df")
+>      con.unregister("_tmp_mart_df")
+>      export_table_to_parquet(con, f"{scenario_id}.mart_<nome>", gold_snapshot_path(scenario_id, "mart_<nome>"))
+>      ```
+>    - **Integração Obrigatória em 2 pontos**: (a) adicione a chamada em `build_gold_marts()` dentro de [`src/etl/gold/marts.py`](./src/etl/gold/marts.py); (b) crie o comando `@ml_app.command("<subcomando>")` em [`src/cli.py`](./src/cli.py).
+> 3. **Receita Padrão para Serviços Puros (`src/services/`) e Páginas (`src/ui/pages/`)**:
+>    - `src/services/` **nunca** importa `streamlit`. Ele recebe `repo: DataRepository` (de [`src/db/repository.py`](./src/db/repository.py), usando `repo.query(sql, params)` com `?` ou `$param` ou `repo.table(name, scenario_id)`) e retorna DTOs Pydantic v2 definidos em [`src/services/dto.py`](./src/services/dto.py) (`model_config = ConfigDict(arbitrary_types_allowed=True)` quando o DTO contiver `pd.DataFrame`).
+>    - Em [`src/ui/cache.py`](./src/ui/cache.py), todo wrapper `@st.cache_data(ttl=300, show_spinner=False)` deve receber coleções como `tuple[str, ...]` (e **não** `list[str]`, pois listas não são *hashable* no cache do Streamlit).
+>    - **Ícone Azul `ⓘ` Obrigatório**: toda chamada a `render_kpi_card(...)`, `kpi_card_html(...)` (de [`src/ui/components/kpi_card.py`](./src/ui/components/kpi_card.py)) e `section_header(...)` (de [`src/ui/components/prescription.py`](./src/ui/components/prescription.py)) **exige** `help_text: str` não-vazio (levanta `ValueError` em runtime se vazio!).
+>    - **Compatibilidade Dark Mode**: nunca use cores hexadecimais fixas (`#475569`, `#0F172A`, `#0d9488`) em HTML inline nas páginas; use sempre as variáveis CSS `var(--kyb-text)`, `var(--kyb-text-muted)`, `var(--kyb-teal)`, `var(--kyb-card-bg)` e `var(--kyb-border)`.
+> 4. **Cuidados de Tipagem (`mypy --strict`) e Testes no Windows**:
+>    - Todo arquivo `.py` deve iniciar com `from __future__ import annotations`.
+>    - Não use `for _, row in df.iterrows():` em transformações de dados; use operações vetorizadas Pandas/NumPy ou `.to_dict(orient="records")` apenas para construir listas pequenas de DTOs (< 50 itens).
+>    - No Windows dentro do sandbox sem rede, `streamlit.testing.v1.AppTest` usa `socket.socketpair()` internamente e pode bloquear por permissão de socket; rode testes de serviços/ML normalmente no sandbox e, se `AppTest` bloquear com erro de socket, execute o `pytest tests/ui` fora do sandbox (`BypassSandbox: true`).
+
+---
+
 ## 📌 Quadro de Marcos do Projeto
 
 ---
@@ -170,24 +206,59 @@ flowchart LR
   - *Arquivos:* `src/ml/churn.py`, `tests/ml/test_churn_heuristic.py`.
   - *Depende de:* `M2-S1`
   - *DoD:* probabilidades ∈ `[0, 1]` e monotônicas em `days_since_last`; clientes "adormecidos" plantados na fixture (`M1-D2`) aparecem como *Em Risco*/*Adormecido* em ≥ 90% dos casos.
-- [ ] **M3-S3** *(DS-06)* — **Matriz White Space e recomendação de cross-sell B2B**: Matriz cliente × família (binária e por receita) combinando: (1) **afinidade item-item** (`cosine_similarity` entre famílias); (2) **lookalike** (`NearestNeighbors` cosseno por mix normalizado + porte + região). **Potencial R$** = mediana da receita anual da família entre vizinhos compradores × score × `(1 − prob_churn)`. Materializa `mart_white_space` (top-3 oportunidades por cliente + matriz agregada segmento × família).
+- [x] **M3-S3** *(DS-06)* — **Matriz White Space e recomendação de cross-sell B2B**: Matriz cliente × família (binária e por receita) combinando: (1) **afinidade item-item via regras de associação Apriori** (Suporte, Confiança e Lift) sobre cestas transacionais de abastecimento com identificação do **SKU Âncora**; (2) **lookalike** (`NearestNeighbors` cosseno por mix normalizado + porte + região). **Potencial R$** = mediana da receita anual da família entre vizinhos compradores × score × `(1 − prob_churn)`. Materializa `mart_white_space` (top-3 oportunidades por cliente com texto explicativo e pitch para o RCA).
   - *Arquivos:* `src/ml/white_space.py`, `tests/ml/test_white_space.py`.
   - *Depende de:* `M2-S1`, `M3-S2`
-  - *DoD:* nunca recomenda família já comprada pelo cliente; backtest ocultando 20% das compras cliente×família atinge *hit rate@3* ≥ 2× o baseline de popularidade; potencial total C1 < 30% do faturamento anual.
+  - *DoD:* nunca recomenda família comprada ativamente pelo cliente (janela 180 dias / share $\ge 5\%$); backtest atinge *hit rate@3* ≥ 2× o baseline de popularidade; potencial total C1 < 30% do faturamento anual.
+
 - [ ] **M3-S4** *(DS-07)* — **Eficiência Comercial de Representantes (Quadrante de RCAs)**: Por RCA: receita faturada, margem de contribuição R$ e %, desconto médio concedido, positivação (ativos/carteira), penetração de mix (famílias/cliente), % e R$ da carteira em risco e oportunidade White Space. Classificação nos 4 quadrantes (*Estrela*, *Volume sem margem*, *Margem sem volume*, *Atenção* — cortes pela mediana). Materializa `mart_rep_performance`.
-  - *Arquivos:* `src/ml/rep_performance.py`, `tests/ml/test_rep_performance.py`.
+  - *Arquivos:* `src/ml/rep_performance.py`, `src/etl/contracts.py` (adicionar `GoldRepPerformanceSchema`), `src/etl/gold/marts.py` (plugar em `build_gold_marts`), `src/cli.py` (adicionar `@ml_app.command("rep-performance")`), `config/pipeline.yaml` (seção `thresholds.rep_performance`), `tests/ml/test_rep_performance.py`.
   - *Depende de:* `M2-D5`, `M3-S2`, `M3-S3`
-  - *DoD:* soma da receita por RCA = receita total do cenário; RCAs com viés de desconto injetado na `M2-D5` caem no quadrante *Volume sem margem* ou *Atenção*.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Fontes no DuckDB**: cruzar `gold.dim_sales_rep r` (colunas: `sales_rep_id, name, region, commission_rate`), `gold.dim_customer c` (carteira total do RCA via `c.sales_rep_id`), `gold.fact_sales f` (filtrada por `f.scenario_id = ?` e `f.date_key <= YYYYMMDD`), `gold.mart_customer_risk cr` (`risk_status IN ('Em Risco Imediato', 'Adormecido / Perdido')`, `annual_revenue_at_risk`, `annual_margin_at_risk`) e `gold.mart_white_space ws` (soma de `potential_revenue_brl` e `potential_margin_brl` por `customer_id`).
+    - **Fórmulas Exatas por RCA**:
+      - `portfolio_customers`: `COUNT(DISTINCT c.customer_id)` alocados ao RCA em `gold.dim_customer`.
+      - `active_customers`: `COUNT(DISTINCT f.customer_id)` com compras na janela ativa (`recency_days <= 120` em `mart_customer_risk` ou compras no período).
+      - `positivation_pct`: `ROUND(active_customers / NULLIF(portfolio_customers, 0) * 100.0, 2)`.
+      - `avg_families_per_customer`: média de `COUNT(DISTINCT p.family)` por cliente ativo do RCA.
+      - `gross_revenue`, `discount_amount`, `net_revenue`, `commission_amount`, `contribution_margin`: somas exatas de `gold.fact_sales` para o RCA.
+      - `avg_discount_pct`: `ROUND(SUM(f.discount_amount) / NULLIF(SUM(f.gross_revenue), 0) * 100.0, 2)`.
+      - `margin_pct`: `ROUND(SUM(f.contribution_margin) / NULLIF(SUM(f.gross_revenue), 0) * 100.0, 2)`.
+      - `at_risk_customers_count`, `at_risk_customers_pct`, `revenue_at_risk_brl`, `margin_at_risk_brl`: agregados de `gold.mart_customer_risk` para os clientes do RCA em status `'Em Risco Imediato'` ou `'Adormecido / Perdido'`.
+      - `white_space_potential_brl` e `white_space_margin_brl`: soma de `potential_revenue_brl` e `potential_margin_brl` de `gold.mart_white_space` para a carteira do RCA.
+    - **Regra dos 4 Quadrantes (cortes pela mediana global dos RCAs ativos)**:
+      - Seja `med_rev = median(gross_revenue)` e `med_margin_pct = median(margin_pct)`:
+      - `gross_revenue >= med_rev` e `margin_pct >= med_margin_pct` $\rightarrow$ **`"Estrela"`** (alta receita e alta margem %).
+      - `gross_revenue >= med_rev` e `margin_pct < med_margin_pct` $\rightarrow$ **`"Volume sem margem"`** (vende muito às custas de desconto excessivo).
+      - `gross_revenue < med_rev` e `margin_pct >= med_margin_pct` $\rightarrow$ **`"Margem sem volume"`** (disciplinado em preço, mas precisa expandir carteira/mix).
+      - `gross_revenue < med_rev` e `margin_pct < med_margin_pct` $\rightarrow$ **`"Atenção"`** (baixo volume e baixa rentabilidade).
+    - **Colunas Obrigatórias em `GoldRepPerformanceSchema`**: `scenario_id`, `as_of_date`, `sales_rep_id`, `sales_rep_name`, `region`, `commission_rate`, `portfolio_customers`, `active_customers`, `positivation_pct`, `avg_families_per_customer`, `orders_count`, `gross_revenue`, `discount_amount`, `avg_discount_pct`, `net_revenue`, `commission_amount`, `contribution_margin`, `margin_pct`, `at_risk_customers_count`, `at_risk_customers_pct`, `revenue_at_risk_brl`, `margin_at_risk_brl`, `white_space_potential_brl`, `white_space_margin_brl`, `quadrant`, `action_prescription`, `snapshot_date`.
+    - **Gotcha Crítico (`discounts.yaml`)**: Em `config/finance/discounts.yaml`, os RCAs com viés agressivo de desconto (+8,0 p.p.) são `["RCA-003", "RCA-007", "RCA-012", "RCA-015", "RCA-019", "RCA-025", "RCA-028", "RCA-033"]`. Como eles concedem mais desconto, sua `margin_pct` fica estruturalmente abaixo da mediana e eles caem em `"Volume sem margem"` ou `"Atenção"`.
+  - *DoD:* `uv run kyberna ml rep-performance` e `uv run kyberna gold build --scenario c1_toys` executam sem erro; soma de `gross_revenue` por RCA = `SUM(gross_revenue)` de `gold.fact_sales` (tolerância `0.05`); ≥ 80% dos RCAs listados em `high_discount_reps` caem em `*Volume sem margem*` ou `*Atenção*`; `uv run pytest tests/ml/test_rep_performance.py -q` passa.
 
 #### 🎨 Interface, UX & Visualização *(Valida a Inteligência Comercial e Ação em 1 Clique)*
 - [ ] **M3-V1** *(VIZ-05 com + VIZ-07)* — **Serviço Comercial e Tela 2 — Radar Comercial, RFM & Antecipação de Churn**: Implementar `commercial_service.py` puro + cache em `ui/cache.py` + **Tela 2** completa: KPIs comerciais (clientes em risco, R$ anual em risco, potencial White Space, % carteira adormecida), **Tabela Priorizada de Risco** com seleção de linhas, gráfico de **Dispersão** (dias sem comprar × ciclo esperado com linha de 45°), **Treemap RFM** (tamanho = margem, cor = segmento), **Heatmap White Space** (segmento/RCA × família com potencial R$) e **Quadrante de RCAs** (bolha = R$ em risco) com drill-down.
-  - *Arquivos:* `src/services/commercial_service.py`, `src/ui/pages/2_commercial_radar.py`, `tests/services/test_commercial_service.py`.
+  - *Arquivos:* `src/services/dto.py` (novos DTOs comerciais), `src/services/commercial_queries.py` (SQL parametrizado), `src/services/commercial_service.py` (orquestração pura $\le 400$ linhas), `src/ui/cache.py` (`cached_commercial_dashboard`), `src/ui/components/commercial_charts.py` (fábricas Plotly dedicadas), `src/ui/pages/2_commercial_radar.py`, `tests/services/test_commercial_service.py`, `tests/ui/test_commercial_page.py`.
   - *Depende de:* `M2-V1`, `M2-V2`, `M3-S1`, `M3-S2`, `M3-S3`, `M3-S4`
-  - *DoD:* filtros por RCA/UF/status atualizam todos os blocos; tempo de interação < 1,5 s; AppTest da Tela 2 passa sem exceção; 100% dos KPI cards e cabeçalhos de seção possuem ícone azul de informação (`.kyb-info-icon`) com tooltip executivo obrigatório.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Divisão de Arquivos (< 400 linhas)**: **NÃO** coloque as queries SQL dentro de `commercial_service.py` nem adicione 4 gráficos novos direto em `src/ui/components/charts.py` (que já tem 257 linhas). Crie `src/services/commercial_queries.py` para o SQL e `src/ui/components/commercial_charts.py` para os novos gráficos (`cycle_delay_scatter`, `rfm_treemap`, `white_space_heatmap`), reutilizando `quadrant_scatter` que já existe em `src/ui/components/charts.py`.
+    - **DTOs em `src/services/dto.py`**:
+      - `CommercialKpisDTO`: `total_customers: int`, `at_risk_customers: int`, `dormant_customers_pct: float`, `annual_revenue_at_risk_brl: float`, `annual_margin_at_risk_brl: float`, `white_space_potential_revenue_brl: float`, `white_space_potential_margin_brl: float`, `avg_positivation_pct: float`.
+      - `CommercialPageDTO` (`ConfigDict(arbitrary_types_allowed=True)`): `scenario_id: ScenarioId`, `kpis: CommercialKpisDTO`, `headline_title: str`, `headline_text: str`, `priority_risk_df: pd.DataFrame` (join de `mart_customer_risk`, `mart_rfm`, `dim_customer`, `dim_sales_rep` e top-1 recomendação de `mart_white_space`), `rfm_summary_df: pd.DataFrame`, `white_space_matrix_df: pd.DataFrame`, `rep_performance_df: pd.DataFrame`, `prescription_title: str`, `prescription_html: str`, `prescription_impact_brl: float | None`.
+    - **Filtros na Query**: respeitar `regiao`, `uf`, `sales_reps` (de `AppState`) e filtro de `risk_status` / `rfm_segment` na página. Se `cfg.capabilities.rep_efficiency` for `False` (Cenário 4), ocultar a seção do Quadrante de RCAs elegantemente.
+    - **Obrigatoriedade de Tooltips e Dark Mode**: passar `help_text: str` explicativo em todos os `render_kpi_card` e `section_header`; usar apenas variáveis CSS `var(--kyb-*)` nos blocos HTML.
+  - *DoD:* filtros por RCA/UF/status atualizam todos os blocos; tempo de interação < 1,5 s; testes `tests/services/test_commercial_service.py` e `tests/ui/test_commercial_page.py` passam sem exceção; 100% dos KPI cards e cabeçalhos de seção possuem `.kyb-info-icon`; zero arquivos > 400 linhas.
 - [ ] **M3-V2** *(VIZ-10)* — **Motor de Ação em 1 Clique: Exportação Excel, CSV e WhatsApp (`wa.me`)**: Implementar `export_service.py` e componente `export_bar.py`: gera **Excel** formatado (`pd.ExcelWriter` com `xlsxwriter`: aba por RCA, cabeçalho Kyberna, BRL/%, autofiltro, painéis congelados), **CSV** UTF-8 com BOM (abre direto no Excel BR) e **links clicáveis de WhatsApp** `https://wa.me/<E.164 sem +>?text=<mensagem url-encoded>` com o argumento de abordagem pronto por cliente/oportunidade.
-  - *Arquivos:* `src/services/export_service.py`, `src/ui/components/export_bar.py`, `config/scenarios/*.yaml` (templates de mensagem), `tests/services/test_export_service.py`.
+  - *Arquivos:* `src/services/export_service.py`, `src/ui/components/export_bar.py`, `src/ui/pages/2_commercial_radar.py` (integração da barra de exportação), `tests/services/test_export_service.py`.
   - *Depende de:* `M3-V1`
-  - *DoD:* Excel abre sem alerta de reparo e valida leitura via `pd.read_excel`; links `wa.me` validam formato E.164 e encoding de acentos; export de 1 mil linhas < 1 s.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Funções Puras em `src/services/export_service.py` (sem importar `streamlit`)**:
+      - `normalize_phone_e164_digits(raw_phone: str) -> str`: extrai apenas dígitos (`re.sub(r"\D", "", raw_phone)`); se tiver 10 ou 11 dígitos sem DDI, prefixa `"55"`; retorna string de 12–13 dígitos (`55DD9XXXXXXXX`) sem o sinal `+`.
+      - `build_whatsapp_link(phone: str, customer_name: str, rep_name: str, context_pitch: str) -> str`: monta mensagem amigável em pt-BR e usa `urllib.parse.quote(msg, safe="")` para gerar `f"https://wa.me/{digits}?text={encoded_msg}"`.
+      - `dataframe_to_csv_bom(df: pd.DataFrame) -> bytes`: retorna `df.to_csv(index=False, sep=";").encode("utf-8-sig")` (separador `;` e BOM `utf-8-sig` para abrir direto no Excel em português sem quebrar acentos ou colunas).
+      - `generate_commercial_action_excel(risk_df: pd.DataFrame, white_space_df: pd.DataFrame, scenario_name: str) -> bytes`: escreve em `io.BytesIO()` via `pd.ExcelWriter(bio, engine="xlsxwriter")` uma aba `Resumo_Priorizado` e abas por RCA (nome da aba sanitizado e truncado em 31 caracteres, limite do Excel!), com formatação `R$ #,##0.00`, `0.0%`, `freeze_panes(1, 0)` e `autofilter`.
+    - **Componente UI `src/ui/components/export_bar.py`**: renderiza `st.download_button` para Excel (`.xlsx`) e CSV (`.csv`), além de exibir na tabela de clientes a coluna com `st.column_config.LinkColumn("Ação WhatsApp", display_text="📲 Abordar no WhatsApp")`.
+  - *DoD:* Excel gerado em memória abre sem alerta de reparo e valida leitura via `pd.read_excel(io.BytesIO(excel_bytes))`; links `wa.me` validam formato `^https://wa\.me/55\d{10,11}\?text=.+` e encoding de acentos; export de 1 mil linhas < 1 s; `uv run pytest tests/services/test_export_service.py -q` passa.
 
 ---
 
@@ -197,41 +268,120 @@ flowchart LR
 
 #### 🗄️ Engenharia de Dados & Finanças
 - [ ] **M4-D1** *(DE-13)* — **Injeção determinística de variação de preço com elasticidade-verdade**: Como os preços originais de Iowa têm markup regulado quase fixo, injetar eventos determinísticos de preço por família/SKU (promoções de 5–20% por 1–3 semanas e reajustes de 3–8%) ajustando unidades por `units' = units × (p'/p)^β_true` com `β_true` configurado em `config/pipeline.yaml` (ex.: *Linha Escolar* −1,8; *Jogos Educativos* −1,2; *Brinquedos de Madeira* −0,6) + ruído log-normal. Persistir `price_event_id`, `promo_flag` e tabela `elasticity_ground_truth`.
-  - *Arquivos:* `src/etl/silver/price_events.py`, `config/pipeline.yaml`, `tests/etl/test_price_events.py`.
+  - *Arquivos:* `src/etl/silver/price_events.py`, `config/pipeline.yaml` (seção `thresholds.elasticity_ground_truth`), `src/cli.py` (integrar em `silver build` e comando `silver price-events`), `tests/etl/test_price_events.py`.
   - *Depende de:* `M1-D5`, `M2-D3`
-  - *DoD:* fração de linhas afetadas entre 10% e 25%; volume total varia < 5% vs. original; regressão log-log simples recupera `β_true` com erro absoluto < 0,25 por família.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Configuração em `config/pipeline.yaml`**: adicionar mapa `elasticity_ground_truth` por família do Cenário 1 (`"Linha Escolar": -1.8`, `"Jogos Educativos": -1.2`, `"Quebra-Cabeças": -1.4`, `"Primeira Infância": -1.0`, `"Jogos de Tabuleiro": -1.1`, `"Pelúcias": -1.5`, `"Brinquedos de Madeira": -0.6`, `"Outros": -1.0`).
+    - **Como injetar de forma determinística (sem loop por linha)**:
+      - Derive um hash por `(item_number, year_week, seed)` no Pandas/NumPy (`np.random.default_rng(seed)`).
+      - Selecione ~18% das combinações `(item_number, year_week)` para receberem eventos de preço: ~12% promoções (`delta_p` $\in [-0.20, -0.05]$, `promo_flag = True`) e ~6% reajustes (`delta_p` $\in [+0.03, +0.08]$, `promo_flag = False`).
+      - Calcule o novo preço `unit_price_adj = ROUND(unit_price * (1 + delta_p), 2)` (respeitando a trava `unit_price_adj >= unit_cost * 0.55` do `SilverSalesSchema`!) e ajuste a quantidade demandada pela equação econômica constante-elástica:
+        $$\text{units}' = \max\left(1, \text{round}\left(\text{units} \cdot \left(\frac{p'}{p}\right)^{\beta_{\text{true}}} \cdot \exp(\varepsilon)\right)\right), \quad \varepsilon \sim \mathcal{N}(0, 0.04^2)$$
+    - **Tabelas Persistidas no DuckDB**: salvar colunas `promo_flag: bool` e `price_event_id: str | None` em `silver.sales` (ou `c1_toys.sales_remapped`) e materializar `silver.elasticity_ground_truth` (`scenario_id, family, beta_true, promo_fraction_target`) no `kyberna.duckdb`.
+  - *DoD:* fração de linhas afetadas entre 10% e 25%; volume total varia < 5% vs. original; regressão OLS simples `np.polyfit(np.log(p_ratio), np.log(q_ratio), 1)[0]` recupera `β_true` com erro absoluto < 0,25 por família; `uv run pytest tests/etl/test_price_events.py -q` passa.
 - [ ] **M4-D2** *(DE-15)* — **Snapshot sintético controlado de posição de estoque (`inventory_snapshot`)**: Para cada SKU (e filial no C3): `stock_units` = demanda média diária (últimos 90d) × cobertura amostrada de mistura controlada (≈ 10% ruptura iminente: 0–7d; ≈ 60% saudável: 15–60d; ≈ 15% atenção: 60–120d; ≈ 15% capital travado: 120–365d), `lead_time_days` por família, `unit_cost` e `last_receipt_date`. Determinístico por SKU.
-  - *Arquivos:* `src/etl/gold/inventory_snapshot.py`, `tests/etl/test_inventory_snapshot.py`.
+  - *Arquivos:* `src/etl/gold/inventory_snapshot.py`, `src/etl/contracts.py` (`GoldInventorySnapshotSchema`), `src/etl/gold/star_schema.py` (ou `marts.py`), `tests/etl/test_inventory_snapshot.py`.
   - *Depende de:* `M2-D4`
-  - *DoD:* proporções das faixas dentro de ±3 p.p. do configurado; capital travado (> 120 dias) do C1 entre 10% e 25% do valor total de estoque; contrato Gold válido.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Cálculo da Demanda Média Diária (últimos 90 dias até `as_of_date`)**: consultar `gold.fact_sales` agrupando por `product_id, branch_id`: `avg_daily_demand = GREATEST(SUM(units) / 90.0, 0.1)`.
+    - **Amostragem Determinística por Hash do SKU**: ordenar SKUs por `product_id` e atribuir faixas exatas via quantis/RNG com `seed=42` para garantir que a proporção nunca oscile fora de $\pm 3\text{ p.p.}$:
+      - Primeiros 10% dos SKUs: `coverage_days` uniforme em `[1.0, 7.0]` (ruptura iminente).
+      - Próximos 60% dos SKUs: `coverage_days` uniforme em `[15.0, 60.0]` (saudável).
+      - Próximos 15% dos SKUs: `coverage_days` uniforme em `[60.1, 120.0]` (atenção).
+      - Últimos 15% dos SKUs: `coverage_days` uniforme em `[125.0, 320.0]` (capital travado > 120d).
+    - **Colunas de `gold.inventory_snapshot`**: `scenario_id`, `snapshot_date`, `branch_id`, `product_id`, `family`, `pack`, `unit_cost`, `avg_daily_demand_90d`, `stock_units` (`int(round(avg_daily_demand_90d * coverage_days))`), `stock_boxes` (`round(stock_units / pack, 2)`), `stock_value_brl` (`round(stock_units * unit_cost, 2)`), `coverage_days`, `lead_time_days` (ex.: 7 a 21 dias por família), `last_receipt_date`.
+  - *DoD:* proporções das 4 faixas dentro de ±3 p.p. do configurado (10%/60%/15%/15%); capital travado (> 120 dias) do C1 entre 10% e 25% do valor total de estoque (`SUM(stock_value_brl)`); `GoldInventorySnapshotSchema` válido; `uv run pytest tests/etl/test_inventory_snapshot.py -q` passa.
 
 #### 🧠 Ciência de Dados & Prescrição *(Valida a Verdade Sintética de Preço e Estoque)*
 - [ ] **M4-S1** *(DS-08)* — **Previsão de demanda 30 dias (`StatsForecast`)**: Séries diárias `unique_id = sku` com zeros preenchidos; modelos `AutoETS(season_length=7)`, `CrostonOptimized()` (séries intermitentes, ADI > 1,32) e `SeasonalNaive(7)` como baseline; `h=30`, `level=[80, 95]`; seleção do melhor modelo por série via `cross_validation` (MAE); fallback de média móvel para séries < 60d. Materializa `mart_forecast_30d` (histórico 90d + projeção 30d + intervalos + modelo escolhido + WAPE).
-  - *Arquivos:* `src/ml/forecast.py`, `tests/ml/test_forecast.py`, `docs/model_cards/forecast.md`.
+  - *Arquivos:* `src/ml/forecast.py`, `src/etl/contracts.py` (`GoldForecast30dSchema`), `src/etl/gold/marts.py`, `src/cli.py` (`@ml_app.command("forecast")`), `tests/ml/test_forecast.py`, `docs/model_cards/forecast.md`.
   - *Depende de:* `M2-S1`
-  - *DoD:* WAPE agregado por família ≤ 35% e melhor que `SeasonalNaive` em ≥ 60% das séries classe A; previsões ≥ 0; treino do C1 ≤ 5 min.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Performance & Seleção Inteligente de Modelo (< 2 min)**: rodar `StatsForecast.cross_validation` completo em 397 SKUs diários com `AutoETS` pode ser lento se mal configurado. Para cumprir o DoD em < 60s:
+      - Preencha os zeros diários nos últimos 180 dias antes de `as_of_date` (`ds`, `unique_id`, `y`).
+      - Calcule o **ADI** (*Average Demand Interval* = `n_days / n_nonzero_days`) de cada SKU:
+        - Para SKUs com `< 60` dias de histórico ou `< 5` dias com venda: use fallback vetorizado `MovingAverage28d` (média diária dos últimos 28d e intervalos analíticos baseados no desvio padrão).
+        - Para SKUs intermitentes (`ADI > 1.32`): ajuste `CrostonOptimized()` e `SeasonalNaive(season_length=7)`.
+        - Para SKUs regulares (`ADI <= 1.32`, tipicamente Classe A/B): ajuste `AutoETS(season_length=7)` e `SeasonalNaive(season_length=7)` com `n_jobs=1` (evita overhead de multiprocessing no Windows!).
+      - Valide nos últimos 14 ou 28 dias de holdout temporal (`y_val` vs. `y_hat`) para escolher o modelo vencedor por menor MAE/WAPE por SKU/família e aplique `np.clip(forecast, 0.0, None)` (nunca permitir previsão negativa!).
+    - **Formato de `gold.mart_forecast_30d`**: unificar em uma tabela longa os últimos 90 dias realizados (`record_type = "historical"`, `actual_units`, `forecast_units = None`) + os próximos 30 dias projetados (`record_type = "forecast"`, `actual_units = None`, `forecast_units`, `lo_80`, `hi_80`, `lo_95`, `hi_95`), acompanhados de `scenario_id`, `product_id`, `family`, `date`, `selected_model`, `family_wape_pct`, `sku_mae` e `snapshot_date`.
+  - *DoD:* WAPE agregado por família ≤ 35% e melhor que `SeasonalNaive` em ≥ 60% das séries classe A; todas as previsões e limites `lo_80`/`lo_95` $\ge 0$; execução do C1 ≤ 2 min; `uv run pytest tests/ml/test_forecast.py -q` passa.
 - [ ] **M4-S2** *(DS-09 parcial)* — **Estoque prescritivo: cobertura, ruptura iminente e capital travado (> 120d)**: Cruzando `mart_forecast_30d` + snapshot de estoque + classe ABC/XYZ: calcular demanda diária prevista, cobertura em dias, dias até ruptura, estoque de segurança `z·σ_d·√LT` (A=1,65; B=1,28; C=0,84), ponto de pedido, sugestão de compra/produção em **caixas master** e **capital travado (R$)** (excedente > 120d × CMV) com prescrição automática (*Kit Promocional / Bonificação / Liquidação*). Materializa `mart_inventory_position`.
-  - *Arquivos:* `src/ml/inventory.py`, `tests/ml/test_inventory.py`.
+  - *Arquivos:* `src/ml/inventory.py`, `src/etl/contracts.py` (`GoldInventoryPositionSchema`), `src/etl/gold/marts.py`, `src/cli.py` (`@ml_app.command("inventory")`), `tests/ml/test_inventory.py`.
   - *Depende de:* `M2-S2`, `M4-D2`, `M4-S1`
-  - *DoD:* testes unitários de ponto de pedido e cobertura; capital travado reconciliado com `M4-D2`.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Fórmulas Vetorizadas Exatas**:
+      - `forecast_daily_demand`: média de `forecast_units` dos próximos 30 dias em `mart_forecast_30d` (fallback para `avg_daily_demand_90d` se zero).
+      - `daily_demand_std`: `weekly_demand_std / sqrt(7.0)` vindo de `mart_abc_xyz`.
+      - Fator de nível de serviço $z$ por classe ABC: `{"A": 1.65, "B": 1.28, "C": 0.84}`.
+      - `safety_stock_units = np.ceil(z * daily_demand_std * np.sqrt(lead_time_days))`.
+      - `reorder_point_units = np.ceil(forecast_daily_demand * lead_time_days + safety_stock_units)`.
+      - `coverage_days = stock_units / np.maximum(forecast_daily_demand, 0.01)`.
+      - `days_to_stockout = np.maximum(0.0, coverage_days)`.
+      - **Status de Estoque (`stock_status`)**:
+        - `"Ruptura Iminente"`: `coverage_days <= lead_time_days` ou `stock_units <= reorder_point_units`.
+        - `"Capital Travado"`: `coverage_days > 120.0`.
+        - `"Atenção (Excesso Moderado)"`: `60.0 < coverage_days <= 120.0`.
+        - `"Saudável"`: demais casos.
+      - **Ordem Sugerida em Caixas Master (`suggested_order_boxes`)**: quando `stock_units < reorder_point_units`, meta de cobertura = `max(30, lead_time_days * 2)` dias; `needed_units = max(0, target_units - stock_units)`; `suggested_order_boxes = int(np.ceil(needed_units / pack))`; `protected_revenue_brl = round(suggested_order_boxes * pack * unit_list_price, 2)`.
+      - **Capital Travado em R$ (`locked_capital_brl`)**: para SKUs com `coverage_days > 120`, `excess_units = max(0, stock_units - int(np.ceil(forecast_daily_demand * 120.0)))`; `locked_capital_brl = round(excess_units * unit_cost, 2)`.
+  - *DoD:* testes unitários de ponto de pedido, estoque de segurança e cobertura passam; SKUs com `coverage_days > 120` batem com a faixa de capital travado gerada em `M4-D2`; `uv run pytest tests/ml/test_inventory.py -q` passa.
 - [ ] **M4-S3** *(DS-10)* — **Modelo de elasticidade-preço (Log-Log Bootstrap + `LGBMRegressor` monotônico)**: Duas abordagens: (1) regressão interpretável `ln(Q) = α + β·ln(P_rel) + sazonalidade + promo_flag + porte` (`Ridge`/`LinearRegression`) com IC 95% via bootstrap; (2) curva de resposta `LGBMRegressor` com `monotone_constraints` negativo no preço. Validação contra `elasticity_ground_truth` (`M4-D1`). Materializa `mart_price_elasticity`.
-  - *Arquivos:* `src/ml/elasticity.py`, `tests/ml/test_elasticity.py`, `docs/model_cards/elasticity.md`.
+  - *Arquivos:* `src/ml/elasticity.py`, `src/etl/contracts.py` (`GoldPriceElasticitySchema`), `src/etl/gold/marts.py`, `src/cli.py` (`@ml_app.command("elasticity")`), `tests/ml/test_elasticity.py`, `docs/model_cards/elasticity.md`.
   - *Depende de:* `M2-S1`, `M4-D1`
-  - *DoD:* `|β̂ − β_true| < 0,3` em todas as famílias do C1 e IC 95% cobrindo `β_true` em ≥ 80% delas; curvas estritamente decrescentes.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Preparação dos Dados por Família**: para cada família em `c1_toys`, agrupe por `(product_id, year_week, size)` ou linha transacional onde `P_rel = unit_net_price / median_sku_price` e `Q_rel = units / median_sku_units`.
+    - **Abordagem 1 (Econométrica Log-Log com Bootstrap)**: ajuste `Ridge(alpha=1.0)` sobre `ln(Q_rel) ~ ln(P_rel) + promo_flag + sin_week + cos_week`. Execute `B=200` reamostragens bootstrap com `np.random.default_rng(42)` para extrair `beta_hat`, `ci_95_low` (percentil 2,5%) e `ci_95_high` (percentil 97,5%).
+    - **Abordagem 2 (`LGBMRegressor` Monotônico)**: treine `LGBMRegressor(monotone_constraints=[-1, 0, ...], n_estimators=80, learning_rate=0.05, random_state=42, verbose=-1)` onde a 1ª feature é `price_ratio` (`monotone_constraints=-1` garante matematicamente que aumentar o preço nunca aumenta a quantidade prevista!).
+    - **Colunas de `gold.mart_price_elasticity`**: `scenario_id`, `family`, `beta_hat`, `beta_true` (se disponível de `silver.elasticity_ground_truth`), `abs_error`, `ci_95_low`, `ci_95_high`, `r2_score`, `optimal_price_change_pct`, `elasticity_classification` (`"Elástica"` se `beta_hat < -1.0`, `"Inelástica"` se `beta_hat >= -1.0`), `prescription_text`, `snapshot_date`.
+  - *DoD:* `|beta_hat - beta_true| < 0.30` em todas as famílias do C1 e intervalo `[ci_95_low, ci_95_high]` cobrindo `beta_true` em ≥ 80% delas; curva de resposta estritamente não-crescente no preço; `uv run pytest tests/ml/test_elasticity.py -q` passa.
 - [ ] **M4-S4** *(DS-11)* — **Motor puro do Simulador What-If e Volume de Equilíbrio (Breakeven)**: Função pura `simulate(baseline: SimulationBaseline, levers: SimulationLevers) -> SimulationResult` (Pydantic). Alavancas: preço de tabela (%), desconto comercial (pp), comissão RCA (pp), custo/CMV (%) e elasticidade. Recomputa o Waterfall do `M2-D5` vetorizado em Pandas/NumPy (< 50 ms), calcula o **Volume de Equilíbrio (`delta_q_breakeven`)**, a curva **Lucro × Preço** com ponto ótimo e o gráfico **Tornado** de sensibilidade.
-  - *Arquivos:* `src/services/simulator.py`, `src/services/dto.py`, `tests/services/test_simulator.py`.
+  - *Arquivos:* `src/services/simulator.py`, `src/services/dto.py` (`SimulationBaseline`, `SimulationLevers`, `SimulationResult`), `tests/services/test_simulator.py`.
   - *Depende de:* `M2-D5`, `M4-S3`
-  - *DoD:* alavancas zeradas devolvem exatamente o baseline; caso numérico de referência (−10% preço, β = −2, margem 30%) bate com cálculo manual; resposta < 50 ms.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Equações Exatas do Simulador (`src/services/simulator.py`)**:
+      - Dado o baseline (`units_0`, `gross_revenue_0`, `discount_rate_0`, `tax_rate_eff`, `cogs_0`, `commission_rate_0`, `freight_0`, `beta_elasticity`):
+      - Novo preço de lista relativo: $r_p = 1 + \Delta p_{\text{list}}$.
+      - Nova taxa de desconto efetiva: $d_1 = \text{clip}(d_0 + \Delta d_{\text{pp}}, 0.0, 0.50)$.
+      - Variação relativa do preço líquido ao comprador:
+        $$\frac{P_{\text{net},1}}{P_{\text{net},0}} = r_p \cdot \frac{1 - d_1}{1 - d_0}$$
+      - Se `apply_elasticity=True`, novo volume relativo:
+        $$\frac{Q_1}{Q_0} = \left(\frac{P_{\text{net},1}}{P_{\text{net},0}}\right)^{\beta}$$
+        Caso contrário (`apply_elasticity=False`), $Q_1 / Q_0 = 1.0$.
+      - Recomputar Waterfall escalado por $Q_1 / Q_0$:
+        - `gross_revenue_1 = gross_revenue_0 * (Q_1 / Q_0) * r_p`
+        - `discount_amount_1 = gross_revenue_1 * d_1`
+        - `net_price_revenue_1 = gross_revenue_1 - discount_amount_1`
+        - `tax_amount_1 = net_price_revenue_1 * tax_rate_eff`
+        - `net_revenue_1 = net_price_revenue_1 - tax_amount_1`
+        - `cogs_1 = cogs_0 * (Q_1 / Q_0) * (1 + delta_cogs_pct)`
+        - `commission_amount_1 = net_price_revenue_1 * clip(commission_rate_0 + delta_comm_pp, 0.0, 0.25)`
+        - `freight_1 = freight_0 * (Q_1 / Q_0)`
+        - `contribution_margin_1 = net_revenue_1 - cogs_1 - commission_amount_1 - freight_1`
+      - **Fórmula do Volume de Equilíbrio (`breakeven_volume_change_pct`)**: variação percentual de volume necessária para que `contribution_margin_1 == contribution_margin_0`:
+        $$\Delta Q_{\text{breakeven}} = \left(\frac{M_0}{m_{\text{unit}, 1} \cdot Q_0} - 1\right) \times 100$$
+        onde $m_{\text{unit}, 1}$ é a nova margem de contribuição por unidade (se $m_{\text{unit}, 1} \le 0$, o breakeven é impossível: `breakeven_volume_change_pct = None` e veredito `"Destruição de Margem Unitária Negativa"`).
+      - **Curva Lucro × Preço**: avaliar vetorizadamente 41 pontos de $\Delta p \in [-25\%, +25\%]$ e identificar o ponto que maximiza `contribution_margin_1`.
+      - **Tornado de Sensibilidade**: calcular o impacto em R$ na margem ao variar individualmente $\pm 5\%$ no Preço, $\pm 2\text{ p.p.}$ no Desconto, $\pm 5\%$ no CMV, $\pm 1\text{ p.p.}$ na Comissão e $\pm 5\%$ no Volume.
+  - *DoD:* alavancas zeradas devolvem exatamente o baseline (`diff < 1e-6`); caso numérico de referência valida a equação de breakeven; tempo de execução de `simulate()` < 50 ms; `uv run pytest tests/services/test_simulator.py -q` passa.
 
 #### 🎨 Interface, UX & Visualização *(Valida Estoque, Forecast e Simulador)*
 - [ ] **M4-V1** *(VIZ-05 inv + VIZ-08)* — **Serviço de Estoque e Tela 3 — Inteligência de Estoque & Demanda**: Implementar `inventory_service.py` puro + cache + **Tela 3**: 4 KPIs (valor em estoque, capital travado > 120d, SKUs em risco de ruptura ≤ lead time, cobertura média), **Gráfico de Demanda + Forecast 30d** com bandas de 80%/95% (em `@st.fragment`), **Semáforo e Tabela de Ruptura** (ordem sugerida em caixas master e receita protegida R$) e **Treemap de Capital Travado** por família → SKU com prescrição.
-  - *Arquivos:* `src/services/inventory_service.py`, `src/ui/pages/3_inventory_demand.py`, `tests/services/test_inventory_service.py`.
+  - *Arquivos:* `src/services/dto.py` (`InventoryKpisDTO`, `InventoryPageDTO`), `src/services/inventory_queries.py`, `src/services/inventory_service.py`, `src/ui/cache.py` (`cached_inventory_dashboard`, `cached_sku_forecast`), `src/ui/components/inventory_charts.py` (`forecast_band_chart`, `locked_capital_treemap`), `src/ui/pages/3_inventory_demand.py`, `tests/services/test_inventory_service.py`, `tests/ui/test_inventory_page.py`.
   - *Depende de:* `M2-V1`, `M2-V2`, `M4-S1`, `M4-S2`
-  - *DoD:* soma do treemap = KPI de capital travado; troca de SKU re-renderiza apenas o fragmento; AppTest da Tela 3 passa sem exceção; 100% dos KPI cards e cabeçalhos de seção possuem ícone azul de informação (`.kyb-info-icon`) com tooltip executivo obrigatório.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Divisão Limpa (< 400 linhas)**: colocar SQL em `src/services/inventory_queries.py` e gráficos novos em `src/ui/components/inventory_charts.py`.
+    - **Fragmento Reativo de Forecast (`@st.fragment`)**: encapsular o seletor de Família/SKU e o gráfico `forecast_band_chart` (histórico 90d em linha sólida + projeção 30d tracejada + polígonos `fill="toself"` para IC 80% e IC 95%) dentro de uma função decorada com `@st.fragment` na `3_inventory_demand.py`, para que trocar o SKU não recarregue a página inteira.
+    - **Reconciliação Estrita**: `SUM(locked_capital_brl)` do Treemap deve ser exatamente igual ao KPI Card `"Capital Travado (> 120d)"`. Todos os KPIs e cabeçalhos devem ter `help_text: str` obrigatório e usar variáveis `var(--kyb-*)`.
+  - *DoD:* soma do treemap = KPI de capital travado; troca de SKU re-renderiza apenas o fragmento; testes `tests/services/test_inventory_service.py` e `tests/ui/test_inventory_page.py` passam; 100% dos KPI cards e cabeçalhos possuem `.kyb-info-icon`.
 - [ ] **M4-V2** *(VIZ-09)* — **Tela 4 — Simulador Prescritivo What-If (Elasticidade & Preço)**: Painel de sliders dentro de `@st.fragment` (escopo família/SKU/UF, variação de preço −30% a +30%, desconto 0–25 pp, comissão ±3 pp, CMV e toggle de elasticidade). Cards **Antes × Depois**, destaque visual do **Volume de Equilíbrio** (*"Para compensar 7% de desconto você precisa vender +28%; a elasticidade projeta +11%"*), **Curva Lucro × Preço** (ponto atual, simulado e ótimo), **Tornado** de sensibilidade, comparação de até 3 cenários salvos na sessão e veredito automático (*Gera Lucro Incremental* vs. *Destruição de Margem*).
-  - *Arquivos:* `src/ui/pages/4_simulator.py`, `tests/ui/test_simulator_interaction.py`.
+  - *Arquivos:* `src/ui/components/simulator_charts.py` (`profit_curve_chart`, `tornado_sensitivity_chart`), `src/ui/cache.py` (`cached_simulation_baseline`), `src/ui/pages/4_simulator.py`, `tests/ui/test_simulator_interaction.py`.
   - *Depende de:* `M2-V2`, `M4-S3`, `M4-S4`
-  - *DoD:* mover slider atualiza em < 300 ms; alavancas em zero mostram delta 0 exato; AppTest altera sliders via `key` e valida veredito; 100% dos KPI cards e cabeçalhos de seção possuem ícone azul de informação (`.kyb-info-icon`) com tooltip executivo obrigatório.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Sliders com `key` Estável**: defina keys explícitas (`key="sim_price_pct"`, `key="sim_discount_pp"`, `key="sim_comm_pp"`, `key="sim_cogs_pct"`, `key="sim_use_elasticity"`) para que os testes automatizados possam manipular os controles diretamente.
+    - **Comparador de até 3 Cenários na Sessão**: armazene em `st.session_state.saved_simulations` (lista de até 3 dicionários/DTOs com nome, alavancas, receita simulada e delta de margem R$) com botão `"💾 Salvar Cenário para Comparação"` e `"🗑️ Limpar Comparação"`.
+    - **Destaque do Breakeven**: exibir callout comparando lado a lado `breakeven_volume_change_pct` (volume exigido para empatar a margem) vs. `projected_volume_change_pct` (volume projetado pela elasticidade $\beta$).
+  - *DoD:* mover slider atualiza em < 300 ms; alavancas em zero mostram delta 0 exato; testes `tests/ui/test_simulator_interaction.py` validam veredito e breakeven; 100% dos KPI cards e cabeçalhos possuem `.kyb-info-icon`.
 
 ---
 
@@ -241,29 +391,47 @@ flowchart LR
 
 #### 🗄️ Engenharia de Dados & Finanças
 - [ ] **M5-D1** *(DE-20)* — **Orquestrador ponta a ponta (`kyberna pipeline run`) e Relatório de Qualidade**: Comando `kyberna pipeline run [--scenario all|c1_toys] [--sample] [--lake local|remote] [--skip-ingest]` encadeando ingest → bronze → silver → price events → cenários → finanças → estoque → gold → ML (`M2-S1`..`M4-S3`) → snapshot Parquet + `audit` (planilha Excel de conciliação), com `timed_step`, falha rápida e retomada por etapa (`--from-step`). Gera `data/reports/quality_<data>.json` e `.md` (linhas por camada, remoções, contratos, métricas dos modelos e tempos).
-  - *Arquivos:* `src/etl/pipeline.py`, `src/cli.py`, `tests/etl/test_pipeline.py`.
+  - *Arquivos:* `src/etl/pipeline.py`, `src/cli.py` (`pipeline_run`), `tests/etl/test_pipeline.py`.
   - *Depende de:* `M2-D6`, `M3-S4`, `M4-S3`
-  - *DoD:* `uv run kyberna pipeline run --sample` executa ponta a ponta em ≤ 3 min no laptop e no CI; relatório `.md` e planilha `.xlsx` gerados com sucesso.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Sequência Ordenada de Etapas (`PIPELINE_STEPS`)**: `("ingest", "bronze", "silver", "price_events", "gold_star", "inventory_snapshot", "gold_marts", "audit")`. Quando `--sample` for `True`, pule `ingest` da API Socrata e popule a Bronze direto da fixture `tests/fixtures/iowa_sample.parquet` via `populate_bronze_from_sample_fixture()`.
+    - **Retomada por Etapa (`--from-step`)**: validar se o nome passado pertence a `PIPELINE_STEPS` e executar apenas a partir do índice correspondente.
+    - **Artefatos de Qualidade**: salvar `data/reports/quality_<YYYYMMDD>.json` (dicionário serializado com duração em segundos e contagem de linhas de cada etapa) e `data/reports/quality_<YYYYMMDD>.md` (tabela Markdown resumindo linhas Bronze/Silver/Gold, SKUs em ABC/XYZ, clientes em RFM/Churn e WAPE de Forecast).
+  - *DoD:* `uv run kyberna pipeline run --sample` executa ponta a ponta em ≤ 3 min no laptop e no CI; relatório `.md`, `.json` e planilha `.xlsx` gerados com sucesso; `uv run pytest tests/etl/test_pipeline.py -q` passa.
 
 #### 🎨 Interface, UX & Visualização
 - [ ] **M5-V1** *(INFRA-15 gate + VIZ-13)* — **Gate de Acesso, Autenticação de Produção, Runbook de Demo e Testes `AppTest`**: Implementar controle de acesso configurável `KYBERNA_AUTH_MODE` (`none` para dev local, `entra_id` corporativo e `demo_password` para links externos — este último trazendo a UX do `Nig` com ocultação de sidebar, card estilizado, bloqueio após 5 tentativas e validação constante via `hmac.compare_digest`), escrever `docs/runbook_demo.md` (roteiro cronometrado de 15 min do Caso Âncora, checklist pré-demo e FAQ comercial) e suíte `streamlit.testing.v1.AppTest` cobrindo as 4 páginas, troca de filtros, sliders do simulador e exportação.
-  - *Arquivos:* `src/ui/components/auth_gate.py`, `docs/runbook_demo.md`, `tests/ui/test_pages_smoke.py`.
+  - *Arquivos:* `src/core/settings.py` (adicionar `auth_mode: Literal["none", "demo_password", "entra_id"] = "none"`), `src/ui/components/auth_gate.py`, `src/ui/app.py` (chamar `require_authentication()` antes de `st.navigation`), `docs/runbook_demo.md`, `tests/ui/test_pages_smoke.py`.
   - *Depende de:* `M2-V3`, `M3-V2`, `M4-V1`, `M4-V2`
-  - *DoD:* acesso sem senha bloqueado em teste de demo; `uv run pytest tests/ui -q` verde em ≤ 2 min.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Segurança em `auth_gate.py`**: usar `hmac.compare_digest(typed_password.encode("utf-8"), expected_password.encode("utf-8"))`; contabilizar falhas em `st.session_state.auth_failed_attempts` e bloquear após 5 tentativas; quando `auth_mode == "none"` (default em dev e nos testes existentes), retornar `True` imediatamente sem renderizar tela de login (para não quebrar os testes de página existentes!).
+  - *DoD:* acesso sem senha bloqueado quando `KYBERNA_AUTH_MODE=demo_password`; `uv run pytest tests/ui -q` verde em ≤ 2 min.
+- [ ] **M5-V2** *(VIZ-15)* — **Motor Temporal Flexível (YTD vs. YTD Anterior, Trimestres Fixos e Dinâmicos), Toggle PoP vs. YoY, Ergonomia da Sidebar e Contraste Dark Mode**: Evoluir o motor temporal e a acessibilidade visual para o lançamento do MVP: (1) **YTD com comparação direta contra o YTD anterior** (ex.: `Jan–Ago/2024 vs. Jan–Ago/2023`); (2) **Trimestres Fixos (Calendário)** (`1º Tri [Jan, Fev, Mar]`..`4º Tri [Out, Nov, Dez]`) e **Trimestres Dinâmicos / Móveis (3 meses consecutivos)** (ex.: `Fev, Mar, Abr`) via *progressive disclosure* (apenas 1 sub-seletor contextual limpo); (3) **Toggle executivo junto aos KPIs** permitindo alternar a base comparativa entre **Período Anterior (`PoP`/`QoQ`/`MoM`)** (ex.: `2º Tri/24 vs. 1º Tri/24`) e **Mesmo Período do Ano Anterior (`YoY`)** (ex.: `2º Tri/24 vs. 2º Tri/23`); (4) **Reordenação da Barra Lateral**: mover o seletor de **Cenário da Demo** para o último item dos filtros laterais (logo antes do badge de fonte de dados), mantendo Período e filtros analíticos no topo; (5) **Auditoria e correção completa do Modo Escuro (Dark Mode)**: substituir cores hexadecimais hard-coded (`#475569`, `#0d9488`) nos banners/manchetes por variáveis `var(--kyb-*)` e adicionar regras CSS explícitas para `.kyb-info-icon` (`ⓘ`), `st.tabs`, `st.expander`, `st.radio`/`st.caption`, tags de `st.multiselect` e ícones SVG nativos.
+  - *Arquivos:* `src/ui/state.py`, `src/ui/components/sidebar.py`, `src/ui/pages/1_executive.py`, `src/ui/assets/styles.css`, `src/ui/components/charts.py`, `tests/ui/test_sidebar.py`, `tests/ui/test_theme.py`.
+  - *Depende de:* `M2-V3`, `M3-V1`, `M4-V1`, `M4-V2`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Campos no `AppState` (`src/ui/state.py`)**: adicionar `comparison_mode: Literal["pop", "yoy"] = "pop"`, `selected_quarter: str = "2024-Q4"` e `selected_semester: str = "2024-S2"`. Manter retrocompatibilidade em `resolve_period_bounds()` com aliases legados (`"last_12m"`, `"last_6m"`, `"last_3m"`, `"last_month"`).
+    - **Cuidado com Índices do `AppTest` na Sidebar**: ao mover o seletor de **Cenário da Demo** para o final da sidebar (`src/ui/components/sidebar.py`), atualizar os índices de `at.sidebar.selectbox[...]` em `tests/ui/test_sidebar.py` e `tests/ui/test_app.py`.
+    - **Seletores CSS Dark Mode (`src/ui/assets/styles.css`)**: como `.streamlit/config.toml` fixa `base = "light"`, estilizar explicitamente `[data-baseweb="tab"]`, `[data-testid="stExpander"] summary`, `[data-testid="stCaptionContainer"]`, `[data-testid="stSidebar"] svg` e `.kyb-info-icon` usando `var(--kyb-text)` e `var(--kyb-teal)`.
+  - *DoD:* testes unitários cobrem todas as combinações de período (`ytd`, `fixed_quarter`, `rolling_quarter`, `fixed_semester`, `custom_month`, `all`) × modo de comparação (`pop`, `yoy`); seletor de cenário posicionado no fim da sidebar; contraste WCAG AA validado em 100% dos componentes, ícones e abas no Modo Escuro.
 
 #### 🏗️ Infraestrutura & Arquitetura *(Empacota e Publica o MVP)*
 - [ ] **M5-I1** *(INFRA-05)* — **Dockerfile multi-stage enxuto do App com ODBC 18 em Build-Time e Snapshot Gold embutido**: Stage `builder` (`python:3.11-slim` + `uv sync --frozen --no-dev --extra app`); stage `runtime` (`python:3.11-slim` + `libgomp1` + instalação do `msodbcsql18` e `unixodbc-dev` via repositório Microsoft em *build-time*, eliminando scripts de boot tipo `startup.sh`), usuário não-root `kyberna`, copia `.venv`, `src/`, `config/`, `.streamlit/` e `data/gold/snapshot/`; `ENV KYBERNA_DATA_BACKEND=duckdb`; `EXPOSE 8501`; `HEALTHCHECK` em `/_stcore/health`.
-  - *Arquivos:* `infra/docker/Dockerfile`, `.dockerignore`.
-  - *Depende de:* `M5-D1`, `M5-V1`
+  - *Arquivos:* `infra/docker/Dockerfile`, `.dockerignore`, `tests/infra/test_dockerfile.py`.
+  - *Depende de:* `M5-D1`, `M5-V1`, `M5-V2`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - Aceitar `ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql18 unixodbc libgomp1 curl` no stage `runtime` seguido de `rm -rf /var/lib/apt/lists/*`.
+    - Criar usuário `useradd --create-home --uid 1000 kyberna` e definir `USER kyberna`.
+    - `ENTRYPOINT ["streamlit", "run", "src/ui/app.py", "--server.port=8501", "--server.address=0.0.0.0"]`.
   - *DoD:* `docker build -f infra/docker/Dockerfile -t kyberna-app:dev .` conclui; container responde `ok` em `/_stcore/health`; imagem ≤ 900 MB; roda como usuário não-root.
 - [ ] **M5-I2** *(INFRA-07)* — **CI no GitHub Actions (Qualidade + Build Docker em PR/Push)**: Workflow `.github/workflows/ci.yml` com jobs `quality` (`astral-sh/setup-uv`, cache, `uv sync --all-extras --frozen`, `ruff`, `mypy`, `pytest -m "not azure and not slow"`) e `docker-build` (gera snapshot Gold da fixture via `kyberna pipeline run --sample` e valida o build da imagem).
-  - *Arquivos:* `.github/workflows/ci.yml`.
+  - *Arquivos:* `.github/workflows/ci.yml`, `tests/infra/test_workflows.py` (validação de sintaxe YAML).
   - *Depende de:* `M1-I2`, `M5-D1`, `M5-I1`
-  - *DoD:* workflow verde no GitHub Actions; duração ≤ 10 min.
+  - *DoD:* workflow válido em YAML e verde no GitHub Actions; duração ≤ 10 min.
 - [ ] **M5-I3** *(INFRA-08 + 10 + 11 + 12)* — **Infra Azure Bicep (ADLS Gen2 + Container Apps `minReplicas: 0`), OIDC e CD (`deploy.yml`)**: Módulos Bicep para Storage Account (`Standard_LRS`, HNS ativo, container `lake`) e Azure Container Apps Consumption (`minReplicas: 0`, `maxReplicas: 1`, 0,5 vCPU / 1 GiB, ingress externo 8501, probes de saúde); script `bootstrap_azure.ps1` configurando OIDC federado sem client secret; workflow `deploy.yml` publicando imagem no GHCR e atualizando o Container App com smoke test pós-deploy.
   - *Arquivos:* `infra/bicep/main.bicep`, `infra/bicep/storage.bicep`, `infra/bicep/containerapp.bicep`, `infra/bicep/main.parameters.json`, `infra/scripts/bootstrap_azure.ps1`, `.github/workflows/deploy.yml`.
   - *Depende de:* `M5-I2`
-  - *DoD:* `az bicep build` sem erros; deploy publica revisão ativa; URL pública abre o app; após ~5 min sem acesso, réplicas caem para 0 (`scale-to-zero`).
+  - *DoD:* `az bicep build --file infra/bicep/main.bicep` sem erros; deploy publica revisão ativa; após ~5 min sem acesso, réplicas caem para 0 (`scale-to-zero`).
 
 ---
 
@@ -273,29 +441,47 @@ flowchart LR
 
 #### 🗄️ Engenharia de Dados & Finanças
 - [ ] **M6-D1** *(DE-10)* — **Builder Cenário 2 — Distribuidora B2B de Bebidas (`c2_beverages`)**: Tradução semântica das categorias de bebidas (`beverages.csv`), fabricantes com marcas fictícias brasileiras, clientes segmentados em canais *on-trade* (bares, restaurantes, eventos) e *off-trade* (supermercados, adegas, empórios) conforme mix e ticket médio, vendedores de rota como RCAs e preços convertidos para R$.
-  - *Arquivos:* `src/etl/scenarios/c2_beverages.py`, `config/scenarios/c2_beverages.yaml`, `tests/etl/test_c2_beverages.py`.
+  - *Arquivos:* `src/etl/scenarios/c2_beverages.py`, `src/cli.py` (habilitar `c2_beverages` em `gold build`), `tests/etl/test_c2_beverages.py`.
   - *Depende de:* `M2-D3`, `M2-D5`
-  - *DoD:* Gold `c2_beverages` válida no contrato e auditável via `kyberna audit --scenario c2_beverages`; 100% dos clientes com canal atribuído.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - Seguir exatamente a arquitetura de [`src/etl/scenarios/c1_toys.py`](./src/etl/scenarios/c1_toys.py) herdando de `ScenarioBuilder` (`src/etl/scenarios/base.py`).
+    - Usar `data/reference/category_maps/beverages.csv` (que já existe!) via `load_category_rules("beverages.csv")`.
+    - Criar `c2_beverages.dim_product` e `c2_beverages.sales_remapped`, rodar `build_gold_star_schema(con, scenario_id="c2_beverages")` e `build_gold_marts(con, scenario_id="c2_beverages")`.
+    - **Importante no `star_schema.py` e `marts.py`**: garantir que os snapshots Parquet de cada cenário sejam lidos/escritos em `data/gold/snapshot/<scenario_id>/` e no schema `<scenario_id>.*` do DuckDB sem sobrescrever os dados de `c1_toys`!
+  - *DoD:* Gold `c2_beverages` válida no contrato e auditável via `uv run kyberna audit --scenario c2_beverages`; 100% dos clientes com canal (*On-Trade* ou *Off-Trade*) atribuído; `uv run pytest tests/etl/test_c2_beverages.py -q` passa.
 - [ ] **M6-D2** *(DE-11)* — **Builder Cenário 3 — Rede de Lojas / Franquias Multi-filial (`c3_retail_chain`)**: Filtra a maior rede por `chain_name` → **Filial 01..N** distribuídas em municípios brasileiros; inverte a perspectiva para *buyer/varejista* (`unit_price` de aquisição vira **CMV da loja**, aplicando `retail_markup` de 1,30–1,55 por família para venda ao consumidor); gerente de filial no lugar de RCA.
-  - *Arquivos:* `src/etl/scenarios/c3_retail_chain.py`, `config/scenarios/c3_retail_chain.yaml`, `tests/etl/test_c3_retail_chain.py`.
+  - *Arquivos:* `src/etl/scenarios/c3_retail_chain.py`, `src/cli.py`, `tests/etl/test_c3_retail_chain.py`.
   - *Depende de:* `M2-D3`, `M2-D5`
-  - *DoD:* ≥ 15 filiais geradas; margem bruta coerente com o markup configurado; `dim_branch` populada e contrato Gold válido.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - Em `c3_retail_chain.yaml`, `perspective: "buyer"` e `retail_markup: 1.65`.
+    - Mapear as top 20–30 lojas de `silver.sales` como filiais (`branch_id = "FIL-001".."FIL-025"`) em `c3_retail_chain.dim_branch`, associadas a municípios distintos de `silver.dim_geography` (necessário para calcular distância Haversine na `M6-S1`!).
+    - Na inversão de perspectiva: `unit_cost_store = silver.unit_price` e `unit_list_price_store = ROUND(unit_cost_store * retail_markup_family, 2)`.
+  - *DoD:* ≥ 15 filiais geradas em `dim_branch` com latitude/longitude válidas; margem bruta coerente com o markup configurado; contrato Gold válido; `uv run pytest tests/etl/test_c3_retail_chain.py -q` passa.
 - [ ] **M6-D3** *(DE-12)* — **Builder Cenário 4 — Comércio Local / PDV Único (`c4_single_store`)**: Seleciona a loja de maior fluxo; desagrega compras semanais em **vendas diárias de balcão** com perfil de dia da semana configurável (vetorizado); gera **Clube de Fidelidade** sintético (2–4 mil CPFs válidos) alocando ~40% dos cupons a clientes identificados com afinidade estável por família.
-  - *Arquivos:* `src/etl/scenarios/c4_single_store.py`, `config/scenarios/c4_single_store.yaml`, `tests/etl/test_c4_single_store.py`.
+  - *Arquivos:* `src/etl/scenarios/c4_single_store.py`, `src/cli.py`, `tests/etl/test_c4_single_store.py`.
   - *Depende de:* `M2-D3`, `M2-D5`
-  - *DoD:* soma das unidades diárias = soma original (± 0,5%); CPFs válidos com recorrência heterogênea (CV > 0,3); execução ≤ 60 s.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - Gerar 2.000 CPFs válidos (com algoritmo oficial módulo 11 de 2 dígitos verificadores para 11 dígitos) em `c4_single_store.dim_customer` de forma 100% vetorizada/em lote (nunca por linha do fato).
+    - Desagregar lotes de reposição em cupons de balcão preservando a soma de unidades (`diff <= 0.5%`).
+  - *DoD:* soma das unidades diárias = soma original (± 0,5%); CPFs 100% válidos no teste de DV com recorrência heterogênea (CV > 0,3); execução ≤ 60 s; `uv run pytest tests/etl/test_c4_single_store.py -q` passa.
 
 #### 🧠 Ciência de Dados & Prescrição
 - [ ] **M6-S1** *(DS-09 C3)* — **Algoritmo de Remanejamento de Estoque entre Filiais (`mart_branch_transfers`)**: Exclusivo para o Cenário 3: pareamento guloso vetorizado entre filiais com **excesso (> 120d)** e filiais em **ruptura iminente (< lead time)** do mesmo SKU, priorizando menor distância geográfica (fórmula de Haversine entre municípios das filiais) e maior capital liberado em R$, garantindo que a filial de origem nunca fique abaixo do seu ponto de pedido.
-  - *Arquivos:* `src/ml/inventory.py`, `tests/ml/test_inventory.py`.
+  - *Arquivos:* `src/ml/inventory.py` (`build_branch_transfers_mart`), `src/etl/contracts.py` (`GoldBranchTransfersSchema`), `src/etl/gold/marts.py`, `tests/ml/test_inventory.py`.
   - *Depende de:* `M4-S2`, `M6-D2`
-  - *DoD:* nenhuma transferência deixa a origem abaixo do ponto de pedido; economia em R$ e distância em km calculadas corretamente.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Regra de Segurança na Origem**: `max_transferable_units = max(0, stock_units_origin - max(reorder_point_units_origin, int(np.ceil(forecast_daily_demand_origin * 60))))`. Nunca transferir unidades que deixem a filial doadora abaixo do ponto de pedido!
+    - **Distância Haversine Vetorizada**: calcular distância em km entre `(lat_orig, lon_orig)` e `(lat_dest, lon_dest)` com raio da Terra $R = 6371.0\text{ km}$, estimar frete de transferência (`transfer_freight_brl`) e economia líquida (`net_capital_saved_brl = transfer_units * unit_cost - transfer_freight_brl`). Filtrar apenas transferências onde `net_capital_saved_brl > 0`.
+  - *DoD:* nenhuma transferência deixa a origem abaixo do ponto de pedido; economia líquida em R$ e distância em km calculadas corretamente; `GoldBranchTransfersSchema` válido.
 
 #### 🎨 Interface, UX & Visualização *(Valida os 4 Cenários nas 4 Telas)*
 - [ ] **M6-V1** *(VIZ-11)* — **Adaptação semântica dinâmica e visões exclusivas C3/C4 nas 4 páginas**: Garantir que 100% dos títulos, colunas, tooltips e mensagens consumam `ScenarioConfig.labels` e `capabilities`; habilitar a tabela prescritiva de **Transferência entre Filiais** na Tela 3 (quando C3 ativo), o **Radar de Saúde das Filiais** na Tela 2 (C3) e a visão de **Clube de Fidelidade CPF / ABC de Gôndola** (C4).
   - *Arquivos:* `src/ui/pages/*.py`, `src/ui/components/*.py`, `config/scenarios/*.yaml`, `tests/ui/test_scenario_labels.py`.
   - *Depende de:* `M6-D1`, `M6-D2`, `M6-D3`, `M6-S1`
-  - *DoD:* teste automatizado varre `src/ui/pages/` garantindo ausência de rótulos fixos ("Lojista", "RCA" hard-coded); AppTest das **4 páginas × 4 cenários (16 combinações)** passa sem exceção.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - Verificar `cfg = load_scenario_config(state.scenario_id)` em todas as 4 páginas: exibir a seção de Transferência entre Filiais na Tela 3 **somente** quando `cfg.capabilities.branch_transfers is True`; ocultar filtro e quadrante de RCAs quando `cfg.capabilities.rep_efficiency is False` (C4).
+    - Em `DuckDBRepository`, garantir que consultas às tabelas Gold leiam do schema `<scenario_id>.<tabela>` (ou `data/gold/snapshot/<scenario_id>/<tabela>.parquet`) correspondente ao `scenario_id` selecionado!
+  - *DoD:* teste automatizado varre `src/ui/pages/` garantindo uso de `cfg.labels`; testes das **4 páginas × 4 cenários (16 combinações)** passam sem exceção.
 
 ---
 
@@ -305,33 +491,40 @@ flowchart LR
 
 #### 🧠 Ciência de Dados & Prescrição
 - [ ] **M7-S1** *(DS-05)* — **Modelo supervisionado de Churn (`LightGBM` calibrado + Explicabilidade Caixa-Branca)**: Construir dataset de múltiplos snapshots mensais (`as_of_date` = fim de cada mês dos últimos 12m), treinar `LGBMClassifier` com `class_weight="balanced"` e calibração isotônica (`CalibratedClassifierCV`) em split estritamente temporal. Extrair contribuições por feature (`pred_contrib=True`) traduzindo os **top-3 fatores** para linguagem executiva em pt-BR (ex.: *"Atraso de 2,3× no ciclo histórico"*, *"Queda de 38% no ticket médio"*). Fallback automático para a heurística da `M3-S2` caso ROC-AUC < 0,75.
-  - *Arquivos:* `src/ml/churn.py`, `tests/ml/test_churn_model.py`, `docs/model_cards/churn.md`.
+  - *Arquivos:* `src/ml/churn.py` (ou `src/ml/churn_supervised.py` para respeitar o limite de 400 linhas!), `tests/ml/test_churn_model.py`, `docs/model_cards/churn.md`.
   - *Depende de:* `M3-S2`, `M7-S2`
-  - *DoD:* ROC-AUC, PR-AUC e Brier score registrados; Brier do modelo calibrado < Brier da heurística no teste; top-3 motivos em pt-BR presentes em 100% dos clientes em risco.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Atenção ao Limite de 400 Linhas**: [`src/ml/churn.py`](./src/ml/churn.py) já tem ~310 linhas. Crie `src/ml/churn_supervised.py` para o treinamento supervisionado, calibração e extração de `pred_contrib=True`, integrando-o em `churn.py`.
+    - **Split Estritamente Temporal**: snapshots $T_1 \dots T_8$ para treino, $T_9 \dots T_{10}$ para calibração e $T_{11}$ para avaliação (onde o target `y_churn = 1` significa ausência de compra nos 90 dias subsequentes a $T_k$).
+  - *DoD:* ROC-AUC, PR-AUC e Brier score registrados no model card e `metadata.json`; Brier do modelo calibrado < Brier da heurística no holdout temporal; top-3 motivos em pt-BR presentes em 100% dos clientes em risco.
 - [ ] **M7-S2** *(DS-12)* — **Model Registry leve, Model Cards e Monitoramento de Drift (PSI)**: Implementar `registry.py` (`joblib` + `metadata.json` com versão, data, hash de treino, métricas e hiperparâmetros em `models/<modelo>/<versao>/`) e `drift.py` calculando o **Population Stability Index (PSI)** das 10 principais features (alerta se PSI > 0,2 integrado ao relatório do pipeline).
   - *Arquivos:* `src/ml/registry.py`, `src/ml/drift.py`, `tests/ml/test_registry.py`, `docs/model_cards/README.md`.
   - *Depende de:* `M4-S1`, `M4-S3`
-  - *DoD:* round-trip salvar/carregar idêntico; cálculo de PSI validado com distribuições sintéticas conhecidas.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Fórmula Canônica do PSI em `src/ml/drift.py`**: dividir a distribuição de referência (treino) em 10 decis (`np.quantile`), calcular a proporção $p_i$ (referência) e $q_i$ (atual) em cada bin (aplicando Laplace smoothing $\epsilon = 10^{-4}$ para evitar divisão por zero ou $\ln(0)$) e somar $\text{PSI} = \sum (q_i - p_i) \cdot \ln(q_i / p_i)$. Classificar: `< 0.10` Estável, `0.10–0.20` Atenção, `> 0.20` Drift Crítico.
+  - *DoD:* round-trip `save_model_artifact` / `load_model_artifact` idêntico; cálculo de PSI validado com distribuições sintéticas idênticas ($\text{PSI} \approx 0$) e deslocadas ($\text{PSI} > 0.2$).
 
 #### 🏗️ Infraestrutura & Arquitetura + 🗄️ Engenharia de Dados Cloud
 - [ ] **M7-I1** *(INFRA-06 + INFRA-09)* — **Docker Compose (SQL Server local) + Bicep do Azure SQL Database Free Tier (Coexistência Segura no `kyberna-server`)**: Criar `infra/docker/compose.yaml` (serviço `app` + `mssql` 2022 local para testes sem gastar cota nuvem) e módulo Bicep `infra/bicep/sql.bicep` configurado para aceitar o servidor lógico existente `kyberna-server.database.windows.net` e criar o banco isolado `db-kyberna-demo` (Serverless `GP_S_Gen5` com `useFreeLimit: true`, `freeLimitExhaustionBehavior: 'AutoPause'`, `autoPauseDelay: 60`, `minCapacity: 0.5` e autenticação **Entra ID / Managed Identity**), garantindo isolamento total em relação ao banco `db-nig-brinquedos`.
   - *Arquivos:* `infra/docker/compose.yaml`, `infra/scripts/init_local_sql.sql`, `infra/bicep/sql.bicep`, `infra/scripts/grant_sql_access.sql`.
   - *Depende de:* `M5-I3`
-  - *DoD:* banco `db-kyberna-demo` criado com oferta gratuita ativa sem afetar bancos vizinhos; `uv run kyberna db ping` conecta via token Entra ID; auto-pause de 60 min configurado.
+  - *DoD:* banco `db-kyberna-demo` parametrizado com oferta gratuita ativa (`useFreeLimit: true`, `autoPauseDelay: 60`) sem afetar bancos vizinhos; validação de sintaxe Bicep e Compose sem erros.
 - [ ] **M7-D1** *(DE-18 + DE-19)* — **Loader Atômico Gold → Azure SQL (`staging + swap`) e Sync Parquet ADLS Gen2**: Migrações DDL (`V001__gold_schema.sql`, `V002__indexes.sql` com índices *clustered columnstore*), carga em lote via `pyodbc` (`fast_executemany=True`) em tabelas `gold.stg_<t>` seguida de swap transacional atômico, e suporte em `lake.py` à extensão `azure` do DuckDB para leitura/escrita direta de Parquet em `abfss://lake@...`.
-  - *Arquivos:* `src/db/loader.py`, `src/db/ddl/V001__gold_schema.sql`, `src/db/ddl/V002__indexes.sql`, `src/etl/lake.py`, `tests/db/test_loader.py`, `tests/etl/test_lake.py`.
+  - *Arquivos:* `src/db/loader.py`, `src/db/ddl/V001__gold_schema.sql`, `src/db/ddl/V002__indexes.sql`, `src/etl/lake.py`, `src/cli.py` (`load sync`), `tests/db/test_loader.py`, `tests/etl/test_lake.py`.
   - *Depende de:* `M2-I1`, `M7-I1`
-  - *DoD:* soma de `gross_revenue` e contagem de linhas idênticas entre Parquet local, ADLS e Azure SQL; recarga idempotente em ≤ 5 min por cenário.
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - No `loader.py`, truncar/recriar `gold.stg_<table_name>`, inserir lotes de 10.000 linhas com `cursor.fast_executemany = True`, e executar dentro de uma única transação SQL `DROP TABLE IF EXISTS gold.<table_name>_old; EXEC sp_rename 'gold.<table_name>', '<table_name>_old'; EXEC sp_rename 'gold.stg_<table_name>', '<table_name>'; DROP TABLE IF EXISTS gold.<table_name>_old;`. Testar localmente com mock/SQLite/DuckDB simulando o protocolo do cursor `pyodbc`.
+  - *DoD:* soma de `gross_revenue` e contagem de linhas idênticas entre Parquet local e destino; testes com mock de cursor `pyodbc` validam `fast_executemany=True` e atomicidade do swap em caso de exceção.
 - [ ] **M7-I2** *(INFRA-13 + INFRA-14)* — **Pipeline Semanal Agendado (`data-pipeline.yml`) e Governança de Cota (`kyberna ops status`)**: Workflow cron semanal (segunda-feira 06:00 BRT) que roda o pipeline completo, carrega o Azure SQL em uma **única janela de despertar**, publica o novo snapshot e atualiza o Container App; budget Bicep (alertas em US$ 1 e US$ 5) e comando `uv run kyberna ops status` exibindo réplicas ACA, estado do banco (Online/Paused), cota vCore gratuita restante e data da última carga.
-  - *Arquivos:* `.github/workflows/data-pipeline.yml`, `infra/bicep/budget.bicep`, `src/cli.py`.
+  - *Arquivos:* `.github/workflows/data-pipeline.yml`, `infra/bicep/budget.bicep`, `src/cli.py` (`ops_app`).
   - *Depende de:* `M5-D1`, `M7-D1`
-  - *DoD:* execução manual do workflow concluída em ≤ 25 min; `kyberna ops status` reporta os 4 indicadores operacionais.
+  - *DoD:* workflow YAML válido; `uv run kyberna ops status` reporta os 4 indicadores operacionais com fallback gracioso em ambiente local offline.
 
 #### 🎨 Interface, UX & Visualização
 - [ ] **M7-V1** *(VIZ-12 + VIZ-14)* — **Polimento de Performance (< 1,5 s), Modo Apresentação e Página "Sobre a Kyberna"**: Perfilamento de tempo por bloco com `timed_step`, projeção enxuta de colunas, toggle **"Modo Apresentação"** na sidebar (oculta filtros técnicos, amplia KPIs para projetor e exibe *callouts* numerados do roteiro de 15 min de `VISION.md` §7.1) e página institucional `0_about.py` com diagrama da arquitetura, matriz dos 4 cenários e CTA comercial.
-  - *Arquivos:* `src/ui/pages/0_about.py`, `src/ui/components/demo_callouts.py`, `src/ui/state.py`, `src/ui/**`.
+  - *Arquivos:* `src/ui/pages/0_about.py`, `src/ui/components/demo_callouts.py`, `src/ui/state.py` (`presentation_mode: bool = False`), `src/ui/app.py`, `tests/ui/test_about_and_demo_mode.py`.
   - *Depende de:* `M6-V1`
-  - *DoD:* todas as páginas respondem em < 1,5 s com cache quente e < 4 s com cache frio; Modo Apresentação ativável sem recarregar sessão.
+  - *DoD:* todas as páginas respondem em < 1,5 s com cache quente; Modo Apresentação ativável na sessão exibindo os callouts numerados do roteiro de demo; `uv run pytest tests/ui -q` 100% verde.
 
 ---
 
@@ -340,13 +533,20 @@ flowchart LR
 > Use esta seção para registrar problemas ou oportunidades observados durante a execução de uma tarefa sem desviar o foco do marco atual. Formato: `- [data] (origem: ID) descrição — sugestão`.
 
 - `[2026-10-29]` (`M1-I1`) Credenciais antigas do Socrata identificadas no histórico legado (`notebooks/secrets_socrata.json` da branch `archive/spark-airflow-setup`) — migrar `APP_TOKEN` para `.env` local na tarefa `M1-I3` e orientar rotação da senha caso o repositório GitHub seja público.
+- `[2026-11-06]` (`M2-V1` / `M2-V3`) **Evolução do Seletor de Períodos (YTD, Trimestres Fixos e Trimestres Dinâmicos) + Toggle PoP vs. YoY nos KPIs**: A primeira versão do filtro temporal entregou presets básicos; para a consolidação do MVP, expandir para suportar (a) **YTD com comparação direta contra o YTD anterior**, (b) **Trimestres Fixos** (`1º Tri [Jan, Fev, Mar]`..`4º Tri`) e **Trimestres Dinâmicos/Móveis de 3 meses** (ex.: `Fev, Mar, Abr`) com revelação progressiva, e (c) **Toggle nos KPIs** para alternar entre *Período Anterior (`PoP`)* e *Mesmo Período no Ano Anterior (`YoY`)* — alocado na tarefa **`M5-V2`**.
+- `[2026-11-06]` (`M2-V1`) **Ergonomia da Barra Lateral (`sidebar.py`)**: O seletor de **Cenário da Demo** no topo da sidebar empurra para baixo os filtros operacionais diários (Período, Região/UF, Família, RCA), sendo que o cenário é escolhido apenas uma vez na sessão — mover o seletor de Cenário da Demo para o último item dos filtros laterais na tarefa **`M5-V2`**.
+- `[2026-11-06]` (`M1-V2` / `M2-V3`) **Contraste e Visibilidade no Modo Escuro (Dark Mode)**: No Modo Escuro, elementos com cores hard-coded (`#475569`, `#0d9488` no banner temporal e manchete de `1_executive.py`), o círculo do ícone `.kyb-info-icon` (`ⓘ`), abas `st.tabs`, cabeçalhos de `st.expander` e ícones SVG nativos do Streamlit perdem contraste por herdarem estilos do tema base light — evitar cores hard-coded já nas novas telas (`M3-V1`, `M4-V1`, `M4-V2`) e executar o saneamento completo do CSS Dark Mode na tarefa **`M5-V2`**.
 
 ---
 
 ## 📝 Registro Histórico de Mudanças (Changelog)
 
 - **v0.3.0-dev** *(Em andamento 🟡 — Inteligência Comercial, RFM, Churn, White Space e Tela 2)*:
+  - **[2026-11-06] `M3-S3` (`DS-06`) Concluída e Contexto Temporal na Visão Executiva**:
+    - **Fase A (Contexto Temporal, Filtro de Período e Demonstrativo Mensal na Tela 1)**: Implementação de presets temporais globais (`Histórico Completo 24m`, `Últimos 12m / Ano 2024`, `Últimos 6m`, `Últimos 3m`, `Último Mês Fechado Dez/24` e `Mês Específico`) em [`src/ui/state.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/state.py) e [`src/ui/components/sidebar.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/components/sidebar.py); agregação mensal mês a mês com variações MoM% e deltas dinâmicos PoP/YoY em [`src/services/executive_queries.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/services/executive_queries.py) e [`src/services/executive_service.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/services/executive_service.py); incorporação do banner contextual executivo e da tabela detalhada de vendas e margem mês a mês em [`src/ui/pages/1_executive.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/pages/1_executive.py).
+    - **Fase B (`M3-S3` White Space + Mineração de Regras Apriori)**: Implementação do motor de **Matriz White Space e Recomendações de Cross-Sell B2B** em [`src/ml/white_space.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ml/white_space.py), parametrização declarativa em [`config/pipeline.yaml`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/config/pipeline.yaml), contrato Pandera `GoldWhiteSpaceSchema` em [`src/etl/contracts.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/etl/contracts.py), orquestração em [`src/etl/gold/marts.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/etl/gold/marts.py), subcomando CLI `uv run kyberna ml white-space` em [`src/cli.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/cli.py) e suíte de testes em [`tests/ml/test_white_space.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/tests/ml/test_white_space.py). (1) Mineração vetorizada em Pandas de regras de associação **Apriori** ($Support \ge 0.03$, $Confidence \ge 0.15$ e $Lift$) sobre cestas transacionais conjuntas de abastecimento; (2) Identificação automática do **SKU Âncora** (produto mais vendido/faturado da categoria recomendada); (3) Lookalike de clientes via `NearestNeighbors` (métrica Cosseno) sobre mix normalizado $L_2$, porte e segmento; (4) Regra de exclusão estrita: nunca recomenda família comprada ativamente pelo lojista (janela de 180 dias e share de receita $\ge 5\%$); (5) Potencial financeiro anualizado em R$ ponderado pelo fator de retenção $(1 - P_{\text{churn}})$ e protegido por trava comercial de conservadorismo ($\le 30\%$ do faturamento anual do cliente); (6) Geração de textos explicativos claros e pitch direto para o RCA levar na visita; (7) Backtest comprovando $hit\_rate@3 \ge 2.0\times$ o baseline de popularidade; (8) Materialização de `gold.mart_white_space` (697 recomendações geradas em menos de 2s) e snapshot Parquet compactado em Zstandard. Suíte completa de testes aprovada com 100% de sucesso.
   - **[2026-11-05] `M3-S2` (`DS-04`) Concluída**: Implementação do motor de **Ciclo Individual de Recompra com Regularização Empírica Bayesiana e Análise Heurística de Risco de Churn** em [`src/ml/churn.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ml/churn.py), configuração declarativa em [`config/pipeline.yaml`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/config/pipeline.yaml), contrato de dados `GoldCustomerRiskSchema` em [`src/etl/contracts.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/etl/contracts.py), orquestração em [`src/etl/gold/marts.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/etl/gold/marts.py), subcomando CLI `uv run kyberna ml churn` em [`src/cli.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/cli.py) e suíte de testes em [`tests/ml/test_churn_heuristic.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/tests/ml/test_churn_heuristic.py). (1) Cálculo do ciclo individual esperado com *shrinkage* bayesiano em direção à mediana do segmento ($w_i = N_i / (N_i + 3)$ com piso mínimo de 7 dias de ciclo e 5 dias de desvio padrão); (2) Apuração da razão de atraso (`delay_ratio = recency_days / expected_cycle_days`) e cálculo da probabilidade de evasão $P(\text{churn}) = \Phi(z) \in [0, 1]$ estritamente monotônica via CDF normal empírica; (3) Classificação nos 4 status prescritivos: *No Ciclo* ($\le 1,1$), *Atenção* ($1,1\text{--}1,5$), *Em Risco Imediato* ($1,5\text{--}2,5$) e *Adormecido / Perdido* ($> 2,5$), com orientações operacionais claras para abordagem comercial; (4) Exposição financeira quantificada em R$ (`annual_revenue_at_risk` e `annual_margin_at_risk`) com 100% de exposição para clientes em risco imediato ou adormecidos e 50% para atenção; (5) Comprovação estrita do DoD com 100% dos 300 clientes classificados e **100% das lojas adormecidas da fixture C1 (43 de 43) identificadas com precisão** como *Adormecido / Perdido* (superando o requisito de $\ge 90\%$); (6) Persistência de `gold.mart_customer_risk` no DuckDB e snapshot Parquet compactado em Zstandard. Suíte de testes aprovada com 100% de sucesso.
+
   - **[2026-11-05] `M3-S1` (`DS-03`) Concluída**: Implementação do motor de **Segmentação RFM baseada em Margem de Contribuição Líquida** em [`src/ml/rfm.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ml/rfm.py), configuração declarativa em [`config/pipeline.yaml`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/config/pipeline.yaml), contrato de dados `GoldRfmSchema` em [`src/etl/contracts.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/etl/contracts.py), orquestração em [`src/etl/gold/marts.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/etl/gold/marts.py), subcomando CLI `uv run kyberna ml rfm` em [`src/cli.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/cli.py) e suíte de testes em [`tests/ml/test_rfm.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/tests/ml/test_rfm.py). (1) Aplicação do princípio *"Margem acima de Volume"*, utilizando a margem de contribuição líquida (R$) para o score monetário ($M$); (2) Cálculo determinístico dos quintis $R, F, M \in [1, 5]$ com desempate por rank `rank(method="first")` e inversão estrita da recência ($R=5$ para o menor `recency_days`); (3) Mapeamento exaustivo e comprovado das 125 células $(R, F, M)$ para os 9 segmentos B2B (*Campeões, Não Pode Perder, Fiéis, Promissores, Novos Clientes, Em Risco, Precisam de Atenção, Hibernando, Perdidos*), com textos descritivos e ações prescritivas de abordagem comercial; (4) Validação estrita do DoD com 100% dos 300 clientes classificados e nenhum segmento superando o teto de 40% (Fiéis: 25,0%, Campeões: 13,3%, Em Risco: 12,0%, Hibernando: 11,3%, Precisam de Atenção: 11,0%, Não Pode Perder: 10,0%, Promissores: 7,0%, Perdidos: 6,7%, Novos Clientes: 3,7%); (5) Persistência de `gold.mart_rfm` no DuckDB e snapshot Parquet compactado em Zstandard. Suíte de 173 testes automatizados aprovada com 100% de sucesso.
 
 - **v0.2.0-dev** *(Concluído 🟢 — Caso Âncora C1 Brinquedos, Waterfall DuckDB SQL, Auditoria Excel e Tela 1)*:

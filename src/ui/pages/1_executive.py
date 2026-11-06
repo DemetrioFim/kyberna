@@ -260,6 +260,93 @@ def _render_drivers_section(dto: ExecutivePageDTO, labels: ScenarioLabels) -> No
             render_margin_drivers_table(dto.top_customer_destroyers_df, is_generator=False)
 
 
+def _render_temporal_context_banner(dto: ExecutivePageDTO) -> None:
+    """Exibe barra informativa com o período de vendas filtrado, comparativo de deltas e data-âncora."""
+    info_icon = info_tooltip_html(
+        "Indica a janela exata de faturamento considerada em todos os cards, gráficos e tabelas, "
+        "além da régua histórica adotada para o cálculo de variações percentuais (Δ).",
+        align="left",
+    )
+    banner_html = (
+        '<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; '
+        "gap: 0.75rem; background: rgba(31, 122, 140, 0.07); border: 1px solid rgba(31, 122, 140, 0.25); "
+        'border-radius: 6px; padding: 0.6rem 1rem; margin: 0.5rem 0 1rem 0; font-size: 0.88rem;">'
+        '<div style="display: flex; align-items: center; gap: 0.5rem;">'
+        "<span>📅 <strong>Período Ativo:</strong> "
+        f'<span style="color: #0d9488; font-weight: 600;">{dto.period_label}</span></span>'
+        f"{info_icon}"
+        "</div>"
+        "<div>"
+        "<span>🔄 <strong>Comparativo (Δ):</strong> "
+        f'<span style="color: #475569;">{dto.comparison_label}</span></span>'
+        "</div>"
+        "<div>"
+        "<span>⚓ <strong>Data-Âncora:</strong> "
+        f'<span style="color: #475569;">{dto.as_of_date_label}</span></span>'
+        "</div>"
+        "</div>"
+    )
+    st.markdown(banner_html, unsafe_allow_html=True)
+
+
+def _render_monthly_sales_table_section(dto: ExecutivePageDTO) -> None:
+    """Renderiza a tabela detalhada de vendas mês a mês para conferência analítica."""
+    if dto.monthly_sales_table_df is None or dto.monthly_sales_table_df.empty:
+        return
+
+    section_header(
+        "Demonstrativo de Vendas Mensal (Mês a Mês)",
+        "Acompanhamento detalhado da evolução do faturamento bruto, receita líquida e margem de contribuição",
+        help_text=(
+            "Detalhamento histórico mês a mês das vendas com volume físico (unidades e caixas), "
+            "faturamento bruto, descontos médios concedidos, receita líquida faturada, "
+            "margem de contribuição (R$ e %) e variação mensal MoM%."
+        ),
+    )
+
+    df_view = dto.monthly_sales_table_df.copy()
+    rename_map = {
+        "month_label": "Mês",
+        "orders_count": "Pedidos",
+        "active_customers": "Clientes Ativos",
+        "total_units": "Unidades",
+        "total_boxes": "Caixas Master",
+        "gross_revenue": "Fat. Bruto (R$)",
+        "mom_gross_pct": "Δ Fat. MoM %",
+        "discount_amount": "Desconto (R$)",
+        "avg_discount_pct": "Desc. Médio %",
+        "net_revenue": "Receita Líq. (R$)",
+        "contribution_margin": "Margem Contr. (R$)",
+        "margin_pct": "Margem %",
+        "mom_margin_pct": "Δ Margem MoM %",
+        "avg_ticket": "Ticket Médio (R$)",
+    }
+    cols_order = [c for c in rename_map if c in df_view.columns]
+    df_display = df_view[cols_order].rename(columns=rename_map)
+
+    st.dataframe(
+        df_display,
+        use_container_width=True,
+        column_config={
+            "Mês": st.column_config.TextColumn("Mês"),
+            "Pedidos": st.column_config.NumberColumn("Pedidos", format="%d"),
+            "Clientes Ativos": st.column_config.NumberColumn("Clientes", format="%d"),
+            "Unidades": st.column_config.NumberColumn("Unidades", format="%d"),
+            "Caixas Master": st.column_config.NumberColumn("Caixas", format="%.1f"),
+            "Fat. Bruto (R$)": st.column_config.NumberColumn("Fat. Bruto", format="R$ %.2f"),
+            "Δ Fat. MoM %": st.column_config.NumberColumn("Δ Fat. MoM", format="%.1f%%"),
+            "Desconto (R$)": st.column_config.NumberColumn("Descontos", format="R$ %.2f"),
+            "Desc. Médio %": st.column_config.NumberColumn("Desc. %", format="%.1f%%"),
+            "Receita Líq. (R$)": st.column_config.NumberColumn("Receita Líq.", format="R$ %.2f"),
+            "Margem Contr. (R$)": st.column_config.NumberColumn("Margem Contr.", format="R$ %.2f"),
+            "Margem %": st.column_config.NumberColumn("Margem %", format="%.1f%%"),
+            "Δ Margem MoM %": st.column_config.NumberColumn("Δ Margem MoM", format="%.1f%%"),
+            "Ticket Médio (R$)": st.column_config.NumberColumn("Ticket Médio", format="R$ %.2f"),
+        },
+        hide_index=True,
+    )
+
+
 def render_page() -> None:
     """Renderiza a página 'Visão Executiva & Margem Real' conectada ao repositório analítico."""
     state = get_app_state()
@@ -278,9 +365,14 @@ def render_page() -> None:
         families=state.families,
         sales_reps=state.sales_reps,
         selected_cell=state.selected_abc_xyz_cell,
+        period_preset=state.period_preset,
+        selected_month=state.selected_month,
     )
 
-    # 1. Manchete Executiva Dinâmica com Ícone Informativo
+    # 1. Banner de Contexto Temporal
+    _render_temporal_context_banner(dto)
+
+    # 2. Manchete Executiva Dinâmica com Ícone Informativo
     headline_info = info_tooltip_html(
         "Síntese executiva automatizada calculada a partir da dispersão de margem "
         "dos clientes e do faturamento total.",
@@ -310,7 +402,11 @@ def render_page() -> None:
     _render_visual_section(dto, theme_mode=state.theme_mode)
     st.markdown("---")
 
-    # 4. Matriz ABC/XYZ em Fragmento Reativo
+    # 4. Demonstrativo de Vendas Mensal
+    _render_monthly_sales_table_section(dto)
+    st.markdown("---")
+
+    # 5. Matriz ABC/XYZ em Fragmento Reativo
     section_header(
         "Matriz 3x3 ABC/XYZ & Gestão Prescritiva de Portfólio",
         "Cruza a contribuição na margem (ABC) com a volatilidade da demanda semanal (XYZ)",

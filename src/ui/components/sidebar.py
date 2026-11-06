@@ -12,14 +12,19 @@ from src.core.types import ScenarioId
 from src.db.repository import DataRepository
 from src.ui.cache import get_cached_repository
 from src.ui.state import (
+    MONTH_LABELS,
+    PERIOD_PRESETS,
     AppState,
     get_app_state,
     on_families_change,
+    on_period_preset_change,
     on_regiao_change,
     on_sales_reps_change,
     on_scenario_change,
+    on_selected_month_change,
     on_theme_toggle,
     on_uf_change,
+    resolve_period_bounds,
 )
 from src.ui.theme import REGIOES_BR, get_ufs_for_regiao
 
@@ -120,7 +125,7 @@ def _render_data_source_badge(repo: DataRepository | None) -> str:
     )
 
 
-def render_sidebar(repo: DataRepository | None = None) -> AppState:
+def render_sidebar(repo: DataRepository | None = None) -> AppState:  # noqa: PLR0915
     """Renderiza a barra lateral unificada da aplicação Kyberna.
 
     Apresenta:
@@ -186,7 +191,42 @@ def render_sidebar(repo: DataRepository | None = None) -> AppState:
 
         st.markdown("---")
 
-        # 4. Cascata Geográfica (Região -> UF)
+        # 4. Filtro de Período de Análise
+        st.markdown("##### 📅 Período de Análise")
+        preset_keys = list(PERIOD_PRESETS.keys())
+        current_preset_idx = (
+            preset_keys.index(state.period_preset) if state.period_preset in preset_keys else 0
+        )
+        st.selectbox(
+            "Janela Temporal",
+            options=preset_keys,
+            format_func=lambda p: PERIOD_PRESETS[p],
+            index=current_preset_idx,
+            key="_period_preset_select",
+            on_change=on_period_preset_change,
+            help="Define o recorte temporal das vendas e o comparativo de período anterior (YoY/PoP/MoM).",
+        )
+
+        if state.period_preset == "custom_month":
+            month_keys = list(MONTH_LABELS.keys())
+            current_month_idx = (
+                month_keys.index(state.selected_month) if state.selected_month in month_keys else 0
+            )
+            st.selectbox(
+                "Mês Específico",
+                options=month_keys,
+                format_func=lambda m: MONTH_LABELS[m],
+                index=current_month_idx,
+                key="_selected_month_select",
+                on_change=on_selected_month_change,
+            )
+
+        bounds = resolve_period_bounds(state.period_preset, state.selected_month)
+        st.caption(f"🗓️ *{bounds.period_label}*")
+
+        st.markdown("---")
+
+        # 5. Cascata Geográfica (Região -> UF)
         if scenario.filters.has_geographic_filter:
             st.markdown("##### 📍 Filtros Geográficos")
 
