@@ -69,20 +69,24 @@ def cached_commercial_dashboard(
     *,
     regiao: str = "Todas",
     uf: str = "Todas",
+    families: tuple[str, ...] = (),
     sales_reps: tuple[str, ...] = (),
     risk_status: str = "Todos",
     rfm_segment: str = "Todos",
+    quadrant: str = "Todos",
     as_of_date_label: str = "31/12/2024",
 ) -> CommercialPageDTO:
-    """Consulta e agrega os dados do Radar Comercial com cache em memória (TTL 5 min)."""
+    """Consulta e agrega os dados do Radar de Justiça Comercial com cache em memória (TTL 5 min)."""
     repo = get_cached_repository()
     return build_commercial_dashboard(
         repo,
         scenario_id,
         regiao=regiao,
         uf=uf,
+        families=families,
         sales_reps=sales_reps,
         risk_status=risk_status,
         rfm_segment=rfm_segment,
+        quadrant=quadrant,
         as_of_date_label=as_of_date_label,
     )

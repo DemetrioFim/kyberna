@@ -496,3 +496,59 @@ div[data-testid="stAlert"] * {
   pointer-events: auto;
   transform: translateY(0);
 }
+
+/* ==============================================================================
+   Padronização de Todos os Ícones de Informação/Tooltip para .kyb-info-icon
+   ============================================================================== */
+
+[data-testid="stTooltipIcon"],
+[data-testid="stTooltipHoverTarget"],
+button[data-testid="stTooltipHoverTarget"],
+.stTooltipIcon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  border-radius: 50% !important;
+  background-color: rgba(31, 122, 140, 0.12) !important;
+  color: var(--kyb-teal) !important;
+  border: 1px solid rgba(31, 122, 140, 0.25) !important;
+  box-sizing: border-box !important;
+  padding: 0 !important;
+  margin: 0 0 0 6px !important;
+  cursor: help !important;
+  transition: all 0.15s ease-in-out !important;
+  vertical-align: middle !important;
+}
+
+[data-testid="stTooltipIcon"]:hover,
+[data-testid="stTooltipHoverTarget"]:hover,
+button[data-testid="stTooltipHoverTarget"]:hover,
+.stTooltipIcon:hover {
+  background-color: var(--kyb-teal) !important;
+  color: var(--kyb-card-bg) !important;
+  border-color: var(--kyb-teal) !important;
+  box-shadow: 0 0 0 2px rgba(31, 122, 140, 0.2) !important;
+}
+
+[data-testid="stTooltipIcon"] svg,
+[data-testid="stTooltipHoverTarget"] svg,
+button[data-testid="stTooltipHoverTarget"] svg,
+.stTooltipIcon svg {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+  width: 11px !important;
+  height: 11px !important;
+}
+
+div[data-baseweb="popover"],
+div[data-testid="stTooltipContent"] {
+  background-color: var(--kyb-card-bg) !important;
+  color: var(--kyb-text) !important;
+  border: 1px solid var(--kyb-border) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2) !important;
+}

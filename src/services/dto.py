@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Literal
 
 import pandas as pd
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.core.types import ScenarioId
 
@@ -33,6 +33,12 @@ class ExecutiveKpisDTO(BaseModel):
     contribution_margin_delta_pct: float | None = None
     margin_pct_delta_pp: float | None = None
     active_customers_delta_pct: float | None = None
+
+    # Termômetro de Metas (Pacing) e Projeção (Virtus - Prudência)
+    revenue_target_brl: float = 0.0
+    revenue_pacing_pct: float = 100.0
+    margin_target_pct: float = 26.0
+    projected_quarter_revenue_brl: float = 0.0
 
 
 class WaterfallStepDTO(BaseModel):
@@ -89,6 +95,12 @@ class ExecutivePageDTO(BaseModel):
     top_destroyers_df: pd.DataFrame
     top_customer_generators_df: pd.DataFrame
     top_customer_destroyers_df: pd.DataFrame
+    top_family_generators_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    top_family_destroyers_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    top_rep_generators_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    top_rep_destroyers_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    anomalies_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    pacing_kpis: dict[str, float] = Field(default_factory=dict)
     prescription_title: str
     prescription_html: str
     prescription_impact_brl: float | None = None
@@ -110,10 +122,15 @@ class CommercialKpisDTO(BaseModel):
     white_space_potential_revenue_brl: float
     white_space_potential_margin_brl: float
     avg_positivation_pct: float
+    attention_customers: int = 0
+    attention_customers_pct: float = 0.0
+    attention_revenue_brl: float = 0.0
+    avg_ltv_brl: float = 0.0
+    vampire_customers_count: int = 0
 
 
 class CommercialPageDTO(BaseModel):
-    """Payload completo e tipado consumido pela Tela 2 (Radar Comercial, RFM & Antecipação de Churn)."""
+    """Payload completo e tipado consumido pela Página 3 (Justiça Comercial, Margem e Carteira)."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -125,6 +142,18 @@ class CommercialPageDTO(BaseModel):
     rfm_summary_df: pd.DataFrame
     white_space_matrix_df: pd.DataFrame
     rep_performance_df: pd.DataFrame
+    cycle_funnel_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    top_white_space_deals_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    champions_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    vampires_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    top_family_generators_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    top_family_destroyers_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    top_product_generators_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    top_product_destroyers_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    top_customer_generators_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    top_customer_destroyers_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    top_rep_generators_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    top_rep_destroyers_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     prescription_title: str
     prescription_html: str
     prescription_impact_brl: float | None = None

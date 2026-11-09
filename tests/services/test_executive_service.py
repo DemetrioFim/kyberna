@@ -200,3 +200,43 @@ def test_executive_dashboard_temporal_presets_and_monthly_table(repo: DuckDBRepo
     # Teste de chamada direta à função de demonstrativo mensal
     table_direct = get_monthly_sales_table(repo, scenario_id="c1_toys")
     assert len(table_direct) == 24
+
+
+def test_prudence_service_innovations(repo: DuckDBRepository) -> None:
+    """Valida inovações da Página 1 - Prudência: 4 dimensões de drivers, anomalias e simulador rápido."""
+    from src.services.executive_service import simulate_quick_what_if
+
+    # 1. Top drivers por Família e RCA
+    gen_f, _dest_f = get_top_margin_drivers(repo, scenario_id="c1_toys", by="family")
+    assert not gen_f.empty
+    assert "SKUs ativos" in gen_f.iloc[0]["secondary_label"]
+
+    gen_r, _dest_r = get_top_margin_drivers(repo, scenario_id="c1_toys", by="sales_rep")
+    assert not gen_r.empty
+    assert "discount_pct" in gen_r.columns
+
+    # 2. Filtro de Família na Matriz ABC/XYZ
+    _matrix_all, _ = get_abc_xyz_overview(repo, scenario_id="c1_toys")
+    matrix_filtered, skus_filtered = get_abc_xyz_overview(
+        repo, scenario_id="c1_toys", families=["Jogos Educativos"]
+    )
+    assert not matrix_filtered.empty
+    assert len(skus_filtered) < 397
+
+    # 3. Anomalias e Pacing no Dashboard
+    dto = build_executive_dashboard(repo, scenario_id="c1_toys")
+    assert not dto.anomalies_df.empty
+    assert set(dto.anomalies_df.columns) == {"severity", "category", "title", "impact_brl", "recommendation"}
+    assert dto.kpis.revenue_target_brl > 0
+    assert dto.kpis.revenue_pacing_pct > 0
+    assert not dto.top_family_generators_df.empty
+    assert not dto.top_rep_generators_df.empty
+
+    # 4. Simulador Rápido What-If
+    res_zero = simulate_quick_what_if(dto.kpis, price_change_pct=0.0, discount_change_pp=0.0)
+    assert res_zero["margin_delta_brl"] == 0.0
+    assert res_zero["simulated_revenue_brl"] == pytest.approx(dto.kpis.gross_revenue, abs=0.01)
+
+    res_disc = simulate_quick_what_if(dto.kpis, discount_change_pp=5.0)
+    assert res_disc["margin_delta_brl"] < 0.0
+    assert res_disc["breakeven_volume_pct"] > 0.0

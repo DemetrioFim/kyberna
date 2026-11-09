@@ -48,7 +48,7 @@ def prescription_box_html(
         impact_formatted = format_brl(impact_brl, compact=True, decimals=1)
         impact_html = (
             f'<div style="margin-top: 0.6rem; font-weight: 600; color: var(--kyb-brass);">'
-            f"🎯 <strong>Impacto Estimado:</strong> Proteção / Ganho de <u>+{impact_formatted}</u> no bolso."
+            f"<strong>Impacto Estimado:</strong> Proteção / Ganho de <u>+{impact_formatted}</u> no bolso."
             f"</div>"
         )
 
@@ -56,13 +56,13 @@ def prescription_box_html(
     if action_hint:
         action_html = (
             f'<div style="margin-top: 0.4rem; font-size: 0.85rem; color: var(--kyb-text-muted);">'
-            f"⚡ <em>{html.escape(action_hint)}</em>"
+            f"<em>{html.escape(action_hint)}</em>"
             f"</div>"
         )
 
     return (
         f'<div class="prescription-box">'
-        f'<div class="prescription-title"><span>💡</span> <span>{html.escape(title)}</span>{info_html}</div>'
+        f'<div class="prescription-title"><span>{html.escape(title)}</span>{info_html}</div>'
         f'<div class="prescription-content">{recommendation_html}{impact_html}{action_html}</div>'
         f"</div>"
     )

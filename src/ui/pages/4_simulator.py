@@ -4,8 +4,8 @@ import streamlit as st
 
 
 def render_page() -> None:
-    """Renderiza a página 'Simulador Prescritivo What-If'."""
-    st.title("⚡ Simulador Prescritivo What-If")
+    """Renderiza a página '2. Fortaleza — Solidez Financeira, Caixa & Resiliência'."""
+    st.title("2. Fortaleza — Solidez Financeira, Caixa & Resiliência")
     st.caption(
         "Simulação dinâmica de preço, desconto comercial e comissão com volume de equilíbrio (breakeven)."
     )
@@ -91,14 +91,14 @@ def render_page() -> None:
     # Bloco Prescritivo do Simulador
     if volume_estimado < breakeven_vol:
         veredito = (
-            f"⚠️ <strong>Atenção:</strong> O desconto de {desc_var:.1f}% exige um aumento de volume "
+            f"<strong>Atenção:</strong> O desconto de {desc_var:.1f}% exige um aumento de volume "
             f"de <strong>+{breakeven_vol:.1f}%</strong> para empatar o lucro, mas a demanda prevista "
             f"entregará apenas <strong>{volume_estimado:+.1f}%</strong>. "
             f"Recomendação: Reduzir desconto para no máximo 3%."
         )
     else:
         veredito = (
-            f"✅ <strong>Oportunidade:</strong> O volume estimado de "
+            f"<strong>Oportunidade:</strong> O volume estimado de "
             f"<strong>{volume_estimado:+.1f}%</strong> supera o breakeven de "
             f"<strong>+{breakeven_vol:.1f}%</strong>, gerando ganho de margem líquida."
         )
@@ -106,7 +106,7 @@ def render_page() -> None:
     st.markdown(
         f"""
         <div class="prescription-box">
-            <div class="prescription-title">⚡ Veredito Automático do Simulador</div>
+            <div class="prescription-title">Veredito Automático do Simulador</div>
             <div class="prescription-content">{veredito}</div>
         </div>
         """,

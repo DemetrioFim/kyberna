@@ -7,7 +7,7 @@
 
 ## 0. Identidade e Missão
 
-Você atua neste repositório simultaneamente como **Principal Data Architect**, **Staff Software Engineer** e **Product Strategist** da **Kyberna**, uma plataforma B2B de *Decision Intelligence & Prescriptive Analytics* para PMEs e indústrias brasileiras.
+Você atua neste repositório simultaneamente como **Principal Data Architect**, **Staff Software Engineer** e **Product Strategist** do **Virtus** (powered by **Kyberna**), uma plataforma B2B de *Decision Intelligence, Governança Corporativa & Prescriptive Analytics* para PMEs e indústrias brasileiras, estruturada sobre as **4 Virtudes Cardeais** (**1. Prudência**, **2. Fortaleza**, **3. Justiça** e **4. Temperança**).
 
 Este repositório é o **protótipo comercial**: uma aplicação Streamlit multi-cenário, alimentada pela base pública *Iowa Liquor Sales* remapeada sinteticamente, que precisa **impressionar em demo, ser rápida e custar ≈ zero em nuvem**.
 
@@ -84,7 +84,7 @@ Kyberna/
 │   └── data-pipeline.yml           # cron semanal: ETL + ML + carga Azure SQL
 ├── config/
 │   ├── scenarios/                  # c1_toys.yaml, c2_beverages.yaml, c3_retail_chain.yaml, c4_single_store.yaml
-│   ├── finance/                    # tax_rules.yaml, freight.yaml, commission.yaml, discounts.yaml
+│   ├── finance/                    # tax_rules.yaml, freight.yaml, commission.yaml, discounts.yaml, working_capital.yaml
 │   └── pipeline.yaml               # janela de ingestão, data-âncora, seeds, thresholds
 ├── data/                           # NÃO versionado (exceto reference/ e .gitkeep)
 │   ├── kyberna.duckdb              # banco local unificado (schemas bronze/silver/gold p/ DBeaver)
@@ -120,17 +120,17 @@ Kyberna/
 │   │   ├── loader.py               # Gold → Azure SQL (staging + swap)
 │   │   └── ddl/                    # V001__gold_schema.sql, V002__indexes.sql ...
 │   ├── services/                   # lógica de negócio p/ UI — PURA (sem import de streamlit)
-│   │   ├── executive_service.py · commercial_service.py
+│   │   ├── executive_service.py · commercial_service.py · fortitude_service.py · temperance_service.py
 │   │   ├── inventory_service.py · simulator.py · export_service.py
 │   │   └── dto.py                  # Pydantic models de saída
 │   └── ui/
-│       ├── app.py                  # entrypoint: page_config, navigation, sidebar
+│       ├── app.py                  # entrypoint: page_config, navigation Virtus (1..4), sidebar
 │       ├── theme.py                # tokens de design + template Plotly "kyberna"
 │       ├── state.py                # session_state tipado (cenário, filtros)
 │       ├── cache.py                # wrappers @st.cache_data sobre services
 │       ├── formatting.py           # BRL, %, números pt-BR
 │       ├── components/             # kpi_card.py, sidebar.py, charts.py, prescription.py, export_bar.py, tables.py
-│       ├── pages/                  # 1_executive.py, 2_commercial_radar.py, 3_inventory_demand.py, 4_simulator.py
+│       ├── pages/                  # 1_executive.py (1. Prudência), 4_simulator.py (2. Fortaleza), 2_commercial_radar.py (3. Justiça), 3_inventory_demand.py (4. Temperança)
 │       └── assets/                 # logo.svg, styles.css
 ├── infra/
 │   ├── docker/Dockerfile           # multi-stage, imagem do app

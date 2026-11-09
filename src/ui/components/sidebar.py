@@ -101,7 +101,7 @@ def _render_data_source_badge(repo: DataRepository | None) -> str:
             '<div style="text-align: center; margin-top: 1rem;">'
             '<span class="badge badge-positive" '
             'title="Conexão direta com Azure SQL Database (Serverless Gen5)">'
-            "🟢 Fonte: Azure SQL"
+            "Fonte: Azure SQL"
             "</span>"
             "</div>"
         )
@@ -111,7 +111,7 @@ def _render_data_source_badge(repo: DataRepository | None) -> str:
         return (
             '<div style="text-align: center; margin-top: 1rem;">'
             f'<span class="badge badge-warning" title="{escaped_reason}">'
-            "🟡 Fonte: Snapshot Local (Fallback)"
+            "Fonte: Snapshot Local (Fallback)"
             "</span>"
             "</div>"
         )
@@ -119,7 +119,7 @@ def _render_data_source_badge(repo: DataRepository | None) -> str:
     return (
         '<div style="text-align: center; margin-top: 1rem;">'
         '<span class="badge badge-source" title="Operação local sobre snapshot DuckDB e Parquet">'
-        "⚡ Fonte: Snapshot Local (DuckDB)"
+        "Fonte: Snapshot Local (DuckDB)"
         "</span>"
         "</div>"
     )
@@ -130,7 +130,7 @@ def render_sidebar(repo: DataRepository | None = None) -> AppState:  # noqa: PLR
 
     Apresenta:
         1. Branding e logo adaptável ao tema ativo.
-        2. Toggle switch para alternância Light Mode ☀️ / Dark Mode 🌙.
+        2. Toggle switch para alternância Light Mode / Dark Mode.
         3. Seletor de Cenário com vocabulário de negócio e perfil executivo.
         4. Filtros em cascata adaptativos (Região -> UF, Famílias de Produtos e Representantes).
         5. Badge de status e resiliência da fonte de dados (Azure SQL vs. Fallback DuckDB).
@@ -158,13 +158,13 @@ def render_sidebar(repo: DataRepository | None = None) -> AppState:  # noqa: PLR
         if logo_path.exists():
             st.image(str(logo_path), width=260)
         else:
-            st.markdown("### 🧭 **KYBERNA**")
+            st.markdown("### **KYBERNA**")
 
         st.markdown("---")
 
         # 2. Alternador de Tema (Toggle Switch)
         st.toggle(
-            "Modo Escuro 🌙",
+            "Modo Escuro",
             value=(state.theme_mode == "dark"),
             key="_theme_toggle",
             on_change=on_theme_toggle,
@@ -187,12 +187,12 @@ def render_sidebar(repo: DataRepository | None = None) -> AppState:  # noqa: PLR
             on_change=on_scenario_change,
             help="Altera o vocabulário, lógica de margem e matrizes analíticas da demonstração.",
         )
-        st.caption(f"🏢 *{scenario.company_profile}*")
+        st.caption(f"*{scenario.company_profile}*")
 
         st.markdown("---")
 
         # 4. Filtro de Período de Análise
-        st.markdown("##### 📅 Período de Análise")
+        st.markdown("##### Período de Análise")
         preset_keys = list(PERIOD_PRESETS.keys())
         current_preset_idx = (
             preset_keys.index(state.period_preset) if state.period_preset in preset_keys else 0
@@ -222,13 +222,13 @@ def render_sidebar(repo: DataRepository | None = None) -> AppState:  # noqa: PLR
             )
 
         bounds = resolve_period_bounds(state.period_preset, state.selected_month)
-        st.caption(f"🗓️ *{bounds.period_label}*")
+        st.caption(f"*{bounds.period_label}*")
 
         st.markdown("---")
 
         # 5. Cascata Geográfica (Região -> UF)
         if scenario.filters.has_geographic_filter:
-            st.markdown("##### 📍 Filtros Geográficos")
+            st.markdown("##### Filtros Geográficos")
 
             regioes = ["Todas", *REGIOES_BR]
             current_regiao_index = regioes.index(state.regiao) if state.regiao in regioes else 0
@@ -253,7 +253,7 @@ def render_sidebar(repo: DataRepository | None = None) -> AppState:  # noqa: PLR
         # 5. Filtro de Famílias / Categorias de Produto
         if scenario.filters.has_family_filter:
             st.markdown("---")
-            st.markdown(f"##### 📦 {scenario.labels.product_family}")
+            st.markdown(f"##### {scenario.labels.product_family}")
             available_families = _get_available_families(repo, state.scenario_id)
             default_families = [f for f in state.families if f in available_families]
             st.multiselect(
@@ -268,7 +268,7 @@ def render_sidebar(repo: DataRepository | None = None) -> AppState:  # noqa: PLR
         # 6. Filtro de Responsável Comercial (RCA / Vendedor / Gerente)
         if scenario.filters.has_rep_filter and scenario.capabilities.rep_efficiency:
             st.markdown("---")
-            st.markdown(f"##### 👤 {scenario.labels.sales_rep}")
+            st.markdown(f"##### {scenario.labels.sales_rep}")
             available_reps = _get_available_sales_reps(repo, state.scenario_id)
             default_reps = [r for r in state.sales_reps if r in available_reps]
             st.multiselect(

@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 
 # ==============================================================================
-# Tokens de Cores Kyberna (Light Mode ☀️ & Dark Mode 🌙 — §5.6 do GEMINI.md)
+# Tokens de Cores Kyberna (Light Mode & Dark Mode — §5.6 do GEMINI.md)
 # ==============================================================================
 
 KYBERNA_LIGHT_TOKENS: Final[dict[str, str]] = {

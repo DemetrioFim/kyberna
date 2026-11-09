@@ -1,16 +1,16 @@
-# KYBERNA — Visão do Produto
+# VIRTUS (by Kyberna) — Visão do Produto
 
-> **Kyberna** (do grego *κυβερνάω — kybernáō*: governar, conduzir o leme).
-> A mesma raiz de *cibernética* e de *governança*. Não mostramos o mar: **dizemos para onde virar o leme.**
+> **Virtus** (do latim *virtus*: excelência moral, força executiva e caráter; estruturado sobre as **4 Virtudes Cardeais** da filosofia clássica — **Prudência, Fortaleza, Justiça e Temperança**) · Motor de engenharia: **Kyberna** (do grego *κυβερνάω — kybernáō*: governar, conduzir o leme).
+> Não separamos a empresa em silos engessados ("Comercial" vs. "Financeiro"): **avaliamos e governamos o comportamento integral do negócio.**
 
-**Documento:** Visão Estratégica do Protótipo Comercial · **Versão:** 1.1 · **Status:** Fonte de verdade de produto e regras de negócio
+**Documento:** Visão Estratégica do Protótipo Comercial · **Versão:** 2.0 (Edição Virtus) · **Status:** Fonte de verdade de produto e regras de negócio
 **Público:** fundadores, time técnico, agentes de IA da IDE (Antigravity), parceiros comerciais.
 
 ---
 
 ## 1. Em uma frase
 
-A Kyberna é uma plataforma de **Decision Intelligence & Prescriptive Analytics** que entrega a PMEs e indústrias B2B (faturamento entre **R$ 200 mil e R$ 5 milhões/mês**) **respostas acionáveis** sobre onde está o dinheiro travado, quais clientes estão prestes a sumir, o que vender a quem e qual preço ou prazo praticar sem destruir a margem líquida e o caixa.
+O **Virtus** (powered by *Kyberna*) é uma plataforma B2B de **Decision Intelligence, Governança Corporativa & Prescriptive Analytics** que entrega a PMEs e indústrias brasileiras (faturamento entre **R$ 200 mil e R$ 5 milhões/mês**) **respostas acionáveis** estruturadas nas **4 Virtudes Cardeais da Gestão**: **1. Prudência** (previsibilidade, metas e simulação de direção), **2. Fortaleza** (solidez de caixa, ciclo financeiro e blindagem contra riscos), **3. Justiça** (equilíbrio de margem, carteira RFM/Churn e mérito da força de vendas) e **4. Temperança** (controle de excessos, sangria de descontos e capital imobilizado em estoque).
 
 ---
 
@@ -63,16 +63,16 @@ Sem uma base comum, o Comercial concede desconto e estica prazo de boleto (60/90
 
 ---
 
-## 4. Personas e Jobs-to-be-Done
+## 4. O Framework de Governança **Virtus** e Personas
 
-| Persona | Job-to-be-done | Tela principal |
-|---|---|---|
-| **Dono / CEO** | "Quero saber em 30 segundos se o mês está saudável em lucro líquido e caixa, não só em faturamento." | Visão Executiva & Margem Real |
-| **Diretor Comercial** | "Quero saber quem minha equipe deve abordar hoje, qual linha oferecer para cada CNPJ e qual RCA precisa de correção de rota." | Radar Comercial |
-| **Gerente Financeiro / Controller** | "Quero auditar a erosão da margem (descontos, impostos, frete, prazo) por produto/RCA e destravar o capital parado no estoque." | Visão Executiva + Estoque |
-| **Gerente de Compras / PCP** | "Quero saber o que vai entrar em ruptura antes do pico sazonal e o que devo parar de produzir/comprar imediatamente." | Inteligência de Estoque & Demanda |
-| **Gerente de Pricing / Comercial** | "Quero simular se um desconto de campanha se paga no volume ou se um reajuste de tabela aumenta o lucro líquido." | Simulador What-If |
-| **Representante Comercial (RCA)** | "Quero receber na segunda-feira de manhã minha lista mastigada de clientes para ligar no WhatsApp com o argumento de venda pronto." | Exportação de Listas de Ação |
+Em vez de separar os painéis da forma tradicional e engessada ("Comercial", "Financeiro", "Operações"), o **Virtus** estrutura o produto pelas **4 Virtudes Cardeais** da filosofia clássica. Isso muda a pergunta do gestor: ele deixa de olhar apenas números isolados e passa a avaliar o **comportamento do negócio**:
+
+| Página (Virtude Cardeal) | Conceito Filosófico | Tradução Executiva (BI / DaaS) | Foco Principal / Personas |
+|---|---|---|---|
+| **1. Prudência** (*Prudentia*) | Sabedoria prática para discernir o futuro e agir certo (*auriga virtutum*) | **Direção, Previsibilidade, Pacing de Metas e Cenários (What-If)** | **Diretor / CEO** (*"Para onde estamos indo e o que decidir hoje antes que o mês acabe?"*) |
+| **2. Fortaleza** (*Fortitudo*) | Firmeza e resiliência diante das adversidades e choques | **Solidez de Caixa, Break-Even, Ciclo Financeiro (NCG) e Concentração** | **Diretor e Gerente Financeiro** (*"Quão blindada está a empresa contra imprevistos de mercado?"*) |
+| **3. Justiça** (*Iustitia*) | Dar a cada parte o que lhe é devido, com equilíbrio (*suum cuique tribuere*) | **Rentabilidade Comercial (Campeões vs. Vampiros), Mérito de RCAs e Carteira RFM/White Space** | **Diretor Comercial, Diretor Geral e RCAs** (*"A troca de valor entre empresa, clientes e vendedores está justa e saudável?"*) |
+| **4. Temperança** (*Temperantia*) | Moderação, domínio próprio e aversão ao excesso impulsivo | **Eficiência, Auditoria de Erosão Comercial (Waterfall), Descontos Fora do Teto e Capital Travado (>120d)** | **Gerente Financeiro, Comercial e PCP** (*"Onde estamos perdendo dinheiro por desconto excessivo, estoque parado ou vazamento financeiro?"*) |
 
 ---
 
@@ -199,59 +199,71 @@ Para garantir consistência matemática absoluta entre os 4 pilares de cada marc
 - `Variacao Volume Estimada (delta_q_estimado) = elasticidade_categoria * delta_p` (onde `elasticidade_categoria < 0`)
 - **Veredito Automático do Simulador:** Se `delta_q_estimado > delta_q_breakeven`, a ação **Gera Lucro Incremental**; caso contrário, exibe alerta vermelho de **Destruição de Margem**.
 
+### 6.5 Solidez de Caixa, Ciclo Financeiro e Vazamentos (`config/finance/working_capital.yaml`)
+Para sustentar os indicadores de **2. Fortaleza** e **4. Temperança** de forma 100% determinística e auditável no DuckDB:
+- **Ponto de Equilíbrio Operacional (Break-Even Mensal):**
+  - `Receita Break-Even (R$) = Custo_Fixo_Mensal / (Margem_Contribuicao_Pct / 100)`
+  - `Dia do Break-Even no Mes = ceil(30 * (Receita_Break_Even / Receita_Bruta_Mensal))`
+  - `Folego de Caixa (Runway em Meses) = Reserva_Caixa_Operacional / Custo_Fixo_Mensal`
+- **Ciclo Operacional, Ciclo Financeiro (Caixa) e Necessidade de Capital de Giro (NCG):**
+  - `PME (Prazo Medio de Estocagem, dias)` = Cobertura média ponderada do estoque ativo (`coverage_days`).
+  - `PMR (Prazo Medio de Recebimento, dias)` = Média ponderada dos prazos concedidos por porte de cliente / RCA (ex.: P=28d, M=42d, G=60d; penalidade +18d para RCAs em `high_discount_reps`).
+  - `PMP (Prazo Medio de Pagamento a Fornecedores, dias)` = Parâmetro do cenário (ex.: 35 dias na Indústria C1).
+  - `Ciclo Financeiro de Caixa (dias) = PME + PMR - PMP`
+  - `NCG (Necessidade de Capital de Giro em R$) = ((CMV_Diario + Despesas_Variaveis_Diarias) * max(Ciclo_Financeiro_Dias, 0))`
+- **Auditoria de Excesso de Desconto e Vazamento Financeiro de Prazo (Temperança):**
+  - `Desconto Excedente Fora da Politica (R$) = sum(max(0, taxa_desconto_praticada - teto_desconto_porte) * Receita_Bruta_Pedido)`
+  - `Custo Financeiro do Prazo Excedente (R$) = Receita_Liquida * ((max(0, PMR_pedido - prazo_padrao_30d) / 30) * taxa_custo_capital_mensal)`
+
 ---
 
-## 7. Caso Âncora — Indústria de Brinquedos: A Ponte Comercial + Financeiro
+## 7. Caso Âncora — Indústria de Brinquedos: O "Efeito Virtus" (Fluxo de Diagnóstico em 15 Minutos)
 
 > **NOTA DE CONFIDENCIALIDADE:** O perfil de referência é o de uma indústria nacional consolidada de brinquedos (como a **Nig Brinquedos**). **Nenhum dado confidencial da empresa é utilizado no protótipo.** O nome corporativo exibido na tela é configurável via variável de ambiente/parâmetro para apresentações personalizadas.
 
-### 7.1 O roteiro de reunião de 15 minutos
-Na sala estão o **Diretor Comercial** e o **Gerente Financeiro** (que já conhece a competência técnica da Kyberna na área financeira). A demonstração conecta os dois mundos minuto a minuto:
+### 7.1 A Narrativa de Vendas DaaS ("O Efeito Virtus")
+Para vender a plataforma como assinatura recorrente para donos de PMEs e indústrias, o diferencial decisivo é mostrar que as **4 páginas conversam em um fluxo único de diagnóstico executivo**:
 
-| Minuto | Tela | O que o Diretor Comercial enxerga | O que o Gerente Financeiro enxerga |
-|---|---|---|---|
-| **0–3** | **1. Visão Executiva** | Faturamento bruto subiu 12% no semestre. | A Margem de Contribuição Líquida **caiu 3,1 p.p.** O gráfico Waterfall revela o motivo: descontos fora da política, frete CIF em pedidos pequenos e prazos de 90 dias. |
-| **3–8** | **2. Radar Comercial** | **214 lojistas (CNPJs) em risco imediato** fora do seu ciclo normal de compra (= R$ 1,1 mi/ano na mesa) + **Matriz White Space** apontando 600 papelarias que compram *Quebra-Cabeças*, mas R$ 0 de *Jogos Educativos*. | **Quadrante de RCAs:** dois representantes líderes em volume estão no fundo do ranking de margem líquida (vendem apenas dando desconto máximo e prazo longo). |
-| **8–11** | **3. Estoque & Demanda** | Alerta de ruptura em 18 SKUs campeões de *Primeira Infância* antes do pico de Sell-in do Dia das Crianças/Natal. | **R$ 640 mil de caixa travado** em SKUs da curva C com mais de 140 dias de cobertura parada no galpão. |
-| **11–15** | **4. Simulador What-If** | "Quero fazer uma campanha com 7% de desconto na *Linha Escolar* para bater a meta do mês..." | "...O simulador mostra que 7% de desconto exige **+28% de volume** só para empatar o lucro em R$, mas a elasticidade da linha entrega apenas +11%. Em compensação, reajustar +4% em *Brinquedos de Madeira* gera **+R$ 38 mil/mês de lucro líquido limpo**." |
+1. **O Diretor abre a 1. PRUDÊNCIA (0–4 min)** e vê no Termômetro de Metas e na Projeção de Fechamento que, embora o faturamento bruto tenha subido +12%, a projeção de margem líquida do trimestre caiu -3,1 p.p. No **Simulador What-If**, ele testa na hora: *"E se fizermos a campanha de 7% de desconto na Linha Escolar?"* — o simulador alerta que seria preciso vender **+28% em volume** só para empatar o lucro, mas a elasticidade entrega apenas +11%.
+2. **Ele avança para a 2. FORTALEZA (4–7 min)** junto ao Gerente Financeiro e percebe que o fôlego de caixa está pressionado: o **Dia do Break-Even** atrasou do dia 16 para o dia 21 do mês porque o **Ciclo Financeiro ($\text{PME} + \text{PMR} - \text{PMP}$)** subiu para 68 dias, exigindo mais **Capital de Giro (NCG)**, além de notar alta concentração de receita nos Top 10 clientes e exposição no Aging da carteira.
+3. **Na 3. JUSTIÇA (7–11 min)**, o Diretor Comercial identifica a assimetria da carteira: a **Matriz Campeões vs. Vampiros** mostra lojistas de grande porte que compram alto volume mas deixam margem líquida mínima; o **Quadrante de RCAs** revela 2 representantes líderes de venda bruta no quadrante *"Volume sem margem"*, enquanto há **214 lojistas em risco no Ciclo de Recompra** e **R$ 890 mil de oportunidade limpa na Matriz White Space** (com argumento pronto para disparo no WhatsApp).
+4. **Na 4. TEMPERANÇA (11–15 min)**, o Financeiro e o Comercial descobrem e estancam a causa raiz: o **Waterfall da Erosão Comercial** e a **Auditoria de Política** provam que a equipe comercial queimou **R$ 340 mil em descontos acima do teto permitido** e esticou prazos de boleto para 75 dias, enquanto **R$ 640 mil de capital ficaram imobilizados no estoque (> 120 dias)** em SKUs da curva C e 18 SKUs da curva A entraram em alerta de ruptura antes do pico de Sell-in.
 
 **O Fechamento da Reunião:**
-*"Vocês não precisam abrir mais um painel todo dia. Toda segunda-feira, às 07h30, a Kyberna envia no WhatsApp de cada representante os 10 lojistas que passaram do ciclo de compra nesta semana e qual linha oferecer para cada um — já filtrados pela margem que o Financeiro aprovou."*
+*"Vocês não precisam abrir quatro planilhas desconexas. Toda segunda-feira às 07h30, o Virtus envia no WhatsApp da diretoria os alertas de Prudência e para cada representante a lista justa de lojistas que entraram na janela de compra — já blindada pela margem e pela temperança que o Financeiro aprovou."*
 
 ---
 
-## 8. As 4 Telas de Alta Conversão (Especificação Funcional)
+## 8. As 4 Páginas do Sistema **Virtus** (Especificação Funcional)
 
-### Tela 1 — Visão Executiva & Margem Real
-**Pergunta respondida:** *"Estamos ganhando dinheiro de verdade — ou apenas trocando figurinha?"*
-- **Manchete Executiva Dinâmica** no topo resumindo a variação de receita vs. margem em linguagem natural.
-- **KPI Cards Comparativos:** Faturamento Bruto · Receita Líquida · **Margem de Contribuição Líquida (R$ e %)** · Ticket Médio por Pedido · Clientes Ativos (com delta vs. período anterior).
-- **Gráfico Waterfall da Margem Real:** Decomposição visual completa do Faturamento Bruto até a Margem Líquida no bolso.
-- **Evolução Temporal Dupla:** Faturamento Bruto vs. Margem Líquida % (evidenciando o "efeito boca de jacaré" quando a venda sobe e a margem cai).
-- **Matriz ABC/XYZ (3x3 Interativa):** Cruzamento de relevância financeira (ABC) com previsibilidade de demanda (XYZ), entregando a política recomendada por célula (*AX = Ruptura Zero; CZ = Descontinuar/Queimar*).
-- **Tabelas de Ação:** Top 10 SKUs/Clientes destruidores de margem vs. Top 10 geradores de lucro líquido.
+### Página 1 — 🦉 PRUDÊNCIA (*Visão Executiva, Previsibilidade e Direção*)
+**Premissa:** *"Para onde estamos indo e o que precisamos decidir hoje antes que o mês acabe?"* (Foco: Diretor / CEO)
+- **Manchete Executiva de Prudência** resumindo o ritmo de receita vs. margem líquida e os alertas de direção do período.
+- **Termômetro de Metas (Pacing Mensal e do Período):** KPI Cards comparando Faturamento Bruto, Receita Líquida, Margem de Contribuição (R$ e %) e Geração Operacional contra a meta esperada para o período.
+- **Projeção de Fechamento (Tendência Dupla + Forecast 30/60/90 dias):** Evolução histórica de Faturamento Bruto vs. Margem Líquida % (evidenciando o "efeito boca de jacaré") combinada com a projeção estatística (`StatsForecast`) dos próximos 30/60/90 dias.
+- **Simulador Executivo de Cenários (What-If de 3 Alavancas):** Controles deslizantes rápidos (Variação de Preço/Desconto %, Ajuste de Comissão/Custos % e Sensibilidade de Volume/Elasticidade) exibindo instantaneamente o impacto no Lucro Operacional, o **Volume de Equilíbrio (Breakeven)** e a curva de otimização.
+- **Radar de Anomalias (Alertas de Prudência):** Lista automática de desvios críticos detectados na janela (quedas abruptas de margem por família, explosão de descontos fora da média móvel e clientes Classe A que romperam o ciclo).
 
-### Tela 2 — Radar Comercial, RFM & Antecipação de Churn
-**Pergunta respondida:** *"Para quem ligamos hoje, o que oferecemos e qual representante precisa de gestão?"*
-- **Radar de Churn por Ciclo Individual:** Lista priorizada de clientes com `delay_ratio > 1.5`, exibindo Ciclo Histórico (dias), Dias sem Comprar, R$ Anual em Risco, RCA responsável e motivo principal.
-- **Mapa de Segmentação RFM:** Visão executiva dos grupos (*Campeões, Fiéis, Promissores, Em Risco, Adormecidos*) com faturamento e margem por grupo.
-- **Matriz White Space (Oportunidade de Mix / Cross-Sell):** Identificação automática de clientes que compram a Família A, têm perfil idêntico a compradores da Família B, mas compram R$ 0 da Família B — ordenados por **Potencial do Pedido em R$**.
-- **Quadrante de Eficiência de Representantes (RCAs):** Eixo X = Volume Faturado (R$), Eixo Y = Margem Líquida (%), Tamanho da Bolha = R$ da carteira em risco de churn.
-- **Motor de Ação em 1 Clique:** Botão para baixar a planilha de ataque filtrada por RCA e gerador de link direto para WhatsApp (`wa.me`) com o resumo mastigado para o vendedor.
+### Página 2 — 🛡️ FORTALEZA (*Solidez Financeira, Caixa e Resiliência*)
+**Premissa:** *"Quão blindada está a empresa contra imprevistos de mercado?"* (Foco: Diretor e Financeiro)
+- **Fôlego de Caixa (Runway e Liquidez) & Ponto de Equilíbrio (Break-Even Point):** Indicadores mostrando quantos meses de operação a reserva cobre e em qual **dia do mês** (ou volume de receita) a empresa paga 100% dos seus custos fixos estruturais e passa a gerar caixa livre.
+- **Ciclo Financeiro ($\text{PME} + \text{PMR} - \text{PMP}$) e Necessidade de Capital de Giro (NCG):** Comparativo visual entre Prazo Médio de Estocagem (PME), Prazo Médio de Recebimento (PMR) e Prazo Médio de Pagamento (PMP), revelando em dias e em R$ se o crescimento das vendas está gerando ou consumindo caixa.
+- **Risco de Concentração (Dependência Comercial e de Portfólio):** Curva de concentração (Top 5 / Top 10 Clientes, RCAs e Famílias/Fornecedores) com semáforo de vulnerabilidade caso os maiores clientes concentrem fatia excessiva da margem.
+- **Saúde da Carteira e Exposição por Faixa de Atraso (Aging List):** Distribuição da receita e dos clientes por faixas de atraso em relação ao ciclo esperado (*No Ciclo*, *15–30d / Atenção*, *30–60d / Em Risco*, *>60d / Adormecido*), quantificando o capital exposto.
 
-### Tela 3 — Inteligência de Estoque & Demanda
-**Pergunta respondida:** *"O que vai faltar no pico de vendas, o que está encalhado e quanto dinheiro podemos liberar?"*
-- **Curva de Demanda + Forecast 30 dias (`StatsForecast`):** Histórico de vendas + projeção com intervalo de confiança por família/SKU.
-- **Semáforo de Ruptura:** SKUs cuja cobertura em dias é menor que o lead time de produção/reposição, calculando a **Quantidade Sugerida de Ordem de Produção/Compra** e a **Receita Protegida (R$)**.
-- **Radar de Capital Travado (acima de 120 dias):** SKUs superestocados valorizados a custo (R$), com prescrição automática (*Kit Promocional / Bonificação Comercial / Liquidação*).
-- **Modo Exclusivo Cenário 3 (Rede de Lojas):** Tabela prescritiva de **Transferência entre Filiais** (origem com excesso -> destino em ruptura iminente).
+### Página 3 — ⚖️ JUSTIÇA (*Equilíbrio Comercial, Margem e Valor*)
+**Premissa:** *"A troca de valor entre a empresa, seus clientes e sua força de vendas está justa e saudável?"* (Foco: Comercial e Diretor)
+- **Matriz de Rentabilidade (Campeões vs. "Clientes/Produtos Vampiros"):** Visão multi-dimensional (`Por Família`, `Por Produto`, `Por Lojista`, `Por Representante`) cruzando Faturamento Bruto e Margem de Contribuição Líquida — separando os geradores reais de lucro dos "vampiros" (alto volume de trabalho, baixíssima margem).
+- **Justiça da Força de Vendas (Quadrante de Eficiência de RCAs):** Dispersão em 4 quadrantes (*Estrela*, *Volume sem margem*, *Margem sem volume*, *Atenção*) avaliando representantes pela margem preservada, positivação de carteira e penetração de mix (com tamanho da bolha = R$ em risco).
+- **Saúde da Base de Clientes (Treemap RFM por Margem + Funil do Ciclo de Recompra):** Segmentação automática dos 9 grupos RFM ponderada por margem líquida + régua dos 4 estágios do ciclo individual de compra e tabela priorizada caixa-branca.
+- **Explorador Acionável White Space (Cross-Sell B2B) & Retenção/LTV:** Recomendações CNPJ a CNPJ com **SKU Âncora**, família recomendada, potencial em R$, estimativa de LTV por segmento e **Motor de Ação em 1 Clique** (planilha Excel por RCA + link direto `wa.me` para WhatsApp com pitch pronto).
 
-### Tela 4 — Simulador Prescritivo What-If (Elasticidade & Preço)
-**Pergunta respondida:** *"Se eu mexer no preço, no desconto ou na comissão, o que acontece com o lucro líquido no fim do mês?"*
-- **Controles Deslizantes (Sliders):** Variação de Preço de Tabela (%), Desconto Comercial da Campanha (%), Ajuste de Comissão RCA (%) e Custo de Insumo/CMV (%).
-- **Cards de Impacto Instantâneo (Antes x Depois):** Volume Estimado, Faturamento, Margem Líquida (%) e **Lucro Líquido Incremental em R$**.
-- **Indicador de Breakeven (Volume de Equilíbrio):** Mostra lado a lado *"Volume necessário para empatar (+X%)"* vs. *"Volume estimado pela elasticidade (+Y%)"*.
-- **Curva de Otimização de Lucro:** Gráfico destacando o ponto ótimo de preço que maximiza a massa de margem de contribuição em R$.
+### Página 4 — 🏺 TEMPERANÇA (*Eficiência, Controle de Excessos e Desperdícios*)
+**Premissa:** *"Onde estamos perdendo dinheiro por falta de controle, desconto excessivo ou ineficiência?"* (Foco: Financeiro, Comercial e Operações)
+- **Erosão Comercial (Waterfall Completo da Sangria de Margem):** Decomposição em cascata do Faturamento Bruto Tabelado até a Margem de Contribuição Líquida (`R$` e `% sobre o Bruto`), expondo visualmente o peso de Descontos, Impostos, CMV, Comissões e Frete.
+- **Disciplina de Política Comercial (Orçado/Teto vs. Realizado):** Auditoria de descontos concedidos acima do teto da política comercial por porte/família (`excess_discount_brl`) e desvios de frete/comissão por RCA e região.
+- **Temperança de Estoque e Operação (Matriz ABC/XYZ + Capital Imobilizado > 120d vs. Ruptura Curva A):** Cruzamento interativo da Matriz ABC/XYZ (3x3) com o valor financeiro parado em estoque sem giro (`> 120 dias`, com prescrição de *Kit Promocional / Bonificação / Liquidação*) versus alertas de **Ruptura Iminente** nos itens de alta demanda (Curva A, com sugestão de ordem em caixas master) e **Transferência entre Filiais** (Cenário 3).
+- **Vazamentos Financeiros Invisíveis:** Quantificação em R$ do **Custo Financeiro do Prazo** (erosão causada por prazos de boleto esticados para 60/90 dias) e comissões pagas sobre pedidos com desconto fora da política.
 
 ---
 

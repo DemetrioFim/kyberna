@@ -9,6 +9,21 @@ import pandas as pd
 from src.core.logging import get_logger
 from src.core.types import ScenarioId
 from src.db.repository import DataRepository
+from src.services.white_space_queries import (
+    query_top_white_space_deals,
+    query_white_space_matrix_data,
+)
+
+__all__ = [
+    "build_commercial_filter_clauses",
+    "query_commercial_kpis_data",
+    "query_cycle_health_funnel",
+    "query_priority_risk_customers",
+    "query_rep_performance_data",
+    "query_rfm_summary_data",
+    "query_top_white_space_deals",
+    "query_white_space_matrix_data",
+]
 
 logger = get_logger(__name__)
 
@@ -22,6 +37,7 @@ def build_commercial_filter_clauses(
     sales_reps: Sequence[str] = (),
     risk_status: str = "Todos",
     rfm_segment: str = "Todos",
+    families: Sequence[str] = (),
 ) -> tuple[str, list[Any]]:
     """Constrói a cláusula WHERE e parâmetros para consultas de clientes e inteligência comercial."""
     clauses: list[str] = [f"{prefix}.scenario_id = ?"]
@@ -30,22 +46,18 @@ def build_commercial_filter_clauses(
     if regiao != "Todas":
         clauses.append("c.region = ?")
         params.append(regiao)
-
     if uf != "Todas":
         clauses.append("c.state = ?")
         params.append(uf)
-
     if sales_reps:
         rep_list = list(sales_reps)
         placeholders = ", ".join(["?"] * len(rep_list))
         clauses.append(f"(c.sales_rep_id IN ({placeholders}) OR r.name IN ({placeholders}))")
         params.extend(rep_list)
         params.extend(rep_list)
-
     if risk_status != "Todos":
         clauses.append("cr.risk_status = ?")
         params.append(risk_status)
-
     if rfm_segment != "Todos":
         clauses.append("rfm.rfm_segment = ?")
         params.append(rfm_segment)
@@ -82,7 +94,10 @@ def query_commercial_kpis_data(
             COALESCE(cr.annual_revenue_at_risk, 0.0) AS annual_revenue_at_risk,
             COALESCE(cr.annual_margin_at_risk, 0.0) AS annual_margin_at_risk,
             cr.recency_days,
-            cr.delay_ratio
+            cr.delay_ratio,
+            COALESCE(cr.churn_probability, 0.10) AS churn_probability,
+            COALESCE(rfm.gross_revenue, 0.0) AS gross_revenue,
+            COALESCE(rfm.contribution_margin, 0.0) AS contribution_margin
         FROM gold.dim_customer c
         LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id
         JOIN gold.mart_customer_risk cr ON c.customer_id = cr.customer_id
@@ -115,7 +130,20 @@ def query_commercial_kpis_data(
             THEN b.annual_margin_at_risk END
         ), 0.0), 2) AS annual_margin_at_risk_brl,
         ROUND(COALESCE(SUM(w.ws_rev), 0.0), 2) AS white_space_potential_revenue_brl,
-        ROUND(COALESCE(SUM(w.ws_margin), 0.0), 2) AS white_space_potential_margin_brl
+        ROUND(COALESCE(SUM(w.ws_margin), 0.0), 2) AS white_space_potential_margin_brl,
+        COUNT(
+            CASE WHEN b.delay_ratio > 1.1 AND b.delay_ratio <= 1.5 THEN 1 END
+        )::INTEGER AS attention_customers,
+        ROUND(COALESCE(SUM(
+            CASE WHEN b.delay_ratio > 1.1 AND b.delay_ratio <= 1.5 THEN b.annual_revenue_at_risk END
+        ), 0.0), 2) AS attention_revenue_brl,
+        ROUND(
+            COALESCE(AVG(b.contribution_margin / GREATEST(b.churn_probability, 0.10)), 0.0), 2
+        ) AS avg_ltv_brl,
+        COUNT(
+            CASE WHEN b.gross_revenue > 15000 AND (b.contribution_margin / NULLIF(b.gross_revenue, 0)) < 0.15
+            THEN 1 END
+        )::INTEGER AS vampire_customers_count
     FROM base_customers b
     LEFT JOIN ws_scoped w ON b.customer_id = w.customer_id
     """
@@ -131,14 +159,21 @@ def query_commercial_kpis_data(
             "white_space_potential_revenue_brl": 0.0,
             "white_space_potential_margin_brl": 0.0,
             "avg_positivation_pct": 0.0,
+            "attention_customers": 0,
+            "attention_customers_pct": 0.0,
+            "attention_revenue_brl": 0.0,
+            "avg_ltv_brl": 0.0,
+            "vampire_customers_count": 0,
         }
 
     row = df.iloc[0]
     total = int(row["total_customers"])
     active = int(row["active_customers"])
     at_risk = int(row["at_risk_customers"])
+    att_cnt = int(row["attention_customers"])
     at_risk_pct = round((at_risk / max(total, 1)) * 100.0, 1)
     positivation = round((active / max(total, 1)) * 100.0, 1)
+    att_pct = round((att_cnt / max(total, 1)) * 100.0, 1)
 
     return {
         "total_customers": total,
@@ -150,7 +185,68 @@ def query_commercial_kpis_data(
         "white_space_potential_revenue_brl": float(row["white_space_potential_revenue_brl"]),
         "white_space_potential_margin_brl": float(row["white_space_potential_margin_brl"]),
         "avg_positivation_pct": positivation,
+        "attention_customers": att_cnt,
+        "attention_customers_pct": att_pct,
+        "attention_revenue_brl": float(row["attention_revenue_brl"]),
+        "avg_ltv_brl": float(row["avg_ltv_brl"]),
+        "vampire_customers_count": int(row["vampire_customers_count"]),
     }
+
+
+def query_cycle_health_funnel(
+    repo: DataRepository,
+    scenario_id: ScenarioId,
+    *,
+    regiao: str = "Todas",
+    uf: str = "Todas",
+    sales_reps: Sequence[str] = (),
+    rfm_segment: str = "Todos",
+) -> pd.DataFrame:
+    """Consulta o funil de saúde do ciclo de recompra dividido em 4 estágios."""
+    where_sql, params = build_commercial_filter_clauses(
+        scenario_id,
+        prefix="cr",
+        regiao=regiao,
+        uf=uf,
+        sales_reps=sales_reps,
+        rfm_segment=rfm_segment,
+    )
+    sql = f"""
+    SELECT
+        CASE
+            WHEN cr.delay_ratio <= 1.1 THEN '1. No Ciclo'
+            WHEN cr.delay_ratio <= 1.5 THEN '2. Atenção'
+            WHEN cr.delay_ratio <= 2.5 THEN '3. Em Risco Imediato'
+            ELSE '4. Adormecido / Perdido'
+        END AS cycle_stage,
+        COUNT(c.customer_id)::INTEGER AS customer_count,
+        ROUND(COALESCE(SUM(cr.annual_revenue_at_risk), 0.0), 2) AS annual_revenue_brl,
+        ROUND(COALESCE(SUM(cr.annual_margin_at_risk), 0.0), 2) AS annual_margin_brl,
+        ROUND(COALESCE(AVG(cr.delay_ratio), 1.0), 2) AS avg_delay_ratio
+    FROM gold.dim_customer c
+    LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id
+    JOIN gold.mart_customer_risk cr ON c.customer_id = cr.customer_id
+    LEFT JOIN gold.mart_rfm rfm
+        ON c.customer_id = rfm.customer_id AND rfm.scenario_id = cr.scenario_id
+    {where_sql}
+    GROUP BY 1
+    ORDER BY 1 ASC
+    """
+    df = repo.query(sql, params)
+    if df.empty:
+        return pd.DataFrame(
+            columns=[
+                "cycle_stage",
+                "customer_count",
+                "customer_share_pct",
+                "annual_revenue_brl",
+                "annual_margin_brl",
+                "avg_delay_ratio",
+            ]
+        )
+    total_c = df["customer_count"].sum()
+    df["customer_share_pct"] = np.round((df["customer_count"] / max(total_c, 1)) * 100.0, 1)
+    return df
 
 
 def query_priority_risk_customers(
@@ -174,7 +270,6 @@ def query_priority_risk_customers(
         risk_status=risk_status,
         rfm_segment=rfm_segment,
     )
-
     sql = f"""
     WITH top_ws AS (
         SELECT
@@ -188,12 +283,9 @@ def query_priority_risk_customers(
     SELECT
         c.customer_id,
         COALESCE(c.trade_name, c.company_name) AS customer_name,
-        c.city,
-        c.state,
-        c.region,
+        c.city, c.state, c.region,
         r.name AS sales_rep_name,
-        rfm.rfm_segment,
-        cr.risk_status,
+        rfm.rfm_segment, cr.risk_status,
         ROUND(cr.delay_ratio, 2) AS delay_ratio,
         cr.recency_days,
         ROUND(cr.expected_cycle_days, 1) AS expected_cycle_days,
@@ -224,7 +316,7 @@ def query_rfm_summary_data(
     uf: str = "Todas",
     sales_reps: Sequence[str] = (),
 ) -> pd.DataFrame:
-    """Consulta o resumo dos 9 segmentos RFM sob os filtros ativos."""
+    """Consulta o resumo dos 9 segmentos RFM sob os filtros ativos com LTV médio."""
     where_sql, params = build_commercial_filter_clauses(
         scenario_id,
         prefix="rfm",
@@ -232,21 +324,20 @@ def query_rfm_summary_data(
         uf=uf,
         sales_reps=sales_reps,
     )
-
     sql = f"""
     SELECT
         rfm.rfm_segment,
         COUNT(c.customer_id)::INTEGER AS customer_count,
         ROUND(SUM(rfm.gross_revenue), 2) AS gross_revenue,
         ROUND(SUM(rfm.contribution_margin), 2) AS contribution_margin,
-        ROUND(
-            SUM(rfm.contribution_margin) / NULLIF(SUM(rfm.gross_revenue), 0) * 100.0,
-            2
-        ) AS margin_pct,
+        ROUND(SUM(rfm.contribution_margin) / NULLIF(SUM(rfm.gross_revenue), 0) * 100.0, 2) AS margin_pct,
         ROUND(AVG(rfm.gross_revenue / NULLIF(rfm.frequency, 0)), 2) AS avg_ticket,
         COUNT(
             CASE WHEN cr.risk_status IN ('Em Risco Imediato', 'Adormecido / Perdido') THEN 1 END
-        )::INTEGER AS at_risk_count
+        )::INTEGER AS at_risk_count,
+        ROUND(
+            COALESCE(AVG(rfm.contribution_margin / GREATEST(cr.churn_probability, 0.10)), 0.0), 2
+        ) AS estimated_ltv_brl
     FROM gold.dim_customer c
     LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id
     JOIN gold.mart_rfm rfm ON c.customer_id = rfm.customer_id
@@ -259,48 +350,9 @@ def query_rfm_summary_data(
     df = repo.query(sql, params)
     if df.empty:
         return pd.DataFrame()
-
     total_customers = df["customer_count"].sum()
     df["customer_share_pct"] = np.round((df["customer_count"] / max(total_customers, 1)) * 100.0, 1)
     return df
-
-
-def query_white_space_matrix_data(
-    repo: DataRepository,
-    scenario_id: ScenarioId,
-    *,
-    regiao: str = "Todas",
-    uf: str = "Todas",
-    sales_reps: Sequence[str] = (),
-) -> pd.DataFrame:
-    """Consulta a distribuição de oportunidades White Space por Família Recomendada e Segmento RFM."""
-    where_sql, params = build_commercial_filter_clauses(
-        scenario_id,
-        prefix="ws",
-        regiao=regiao,
-        uf=uf,
-        sales_reps=sales_reps,
-    )
-
-    sql = f"""
-    SELECT
-        ws.recommended_family,
-        COALESCE(rfm.rfm_segment, 'Outros') AS rfm_segment,
-        COUNT(ws.customer_id)::INTEGER AS opportunities_count,
-        ROUND(SUM(ws.potential_revenue_brl), 2) AS potential_revenue_brl,
-        ROUND(SUM(ws.potential_margin_brl), 2) AS potential_margin_brl
-    FROM gold.mart_white_space ws
-    JOIN gold.dim_customer c ON ws.customer_id = c.customer_id
-    LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id
-    LEFT JOIN gold.mart_rfm rfm
-        ON c.customer_id = rfm.customer_id AND rfm.scenario_id = ws.scenario_id
-    LEFT JOIN gold.mart_customer_risk cr
-        ON c.customer_id = cr.customer_id AND cr.scenario_id = ws.scenario_id
-    {where_sql}
-    GROUP BY ws.recommended_family, rfm.rfm_segment
-    ORDER BY potential_revenue_brl DESC
-    """
-    return repo.query(sql, params)
 
 
 def query_rep_performance_data(
@@ -308,7 +360,9 @@ def query_rep_performance_data(
     scenario_id: ScenarioId,
     *,
     regiao: str = "Todas",
+    uf: str = "Todas",
     sales_reps: Sequence[str] = (),
+    quadrant: str = "Todos",
 ) -> pd.DataFrame:
     """Consulta a performance dos representantes e quadrantes para exibição cartesiana."""
     clauses = ["rp.scenario_id = ?"]
@@ -317,33 +371,24 @@ def query_rep_performance_data(
     if regiao != "Todas":
         clauses.append("rp.region = ?")
         params.append(regiao)
-
     if sales_reps:
         rep_list = list(sales_reps)
         placeholders = ", ".join(["?"] * len(rep_list))
         clauses.append(f"(rp.sales_rep_id IN ({placeholders}) OR rp.sales_rep_name IN ({placeholders}))")
         params.extend(rep_list)
         params.extend(rep_list)
+    if quadrant != "Todos":
+        clauses.append("rp.quadrant = ?")
+        params.append(quadrant)
 
     where_sql = f"WHERE {' AND '.join(clauses)}"
-
     sql = f"""
     SELECT
-        rp.sales_rep_id,
-        rp.sales_rep_name,
-        rp.region,
-        rp.quadrant,
-        rp.portfolio_customers,
-        rp.active_customers,
-        rp.positivation_pct,
-        rp.avg_families_per_customer,
-        rp.gross_revenue,
-        rp.avg_discount_pct,
-        rp.contribution_margin,
-        rp.margin_pct,
-        rp.revenue_at_risk_brl,
-        rp.white_space_potential_brl,
-        rp.action_prescription
+        rp.sales_rep_id, rp.sales_rep_name, rp.region, rp.quadrant,
+        rp.portfolio_customers, rp.active_customers, rp.positivation_pct,
+        rp.avg_families_per_customer, rp.gross_revenue, rp.avg_discount_pct,
+        rp.contribution_margin, rp.margin_pct, rp.revenue_at_risk_brl,
+        rp.white_space_potential_brl, rp.action_prescription
     FROM gold.mart_rep_performance rp
     {where_sql}
     ORDER BY rp.gross_revenue DESC

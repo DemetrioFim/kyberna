@@ -34,7 +34,7 @@ def cycle_delay_scatter(
 
     fig = go.Figure()
 
-    # Linha guia de 45 graus (y = x) e linha de risco crítico (y = 1.5x)
+    # Linha guia de 45 graus (y = x), linha de alerta ideal (y = 1.1x) e risco crítico (y = 1.5x)
     max_val = max(float(df["expected_cycle_days"].max()), float(df["recency_days"].max()), 100.0)
     line_x = [0, max_val]
 
@@ -45,6 +45,17 @@ def cycle_delay_scatter(
             mode="lines",
             line={"color": tokens["border_subtle"], "dash": "dash", "width": 1.5},
             name="No Ciclo (y = x)",
+            hoverinfo="skip",
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=line_x,
+            y=[val * 1.1 for val in line_x],
+            mode="lines",
+            line={"color": tokens["warning"], "dash": "dot", "width": 1.5},
+            name="Janela Ideal Pré-Churn (y = 1.1x)",
             hoverinfo="skip",
         )
     )
@@ -66,13 +77,22 @@ def cycle_delay_scatter(
             continue
 
         hover_texts = [
-            f"<b>{row['customer_name']}</b><br>"
-            f"UF: {row['state']} | RCA: {row['sales_rep_name']}<br>"
-            f"Dias sem comprar: {int(row['recency_days'])}d<br>"
-            f"Ciclo esperado: {float(row['expected_cycle_days']):.1f}d<br>"
-            f"Atraso (Delay Ratio): {float(row['delay_ratio']):.2f}x<br>"
-            f"R$ em Risco: {format_brl(float(row['annual_revenue_at_risk']))}"
-            for _, row in subset.iterrows()
+            f"<b>{name}</b><br>"
+            f"UF: {st} | RCA: {rep}<br>"
+            f"Dias sem comprar: {int(rec)}d<br>"
+            f"Ciclo esperado: {float(exp):.1f}d<br>"
+            f"Atraso (Delay Ratio): {float(del_r):.2f}x<br>"
+            f"R$ em Risco: {format_brl(float(at_risk))}"
+            for name, st, rep, rec, exp, del_r, at_risk in zip(
+                subset["customer_name"],
+                subset["state"],
+                subset["sales_rep_name"],
+                subset["recency_days"],
+                subset["expected_cycle_days"],
+                subset["delay_ratio"],
+                subset["annual_revenue_at_risk"],
+                strict=False,
+            )
         ]
 
         fig.add_trace(
@@ -115,9 +135,27 @@ def rfm_treemap(
         fig.update_layout(template=template_name, title="Sem dados para o mapa RFM")
         return fig
 
-    # Garante valores positivos para o tamanho dos blocos
+    # Ponderação preferencial por Margem Líquida (R$) com fallback para Faturamento
     plot_df = df.copy()
-    plot_df["size_val"] = np.maximum(plot_df["gross_revenue"], 1.0)
+    if "contribution_margin" in plot_df.columns and (plot_df["contribution_margin"] > 0).any():
+        plot_df["size_val"] = np.maximum(plot_df["contribution_margin"], 1.0)
+        size_label = "Margem Líquida"
+    else:
+        plot_df["size_val"] = np.maximum(plot_df["gross_revenue"], 1.0)
+        size_label = "Faturamento"
+
+    has_ltv = "estimated_ltv_brl" in plot_df.columns
+
+    hover_dict: dict[str, bool | str] = {
+        "size_val": False,
+        "customer_count": True,
+        "gross_revenue": ":,.2f",
+        "contribution_margin": ":,.2f",
+        "margin_pct": ":.1f",
+        "avg_ticket": ":,.2f",
+    }
+    if has_ltv:
+        hover_dict["estimated_ltv_brl"] = ":,.2f"
 
     fig = px.treemap(
         plot_df,
@@ -125,29 +163,120 @@ def rfm_treemap(
         values="size_val",
         color="margin_pct",
         color_continuous_scale="Tealgrn",
-        hover_data={
-            "size_val": False,
-            "customer_count": True,
-            "gross_revenue": ":,.2f",
-            "contribution_margin": ":,.2f",
-            "margin_pct": ":.1f",
-            "avg_ticket": ":,.2f",
-        },
+        hover_data=hover_dict,
     )
 
     fig.update_layout(
         template=template_name,
-        title="<b>Mapa de Segmentação RFM B2B (Tamanho = Faturamento | Cor = Margem %)</b>",
+        title=f"<b>Mapa de Segmentação RFM B2B (Tamanho = {size_label} | Cor = Margem %)</b>",
         margin={"l": 20, "r": 20, "t": 50, "b": 20},
     )
+
+    hovertemplate = (
+        "<b>Segmento: %{label}</b><br>Margem Líquida: R$ %{value:,.2f}<br>Margem %: %{color:.1f}%<br>"
+    )
+    if has_ltv:
+        hovertemplate += "LTV Estimado Médio: R$ %{customdata[5]:,.2f}<br>"
+    hovertemplate += "<extra></extra>"
+
     fig.update_traces(
         textinfo="label+value+percent root",
-        hovertemplate=(
-            "<b>Segmento: %{label}</b><br>"
-            "Faturamento: R$ %{value:,.2f}<br>"
-            "Margem Líquida: %{color:.1f}%<br>"
+        hovertemplate=hovertemplate,
+    )
+    return fig
+
+
+def cycle_health_funnel_chart(
+    df: pd.DataFrame,
+    theme_mode: str = "light",
+) -> go.Figure:
+    """Gera o funil horizontal de saúde da carteira por estágios do ciclo de recompra."""
+    tokens = get_theme_tokens(theme_mode)
+    template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
+
+    if df.empty:
+        fig = go.Figure()
+        fig.update_layout(template=template_name, title="Sem dados de ciclo de recompra")
+        return fig
+
+    sorted_df = df.sort_values(by="order_seq", ascending=True) if "order_seq" in df.columns else df
+
+    colors = [
+        tokens.get("positive", "#0d9488"),
+        tokens.get("warning", "#eab308"),
+        "#f97316",
+        tokens.get("negative", "#e11d48"),
+    ]
+
+    fig = go.Figure()
+
+    lbl_col = (
+        "label"
+        if "label" in sorted_df.columns
+        else "cycle_stage"
+        if "cycle_stage" in sorted_df.columns
+        else "stage"
+        if "stage" in sorted_df.columns
+        else None
+    )
+    cnt_col = (
+        "customers_count"
+        if "customers_count" in sorted_df.columns
+        else "customer_count"
+        if "customer_count" in sorted_df.columns
+        else None
+    )
+    shr_col = (
+        "share_pct"
+        if "share_pct" in sorted_df.columns
+        else "customer_share_pct"
+        if "customer_share_pct" in sorted_df.columns
+        else None
+    )
+    rv_col = (
+        "revenue_brl"
+        if "revenue_brl" in sorted_df.columns
+        else "annual_revenue_brl"
+        if "annual_revenue_brl" in sorted_df.columns
+        else None
+    )
+
+    labels = sorted_df[lbl_col].tolist() if lbl_col else []
+    counts = sorted_df[cnt_col].tolist() if cnt_col else []
+    shares = sorted_df[shr_col].tolist() if shr_col else []
+    revenues = sorted_df[rv_col].tolist() if rv_col else []
+
+    for idx, (label, cust, share, rev) in enumerate(zip(labels, counts, shares, revenues, strict=False)):
+        color = colors[idx % len(colors)]
+        hover_txt = (
+            f"<b>{label}</b><br>"
+            f"Clientes: {int(cust):,} ({float(share):.1f}%)<br>"
+            f"Faturamento Anual: {format_brl(float(rev))}<br>"
             "<extra></extra>"
-        ),
+        )
+
+        fig.add_trace(
+            go.Bar(
+                y=["Carteira Ativa"],
+                x=[share],
+                name=label,
+                orientation="h",
+                marker={"color": color},
+                text=f"{share:.1f}% ({cust})",
+                textposition="inside",
+                hovertemplate=hover_txt,
+            )
+        )
+
+    fig.update_layout(
+        template=template_name,
+        barmode="stack",
+        title="<b>Saúde da Carteira · Distribuição por Estágio do Ciclo de Recompra</b>",
+        xaxis={"title": "Participação na Base (%)", "range": [0, 100]},
+        yaxis={"showticklabels": False},
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.05, "xanchor": "center", "x": 0.5},
+        height=220,
+        margin={"l": 30, "r": 30, "t": 60, "b": 30},
     )
     return fig
 

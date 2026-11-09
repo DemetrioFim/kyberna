@@ -15,8 +15,7 @@ from src.ui.theme import get_theme_tokens
 # ==============================================================================
 
 st.set_page_config(
-    page_title="Kyberna · Decision Intelligence",
-    page_icon="🧭",
+    page_title="Virtus · Decision Intelligence (by Kyberna)",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -82,24 +81,20 @@ app_dir = Path(__file__).parent
 pages = [
     st.Page(
         str(app_dir / "pages" / "1_executive.py"),
-        title="Visão Executiva",
-        icon="📊",
+        title="1. Prudência · Direção & Cenários",
         default=True,
     ),
     st.Page(
+        str(app_dir / "pages" / "4_simulator.py"),
+        title="2. Fortaleza · Caixa & Resiliência",
+    ),
+    st.Page(
         str(app_dir / "pages" / "2_commercial_radar.py"),
-        title="Radar Comercial",
-        icon="🎯",
+        title="3. Justiça · Rentabilidade Comercial",
     ),
     st.Page(
         str(app_dir / "pages" / "3_inventory_demand.py"),
-        title="Estoque & Demanda",
-        icon="📦",
-    ),
-    st.Page(
-        str(app_dir / "pages" / "4_simulator.py"),
-        title="Simulador What-If",
-        icon="⚡",
+        title="4. Temperança · Eficiência Operacional",
     ),
 ]
 

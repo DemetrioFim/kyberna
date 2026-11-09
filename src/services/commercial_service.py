@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Literal
 
 import pandas as pd
 
@@ -9,15 +10,18 @@ from src.core.types import ScenarioId
 from src.db.repository import DataRepository
 from src.services.commercial_queries import (
     query_commercial_kpis_data,
+    query_cycle_health_funnel,
     query_priority_risk_customers,
     query_rep_performance_data,
     query_rfm_summary_data,
+    query_top_white_space_deals,
     query_white_space_matrix_data,
 )
 from src.services.dto import (
     CommercialKpisDTO,
     CommercialPageDTO,
 )
+from src.services.executive_service import get_top_margin_drivers
 from src.ui.formatting import format_brl
 
 logger = get_logger(__name__)
@@ -30,17 +34,17 @@ def build_commercial_headline(kpis: CommercialKpisDTO) -> tuple[str, str]:
 
     if kpis.at_risk_customers > 0:
         title = (
-            f"Radar de Churn: {kpis.at_risk_customers} clientes fora do ciclo "
+            f"Justiça Comercial · Radar de Churn: {kpis.at_risk_customers} clientes fora do ciclo "
             f"com {rev_risk_str} em risco imediato"
         )
         text = (
-            f"Atualmente, <b>{kpis.at_risk_customers_pct:.1f}%</b> da base ativa de clientes ultrapassou "
-            f"seu ciclo histórico de compra (delay ratio > 1.5). Paralelamente, a inteligência de "
-            f"recomendações mapeou <b>{ws_rev_str}</b> em potencial de cross-sell (White Space) pronto "
-            f"para abordagem imediata pelos representantes responsáveis."
+            f"Atualmente, <b>{kpis.at_risk_customers_pct:.1f}%</b> da base ativa ultrapassou "
+            f"seu ciclo de recompra (delay > 1.5). Identificamos <b>{kpis.vampire_customers_count} "
+            f"clientes com margem comprimida</b> (< 15%) e potencial de <b>{ws_rev_str}</b> em cross-sell "
+            f"(White Space) pronto para abordagem imediata pelos representantes responsáveis."
         )
     else:
-        title = "Carteira de Clientes no Ciclo Saudável"
+        title = "Justiça Comercial: Carteira de Clientes no Ciclo Saudável"
         text = (
             f"Nenhum cliente crítico em atraso detectado no recorte selecionado. Oportunidade de "
             f"<b>{ws_rev_str}</b> em expansão de mix (White Space) disponível para alavancar faturamento."
@@ -67,7 +71,7 @@ def build_commercial_prescription(
     top_margin_at_risk = float(priority_df.head(top_count)["annual_margin_at_risk"].sum())
     top_ws_potential = float(priority_df.head(top_count)["top_opportunity_brl"].sum())
 
-    title = "Plano Tático de Reativação e Oferta de Sortimento"
+    title = "Plano Tático de Justiça: Reativação e Oferta de Sortimento"
     html = (
         f"<p>Priorize a abordagem imediata dos <b>Top {top_count} lojistas</b> com maior valor exposto. "
         f"Este grupo isolado responde por <b>{format_brl(top_revenue_at_risk)}</b> de receita anualizada "
@@ -79,9 +83,8 @@ def build_commercial_prescription(
         "<li><b>Abordagem de Mix (White Space):</b> Em cada contato de resgate, utilize "
         "o argumento prescrito e o SKU âncora recomendado, capturando até "
         f"<b>{format_brl(top_ws_potential)}</b> em pedidos imediatos de reposição.</li>"
-        "<li><b>Gestão de Alçada:</b> Para representantes no quadrante <i>'Volume sem margem'</i>, "
-        "travar concessão de descontos acima da política e vincular a comissão à rentabilidade "
-        "líquida da venda.</li>"
+        "<li><b>Gestão de Alçada para 'Clientes Vampiros':</b> Travar concessão de descontos nos clientes "
+        "de alto volume e margem inferior a 15%, vinculando a comissão à rentabilidade líquida da venda.</li>"
         "</ul>"
     )
     return title, html, top_margin_at_risk
@@ -93,28 +96,16 @@ def build_commercial_dashboard(
     *,
     regiao: str = "Todas",
     uf: str = "Todas",
+    families: Sequence[str] = (),
     sales_reps: Sequence[str] = (),
     risk_status: str = "Todos",
     rfm_segment: str = "Todos",
+    quadrant: str = "Todos",
     as_of_date_label: str = "31/12/2024",
 ) -> CommercialPageDTO:
-    """Orquestra as consultas analíticas e consolida o payload puro consumido pela Tela 2.
-
-    Args:
-        repo: Repositório de dados ativo (DuckDB ou Azure SQL).
-        scenario_id: Identificador do cenário ('c1_toys', etc.).
-        regiao: Filtro de macrorregião geográfica.
-        uf: Filtro de estado/UF.
-        sales_reps: Lista de representantes filtrados.
-        risk_status: Filtro de status de churn ('Todos', 'Em Risco Imediato', etc.).
-        rfm_segment: Filtro de segmento RFM ('Todos', 'Campeões', etc.).
-        as_of_date_label: Rótulo da data de corte para exibição.
-
-    Returns:
-        CommercialPageDTO completo e validado.
-    """
+    """Orquestra as consultas analíticas e consolida o payload consumido pela Página 3 — Justiça."""
     logger.info(
-        "Construindo dashboard comercial para '%s' (regiao=%s, uf=%s, risk=%s, rfm=%s)...",
+        "Construindo dashboard de Justiça Comercial para '%s' (regiao=%s, uf=%s, risk=%s, rfm=%s)...",
         scenario_id,
         regiao,
         uf,
@@ -142,7 +133,6 @@ def build_commercial_dashboard(
         risk_status=risk_status,
         rfm_segment=rfm_segment,
     )
-
     rfm_df = query_rfm_summary_data(
         repo,
         scenario_id,
@@ -150,21 +140,62 @@ def build_commercial_dashboard(
         uf=uf,
         sales_reps=sales_reps,
     )
-
     ws_matrix_df = query_white_space_matrix_data(
         repo,
         scenario_id,
         regiao=regiao,
         uf=uf,
         sales_reps=sales_reps,
+        families=families,
     )
-
+    top_ws_deals_df = query_top_white_space_deals(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        sales_reps=sales_reps,
+        rfm_segment=rfm_segment,
+        families=families,
+    )
+    cycle_funnel_df = query_cycle_health_funnel(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        sales_reps=sales_reps,
+        rfm_segment=rfm_segment,
+    )
     rep_df = query_rep_performance_data(
         repo,
         scenario_id,
         regiao=regiao,
+        uf=uf,
         sales_reps=sales_reps,
+        quadrant=quadrant,
     )
+
+    # 4 Dimensões de Campeões vs. Vampiros
+    dims: tuple[Literal["family", "product", "customer", "sales_rep"], ...] = (
+        "family",
+        "product",
+        "customer",
+        "sales_rep",
+    )
+    drvs = [
+        get_top_margin_drivers(
+            repo,
+            scenario_id,
+            by=d,
+            regiao=regiao,
+            uf=uf,
+            families=families,
+            sales_reps=sales_reps,
+            limit=10,
+        )
+        for d in dims
+    ]
+    (top_gen_f, top_dest_f), (top_gen_p, top_dest_p) = drvs[0], drvs[1]
+    (top_gen_c, top_dest_c), (top_gen_r, top_dest_r) = drvs[2], drvs[3]
 
     headline_title, headline_text = build_commercial_headline(kpis)
     prescription_title, prescription_html, impact_brl = build_commercial_prescription(kpis, priority_df)
@@ -178,6 +209,18 @@ def build_commercial_dashboard(
         rfm_summary_df=rfm_df,
         white_space_matrix_df=ws_matrix_df,
         rep_performance_df=rep_df,
+        cycle_funnel_df=cycle_funnel_df,
+        top_white_space_deals_df=top_ws_deals_df,
+        champions_df=top_gen_c,
+        vampires_df=top_dest_c,
+        top_family_generators_df=top_gen_f,
+        top_family_destroyers_df=top_dest_f,
+        top_product_generators_df=top_gen_p,
+        top_product_destroyers_df=top_dest_p,
+        top_customer_generators_df=top_gen_c,
+        top_customer_destroyers_df=top_dest_c,
+        top_rep_generators_df=top_gen_r,
+        top_rep_destroyers_df=top_dest_r,
         prescription_title=prescription_title,
         prescription_html=prescription_html,
         prescription_impact_brl=impact_brl,

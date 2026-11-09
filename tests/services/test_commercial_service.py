@@ -169,3 +169,38 @@ def test_commercial_dashboard_filters(repo: DuckDBRepository) -> None:
     dto_sp = build_commercial_dashboard(repo, scenario_id="c1_toys", regiao="Sudeste", uf="SP")
     assert dto_sp.kpis.total_customers <= dto_sudeste.kpis.total_customers
     assert (dto_sp.priority_risk_df["state"] == "SP").all()
+
+
+def test_justice_service_innovations(repo: DuckDBRepository) -> None:
+    """Valida inovações da Página 3 - Justiça: Funil do Ciclo, White Space com Pitch e Campeões/Vampiros."""
+    from src.services.commercial_queries import (
+        query_cycle_health_funnel,
+        query_top_white_space_deals,
+    )
+
+    # 1. Funil do Ciclo em 4 estágios somando 100% dos clientes
+    funnel_df = query_cycle_health_funnel(repo, scenario_id="c1_toys")
+    assert not funnel_df.empty
+    assert len(funnel_df) <= 4
+    assert funnel_df["customer_count"].sum() == 300
+    assert pytest.approx(funnel_df["customer_share_pct"].sum(), abs=0.5) == 100.0
+
+    # 2. Top White Space Deals com SKU Âncora e Pitch
+    ws_deals_df = query_top_white_space_deals(repo, scenario_id="c1_toys", limit=20)
+    assert not ws_deals_df.empty
+    assert "anchor_sku_name" in ws_deals_df.columns
+    assert "action_pitch" in ws_deals_df.columns
+    assert "recommended_top_sku" in ws_deals_df.columns
+    assert len(ws_deals_df.iloc[0]["action_pitch"]) > 10
+
+    # 3. Payload completo de Justiça
+    dto = build_commercial_dashboard(repo, scenario_id="c1_toys")
+    assert not dto.cycle_funnel_df.empty
+    assert not dto.top_white_space_deals_df.empty
+    assert not dto.champions_df.empty
+    assert not dto.vampires_df.empty
+    assert not dto.top_family_generators_df.empty
+    assert not dto.top_product_generators_df.empty
+    assert dto.kpis.attention_customers > 0
+    assert dto.kpis.avg_ltv_brl > 0
+    assert "estimated_ltv_brl" in dto.rfm_summary_df.columns

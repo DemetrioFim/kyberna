@@ -39,13 +39,13 @@
     <circle cx="0" cy="0" r="4" fill="#0F172A" />
   </g>
 
-  <!-- Wordmark KYBERNA -->
-  <text x="96" y="44" font-family="'Inter', -apple-system, sans-serif" font-size="28" font-weight="900" letter-spacing="3.5" fill="#1F7A8C">
-    KYBERNA
+  <!-- Wordmark VIRTUS -->
+  <text x="96" y="44" font-family="'Inter', -apple-system, sans-serif" font-size="28" font-weight="900" letter-spacing="4" fill="#1F7A8C">
+    VIRTUS
   </text>
 
-  <!-- Subtítulo DECISION INTELLIGENCE -->
-  <text x="98" y="58" font-family="'Inter', -apple-system, sans-serif" font-size="8" font-weight="700" letter-spacing="2.5" fill="#C9A227">
-    DECISION INTELLIGENCE
+  <!-- Subtítulo DECISION INTELLIGENCE · BY KYBERNA -->
+  <text x="98" y="58" font-family="'Inter', -apple-system, sans-serif" font-size="7.5" font-weight="700" letter-spacing="1.8" fill="#C9A227">
+    DECISION INTELLIGENCE · BY KYBERNA
   </text>
 </svg>

@@ -4,8 +4,8 @@ import streamlit as st
 
 
 def render_page() -> None:
-    """Renderiza a página 'Inteligência de Estoque & Demanda'."""
-    st.title("📦 Inteligência de Estoque & Demanda")
+    """Renderiza a página '4. Temperança — Eficiência Operacional & Estoque'."""
+    st.title("4. Temperança — Eficiência Operacional & Gestão de Desperdícios")
     st.caption("Forecast 30 dias via StatsForecast, semáforo de ruptura e destravamento de capital parado.")
 
     col1, col2, col3 = st.columns(3)
@@ -65,7 +65,7 @@ def render_page() -> None:
     st.markdown(
         """
         <div class="prescription-box">
-            <div class="prescription-title">📦 Prescrição de Reposição e Desova</div>
+            <div class="prescription-title">Prescrição de Reposição e Desova</div>
             <div class="prescription-content">
                 Emitir ordem de produção urgente para <strong>5.200 unidades da Linha Educativa</strong>
                 e aplicar <strong>kit promocional com bonificação de 5%</strong>

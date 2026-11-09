@@ -1,248 +1,273 @@
-# 🛠️ Gerenciador de Refatoração & Evolução Analítica (`TASKS_REFACTORY.md`)
+# 🛠️ Gerenciador de Refatoração & Remodelagem **Virtus** (`TASKS_REFACTORY.md`)
 
-Plano técnico executável de **Refatoração, Correção de Coerência Analítica e Elevação de UX Executiva** da plataforma **Kyberna — Decision Intelligence B2B**, focado na **Tela 1 (Visão Executiva & Margem Real)** e na **Tela 2 (Radar Comercial, RFM & Antecipação de Churn)**.
+Plano técnico executável de **Remodelagem Estratégica para o Framework de Governança Virtus (As 4 Virtudes Cardeais)**, combinado com **Saneamento Analítico, Modularização (< 400 linhas) e Elevação de UX Executiva** da plataforma **Virtus · by Kyberna**.
 
-> **Como usar:** cada tarefa possui ID único `<Onda>-<Pilar><Nº>` (ex.: `R1-S1`, `R1-V1`, `R2-S1`, `R2-V2`), avaliação de impacto de **1 a 5 estrelas (`⭐`)**, arquivos impactados, dependências, **Especificação Técnica Mastigada (Anti-Alucinação)** e **Critério de Pronto (DoD)** validado via terminal.
+> **Como usar:** cada tarefa possui ID único `<Onda>-<Pilar><Nº>` (ex.: `V1-S1`, `V1-V1`, `V2-D1`, `V3-S1`), avaliação de impacto de **1 a 5 estrelas (`⭐`)**, arquivos impactados, dependências, **Especificação Técnica Mastigada (Anti-Alucinação)** e **Critério de Pronto (DoD)** validado via terminal.
 > Status: `[ ]` a fazer · `[~]` parcial · `[x]` concluída (DoD validado via terminal).
-> Protocolo de execução: ver §1 de [`GEMINI.md`](./GEMINI.md) / [`CLAUDE.md`](./CLAUDE.md). Catálogo estratégico e ideias futuras: [`IDEIAS.md`](./IDEIAS.md). Roadmap principal: [`TASKS.md`](./TASKS.md).
+> Protocolo de execução: ver §1 de [`GEMINI.md`](./GEMINI.md) / [`CLAUDE.md`](./CLAUDE.md). Visão de produto e fórmulas canônicas: [`VISION.md`](./VISION.md). Roadmap principal: [`TASKS.md`](./TASKS.md).
 
 ---
 
-## 🚀 Status Geral da Refatoração
+## 🏛️ A Arquitetura das 4 Páginas no **Virtus** ("O Efeito Virtus")
 
-- **Ciclo Atual**: `v0.3.1-refactory` (Saneamento Analítico e Evolução das Telas 1 e 2)
-- **Ondas Planejadas**:
-  - **R1**: Coerência Temporal, Visão Quádrupla de Margem, Modularização (< 400 linhas) e Evolução da **Tela 1 — Visão Executiva**
-  - **R2**: Filtros Táticos, Funil do Ciclo de Recompra, Explorador White Space (SKU Âncora + Pitch), Quadrante Colorido de RCAs e Evolução da **Tela 2 — Radar Comercial**
-  - **R3**: Padronização Cross-Page (Dark Mode `var(--kyb-*)`, Vetorização 100% sem `iterrows()` e Blindagem `AppTest`)
+Em vez de separar a gestão em silos corporativos engessados ("Comercial", "Financeiro", "Operações"), o **Virtus** estrutura a tomada de decisão pelo **comportamento do negócio** através das **4 Virtudes Cardeais**, mantendo os caminhos físicos dos 4 arquivos de página (`src/ui/pages/`) para preservar histórico Git e compatibilidade de testes, ordenados no menu via `st.navigation`:
+
+| Ordem no Menu (`st.navigation`) | Arquivo Físico (`src/ui/pages/`) | Virtude Cardeal & Papel Executivo | Blocos Analíticos & Prescritivos Principais |
+| :---: | :--- | :--- | :--- |
+| **1ª** | [`1_executive.py`](./src/ui/pages/1_executive.py) | **🦉 1. PRUDÊNCIA**<br>*(Direção, Previsibilidade e Cenários — CEO / Diretor)* | • **Termômetro de Metas (Pacing)** (Receita, Margem Líquida e Caixa Operacional vs. Meta)<br>• **Projeção de Fechamento** (Tendência Dupla Histórica + Projeção 30/60/90d)<br>• **Simulador Executivo What-If (3 Alavancas)** (Preço, Desconto, Comissão/Custos + Breakeven)<br>• **Radar de Anomalias da Semana** (Alertas automáticos de desvios críticos) |
+| **2ª** | [`4_simulator.py`](./src/ui/pages/4_simulator.py) | **🛡️ 2. FORTALEZA**<br>*(Solidez Financeira, Caixa e Resiliência — Diretor & Financeiro)* | • **Fôlego de Caixa (Runway) & Ponto de Equilíbrio (Dia do Break-Even Mensal)**<br>• **Ciclo Financeiro ($\text{PME} + \text{PMR} - \text{PMP}$) e Necessidade de Capital de Giro (NCG em R$)**<br>• **Risco de Concentração (Dependência)** (Curva Top 5/10 Clientes, RCAs e Famílias)<br>• **Saúde da Carteira & Exposição por Faixa de Atraso (Aging List)** |
+| **3ª** | [`2_commercial_radar.py`](./src/ui/pages/2_commercial_radar.py) | **⚖️ 3. JUSTIÇA**<br>*(Equilíbrio Comercial, Margem e Valor — Comercial & Diretor)* | • **Matriz de Rentabilidade: Campeões vs. "Vampiros"** (4 Abas: `Família`, `SKU`, `Lojista`, `RCA`)<br>• **Justiça da Força de Vendas** (Quadrante de RCAs colorido por mérito de margem + Positivação/Mix)<br>• **Saúde da Base de Clientes** (Treemap RFM por Margem + Funil de 4 Estágios do Ciclo)<br>• **Explorador White Space (SKU Âncora + Pitch) & LTV/Retenção** |
+| **4ª** | [`3_inventory_demand.py`](./src/ui/pages/3_inventory_demand.py) | **🏺 4. TEMPERANÇA**<br>*(Eficiência, Controle de Excessos e Desperdícios — Financeiro & Comercial)* | • **Erosão Comercial (Waterfall da Sangria de Margem em `R$` e `%`)**<br>• **Disciplina de Política Comercial** (Auditoria de Descontos Acima do Teto por RCA/Família)<br>• **Temperança de Estoque** (Matriz ABC/XYZ 3x3 + Capital Imobilizado $>120\text{d}$ vs. Ruptura Curva A)<br>• **Vazamentos Financeiros** (Custo Financeiro do Prazo Excedente + Frete/Comissões Críticas) |
 
 ```mermaid
 flowchart LR
-    R1["🔴 Onda R1 (P0/P1)<br/>Tela 1: Coerência Temporal,<br/>4 Abas de Margem & Modularização"] --> R2["🟠 Onda R2 (P0/P1)<br/>Tela 2: Manchete Real, Filtros,<br/>Funil Ciclo, White Space & RCAs"]
-    R2 --> R3["🟢 Onda R3 (P1/P2)<br/>Saneamento Dark Mode,<br/>Zero iterrows & Suíte AppTest"]
-    R3 --> M3V2["➡️ Retorno ao TASKS.md<br/>M3-V2 (Exportação Excel + WhatsApp)"]
+    V1["🔴 Onda V1 (P0)<br/>Branding Virtus +<br/>1. Prudência & 3. Justiça"] --> V2["🟠 Onda V2 (P0/P1)<br/>Parâmetros Working Capital,<br/>Estoque & 4. Temperança"]
+    V2 --> V3["🟢 Onda V3 (P1)<br/>2. Fortaleza (Caixa/NCG/Aging)<br/>+ Blindagem QA & Dark Mode"]
+    V3 --> M3V2["➡️ Retorno ao TASKS.md<br/>M3-V2 (Exportação Excel + WhatsApp)"]
 ```
 
 ---
 
-## ⭐ Matriz Resumo de Priorização das Tarefas de Refatoração
+## ⭐ Matriz Resumo de Priorização das Tarefas (`Virtus`)
 
 | ID | Onda / Escopo | Entrega Técnica | 🎯 Utilidade | 💰 Valor (R$) | 🚀 Demo ("Uau") | ⚙️ Viabilidade (Complexidade) | Prioridade |
 |---|---|---|---|---|:---:|:---:|:---:|:---:|
-| **`R1-S1`** | Tela 1 (Backend/SQL) | Sincronização temporal nos Top Drivers, filtro de Família no ABC/XYZ, Delta YoY real em 24m e queries por Família e RCA | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
-| **`R1-V1`** | Tela 1 (Gráficos/UI) | KPI Cards com Caixas Master + Termômetro de Desconto/Frete, Waterfall com `%` sobre Bruto e Tendência Dupla com Linha de Meta | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
-| **`R1-V2`** | Tela 1 (Arquitetura/UI) | Visão Quádrupla de Detratores/Geradores (`Família`, `SKU`, `Lojista`, `RCA`) + Extração de `executive_sections.py` (< 400 linhas) | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
-| **`R2-S1`** | Tela 2 (Backend/SQL) | Queries do Funil de Saúde do Ciclo (4 estágios), Top Oportunidades White Space (SKU Âncora + Pitch) e conexão de filtros `families`/`uf` | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
-| **`R2-V1`** | Tela 2 (Gráficos) | Vetorização de `cycle_delay_scatter` (sem `iterrows`), `rfm_treemap` por Margem Líquida e `quadrant_scatter` colorido por quadrante em pt-BR | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
-| **`R2-V2`** | Tela 2 (UI Topo/Risco) | Manchete Dinâmica real + Banner Temporal + 5º KPI Card (*Janela Ideal Pré-Churn*) + Filtros Táticos In-Page + Funil do Ciclo + Tabela Caixa-Branca | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
-| **`R2-V3`** | Tela 2 (UI Mix/RCAs) | Explorador Acionável de Cross-Sell (White Space CNPJ a CNPJ com Pitch) + Tabela Resumo RFM + Tabela de RCAs com Positivação e Mix | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
-| **`R3-V1`** | Cross-Page (UX/QA) | Saneamento de variáveis CSS Dark Mode (`var(--kyb-*)`), auditoria de `< 400 linhas` e expansão da suíte `pytest` (`services` + `ui`) | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
+| **`V1-S1`** | **1. Prudência** (Backend/SQL) | Pacing de Metas, Projeção 30/60/90d, Radar de Anomalias SQL, Delta YoY real em 24m e motor rápido What-If (Breakeven) | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
+| **`V1-V1`** | **1. Prudência** (UI + Nav) | Branding **Virtus** em `app.py`/`sidebar.py`/`logo.svg` + Página **1. Prudência** (`1_executive.py` + `prudence_sections.py` $< 400$ linhas) | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
+| **`V1-S2`** | **3. Justiça** (Backend/SQL) | Funil do Ciclo (4 estágios), Top White Space (SKU Âncora + Pitch), LTV/Retenção por segmento RFM e 4 dimensões de Campeões vs. Vampiros | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
+| **`V1-V2`** | **3. Justiça** (Gráficos + UI) | Vetorização sem `iterrows`, Quadrante RCAs colorido em pt-BR, Treemap RFM por Margem e Página **3. Justiça** (`2_commercial_radar.py` + `justice_sections.py`) | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
+| **`V2-D1`** | **Finanças & Estoque** (Dados) | Criação de `config/finance/working_capital.yaml` (Custos Fixos, PMR, PMP, Teto de Desconto, Custo de Prazo) + `inventory_snapshot.py` (`M4-D2`) | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
+| **`V2-S1`** | **4. Temperança** (Backend/SQL) | `temperance_service.py`: Waterfall da Sangria (`R$` e `%`), Auditoria de Desconto Acima do Teto, Vazamento de Prazo e Capital Travado ABC/XYZ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
+| **`V2-V1`** | **4. Temperança** (Gráficos + UI) | Página **4. Temperança** (`3_inventory_demand.py` + `temperance_sections.py`): Waterfall com `%`, Matriz ABC/XYZ filtrável, Capital Travado $>120\text{d}$ vs. Ruptura A | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
+| **`V3-S1`** | **2. Fortaleza** (Backend/SQL) | `fortitude_service.py`: Fôlego de Caixa (Runway), Dia do Break-Even Mensal, Ciclo Financeiro ($\text{PME}+\text{PMR}-\text{PMP}$), NCG, Concentração Top 5/10 e Aging | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
+| **`V3-V1`** | **2. Fortaleza** (UI + QA Global) | Página **2. Fortaleza** (`4_simulator.py` + `fortitude_sections.py`) + Saneamento Dark Mode `var(--kyb-*)` e Suíte Completa `pytest` nas 4 Virtudes | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
 
 ---
 
-### 🛡️ Guia Rápido de Integração & Anti-Alucinação para Execução da Refatoração
+### 🛡️ Guia Rápido de Integração & Anti-Alucinação para Execução (`Virtus`)
 
 > [!IMPORTANT]
-> **Leia este bloco antes de implementar qualquer tarefa (`R1`..`R3`).**
+> **Leia este bloco antes de implementar qualquer tarefa (`V1`..`V3`).**
 >
 > 1. **Limite Estrito de 400 Linhas por Arquivo (`GEMINI.md` §3)**:
->    - Atualmente [`src/services/executive_service.py`](./src/services/executive_service.py) tem **494 linhas** e [`src/ui/pages/1_executive.py`](./src/ui/pages/1_executive.py) tem **441 linhas** (acima do teto!).
->    - Em `R1-S1` e `R1-V2`, **reduza obrigatoriamente ambos para `< 400 linhas`** movendo blocos auxiliares de UI para `src/ui/components/executive_sections.py` e enxugando duplicações em `executive_service.py`.
->    - Na Tela 2 (`R2-V2` e `R2-V3`), extraia seções de renderização para `src/ui/components/commercial_sections.py` para manter [`src/ui/pages/2_commercial_radar.py`](./src/ui/pages/2_commercial_radar.py) sempre abaixo de **350 linhas**.
-> 2. **Proibição Absoluta de `df.iterrows()` (`GEMINI.md` §4.4)**:
->    - Remova os loops `for _, row in df.iterrows():` hoje presentes em [`src/ui/components/charts.py`](./src/ui/components/charts.py) (L31) e [`src/ui/components/commercial_charts.py`](./src/ui/components/commercial_charts.py) (L75). Use list comprehensions vetorizadas sobre colunas/tuplas (`zip(...)`) ou `customdata` + `hovertemplate` nativo do Plotly.
-> 3. **Ícone Azul `ⓘ` Obrigatório (`help_text: str` não-vazio)**:
->    - Todo novo `render_kpi_card`, `section_header`, `render_prescription_box` ou banner executivo (`info_tooltip_html`) **deve** receber um `help_text` claro em pt-BR explicando a regra de negócio e o significado do rodapé.
-> 4. **Compatibilidade Dark Mode (`var(--kyb-*)`)**:
+>    - Nenhum arquivo em `src/` pode ultrapassar **400 linhas**.
+>    - Reduza `src/services/executive_service.py` (atualmente 494 linhas) e `src/ui/pages/1_executive.py` (atualmente 441 linhas) para **$< 380$ linhas** extraindo componentes visuais para `src/ui/components/prudence_sections.py` (e analogamente `justice_sections.py`, `temperance_sections.py`, `fortitude_sections.py`).
+>    - Separe sempre as consultas SQL em `src/services/<modulo>_queries.py`.
+> 2. **Preservação dos Caminhos Físicos das 4 Páginas**:
+>    - Mantenha os arquivos `1_executive.py` (**1. Prudência**), `4_simulator.py` (**2. Fortaleza**), `2_commercial_radar.py` (**3. Justiça**) e `3_inventory_demand.py` (**4. Temperança**), ordenando-os na lista `pages` de `st.navigation(pages)` em [`src/ui/app.py`](./src/ui/app.py). Isso garante que `test_pages_render_without_exception` continue funcionando sem quebrar imports.
+> 3. **Proibição Absoluta de `df.iterrows()` (`GEMINI.md` §4.4)**:
+>    - Remova os loops `for _, row in df.iterrows():` hoje presentes em [`src/ui/components/charts.py`](./src/ui/components/charts.py) e [`src/ui/components/commercial_charts.py`](./src/ui/components/commercial_charts.py). Use list comprehensions vetorizadas sobre `zip(...)` ou `customdata` + `hovertemplate` nativo do Plotly.
+> 4. **Ícone Azul `ⓘ` Obrigatório (`help_text: str` não-vazio)**:
+>    - Todo `render_kpi_card`, `section_header`, `render_prescription_box` ou banner executivo (`info_tooltip_html`) **deve** receber um `help_text` claro em pt-BR explicando a métrica, a fórmula e a leitura executiva dentro da Virtude correspondente.
+> 5. **Compatibilidade Dark Mode (`var(--kyb-*)`)**:
 >    - Proibido usar cores hexadecimais estáticas (`#475569`, `#0F172A`, `#0d9488`) em strings HTML nas páginas ou seções; use sempre `var(--kyb-text)`, `var(--kyb-text-muted)`, `var(--kyb-teal)`, `var(--kyb-card-bg)` e `var(--kyb-border)`.
-> 5. **Execução de Testes `AppTest` no Windows**:
+> 6. **Execução de Testes `AppTest` no Windows**:
 >    - Testes em `tests/services/` rodam normalmente no sandbox. Testes em `tests/ui/` que instanciam `streamlit.testing.v1.AppTest` usam `socket.socketpair()` e devem ser executados com `BypassSandbox: true` e `default_timeout=10`.
 
 ---
 
-## 📌 Quadro de Tarefas da Refatoração
+## 📌 Quadro Detalhado das Tarefas de Remodelagem **Virtus**
 
 ---
 
-### 🔴 Onda R1 — Coerência Analítica, 4 Visões de Margem e Evolução da Tela 1 (Visão Executiva)
+### 🔴 Onda V1 — Identidade **Virtus**, Página 1 (**Prudência**) e Página 3 (**Justiça**)
 
-> **Objetivo da Onda R1**: Eliminar todas as inconsistências de filtro temporal na Tela 1, enriquecer os KPI Cards e gráficos executivos com indicadores de erosão comercial (Desconto %, Frete+Comissão %, Caixas Master), criar a visão quádrupla de geradores/detratores de margem (`Família`, `SKU`, `Lojista`, `RCA`) e enquadrar `executive_service.py` e `1_executive.py` abaixo de 400 linhas.
+> **Objetivo da Onda V1**: Estabelecer a identidade visual e narrativa do **Virtus** (As 4 Virtudes Cardeais) na aplicação e entregar as duas primeiras grandes páginas apoiadas nos marts já materializados no DuckDB: **1. Prudência** (Direção, Pacing de Metas, Projeção 30/60/90d, Simulador Rápido What-If e Radar de Anomalias) e **3. Justiça** (Matriz Campeões vs. Vampiros em 4 abas, Quadrante de RCAs colorido, Funil do Ciclo de Recompra, Treemap RFM por Margem, White Space CNPJ a CNPJ com Pitch e LTV).
 
 #### 🧠 Serviços & Consultas Analíticas (`S` / `D`)
 
-- [ ] **R1-S1** *(REF-EXEC-01)* — **Sincronização temporal dos Top Drivers, filtro de Família no ABC/XYZ, Delta YoY real para 24m e agregação por Família/RCA**: Corrigir `executive_service.py` e `executive_queries.py` para que 100% dos blocos da Tela 1 respeitem os filtros ativos de período e família, além de expandir os rankings de margem para 4 dimensões (`product`, `customer`, `family`, `sales_rep`) e reduzir `executive_service.py` para `< 400 linhas`.
+- [x] **V1-S1** *(VIRTUS-PRUD-01)* — **Motor de Prudência: Pacing de Metas, Projeção de Fechamento (30/60/90d), Simulador Executivo What-If, Radar de Anomalias SQL e Delta YoY Real**: Evoluir `executive_service.py` e `executive_queries.py` (< 400 linhas) para alimentar a **Página 1 — Prudência** e sincronizar os filtros temporais em todas as consultas.
   - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P0**
   - *Arquivos:* `src/services/dto.py`, `src/services/executive_queries.py`, `src/services/executive_service.py`, `tests/services/test_executive_service.py`.
   - *Depende de:* `M2-V3`
   - *Especificação Técnica Mastigada (Anti-Alucinação):*
-    - **1. Expansão de `query_top_drivers()` em [`src/services/executive_queries.py`](./src/services/executive_queries.py)**:
-      - Alterar assinatura para `by: Literal["product", "customer", "family", "sales_rep"] = "product"`.
-      - Quando `by == "family"`: agrupar por `p.family AS name`, com `COUNT(DISTINCT p.product_id) || ' SKUs ativos' AS secondary_label`.
-      - Quando `by == "sales_rep"`: fazer join com `gold.dim_sales_rep r ON f.sales_rep_id = r.sales_rep_id` e agrupar por `r.name AS name, r.region AS secondary_label`.
-    - **2. Propagação de `start_date_key` e `end_date_key` em `get_top_margin_drivers()`**:
-      - Adicionar `start_date_key: int | None = None` e `end_date_key: int | None = None` em `get_top_margin_drivers()` e repassá-los para `build_filter_clauses()` e nas chamadas dentro de `build_executive_dashboard()`.
-    - **3. Filtro de `families` em `get_abc_xyz_overview()`**:
-      - Adicionar parâmetro `families: Sequence[str] = ()` em `get_abc_xyz_overview()`. Se `families` não for vazio, filtrar `mart_df = mart_df[mart_df["family"].isin(families)]` antes de chamar `compute_abc_xyz_matrix_summary(mart_df)`.
-    - **4. Delta Dinâmico Real quando `comp_start_date_key is None` (Modo 24m / `"all"`)**:
+    - **1. Delta Dinâmico Real quando `comp_start_date_key is None` (Modo 24m / `"all"`)**:
       - Remover as constantes hardcoded (`4.4`, `3.8`, `1.8`, `-0.7`, `-7.1`) de `compute_executive_kpis()`. Quando `start_date_key is None` e `comp_start_date_key is None`, calcular os deltas comparando o **Ano 2 (`20240101` a `20241231`) contra o Ano 1 (`20230101` a `20231231`)** sob os mesmos filtros geográficos/família/RCA, ou retornar `None` caso o período anterior tenha receita zero.
-    - **5. Novos Campos em `ExecutivePageDTO` (`src/services/dto.py`)**:
-      - Adicionar `top_family_generators_df: pd.DataFrame = Field(default_factory=pd.DataFrame)`, `top_family_destroyers_df: pd.DataFrame = Field(default_factory=pd.DataFrame)`, `top_rep_generators_df: pd.DataFrame = Field(default_factory=pd.DataFrame)` e `top_rep_destroyers_df: pd.DataFrame = Field(default_factory=pd.DataFrame)`.
-    - **6. Enxugamento de `src/services/executive_service.py` (< 400 linhas)**:
-      - Consolidar funções redundantes e docstrings verbosas para que `executive_service.py` fique com **$\le 380$ linhas**.
-  - *DoD:* alterar `start_date_key`/`end_date_key` altera os DataFrames retornados por `get_top_margin_drivers`; filtrar `families` reduz a contagem de SKUs em `get_abc_xyz_overview`; `executive_service.py` possui < 400 linhas; `uv run pytest tests/services/test_executive_service.py -q` e `uv run mypy src` passam sem erros.
+    - **2. Termômetro de Metas (Pacing) em `ExecutiveKpisDTO`**:
+      - Adicionar campos `revenue_target_brl: float = 0.0`, `revenue_pacing_pct: float = 100.0`, `margin_target_pct: float = 26.0` e `projected_quarter_revenue_brl: float = 0.0` (meta derivada de $+8\%$ sobre a base comparativa ou média móvel sazonal; projeção de 30/60/90d calculada a partir do ritmo diário dos últimos 90 dias).
+    - **3. Radar de Anomalias (`query_prudence_anomalies()` em `executive_queries.py`)**:
+      - Detectar automaticamente via SQL de 3 a 5 alertas reais nos dados filtrados: (a) família com maior queda de `margin_pct` ou maior desconto médio no período; (b) RCA com maior desvio de desconto acima da mediana; (c) quantidade e R$ de clientes Classe A/Campeões que entraram em `delay_ratio > 1.5`. Retornar lista de DTOs/dicts ou `anomalies_df: pd.DataFrame` com `severity`, `category`, `title`, `impact_brl` e `recommendation`.
+    - **4. Função Pura de Simulação Rápida What-If (`simulate_quick_what_if()`)**:
+      - Recebe o `ExecutiveKpisDTO` base e 3 alavancas (`price_change_pct: float`, `discount_change_pp: float`, `commission_or_cost_change_pct: float`, `elasticity: float = -1.2`) e calcula instantaneamente: `simulated_revenue_brl`, `simulated_margin_brl`, `simulated_margin_pct`, `margin_delta_brl`, `breakeven_volume_pct` e `estimated_volume_pct`.
+    - **5. Propagação de Filtros e Expansão de `query_top_drivers()`**:
+      - Propagar `start_date_key` e `end_date_key` em `get_top_margin_drivers()` e adicionar suporte a `by: Literal["product", "customer", "family", "sales_rep"] = "product"` (reutilizado pela Página 3 — Justiça e pela Página 1). Filtrar `families` em `get_abc_xyz_overview()`.
+    - **6. Enxugamento (< 400 linhas)**:
+      - Manter `src/services/executive_service.py` e `src/services/executive_queries.py` estritamente abaixo de **380 linhas**.
+  - *DoD:* `simulate_quick_what_if` com alavancas em zero retorna `margin_delta_brl == 0.0`; `anomalies_df` retorna $\ge 2$ alertas reais; `executive_service.py` < 400 linhas; `uv run pytest tests/services/test_executive_service.py -q` e `uv run mypy src` passam.
 
-#### 🎨 Interface, UX & Visualização (`V`)
-
-- [ ] **R1-V1** *(REF-EXEC-02)* — **Enriquecimento do Waterfall (`R$` + `%`), Tendência Dupla com Linha de Meta e KPI Cards com Termômetro de Desconto/Caixas Master**: Atualizar `waterfall_margin` e `dual_trend` em `src/ui/components/charts.py` (removendo `iterrows`) e enriquecer os sub-rodapés dos 5 KPI Cards da Tela 1.
-  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P0**
-  - *Arquivos:* `src/ui/components/charts.py`, `src/services/executive_queries.py`, `tests/ui/test_charts.py`.
-  - *Depende de:* `R1-S1`
-  - *Especificação Técnica Mastigada (Anti-Alucinação):*
-    - **1. `waterfall_margin()` em [`src/ui/components/charts.py`](./src/ui/components/charts.py)**:
-      - Substituir o loop `for _, row in steps_df.iterrows():` por list comprehension vetorizada sobre `zip(steps_df["amount"], steps_df.get("pct_of_gross", ...))`.
-      - Formatar o texto exibido nas barras como `f"{format_brl(float(amt), compact=True, decimals=1)} ({float(pct):.1f}%)"` quando a coluna `pct_of_gross` estiver presente, permitindo ler instantaneamente quantos `%` da receita bruta são drenados em Descontos, Impostos, CPV, Comissões e Frete.
-    - **2. `dual_trend()` em [`src/ui/components/charts.py`](./src/ui/components/charts.py) e `query_monthly_trend()`**:
-      - Em `query_monthly_trend()`, adicionar `ROUND(SUM(discount_amount) / NULLIF(SUM(gross_revenue), 0) * 100.0, 1) AS avg_discount_pct` no `SELECT`.
-      - Em `dual_trend()`, adicionar uma linha horizontal tracejada (`fig.add_hline`) no eixo secundário (`yref="y2"`) marcando a **Média Ponderada de Margem % do Período** e exibir `Margem (R$)` e `Desconto Médio (%)` no hover de cada mês.
-  - *DoD:* zero ocorrências de `iterrows()` em `src/ui/components/charts.py`; barras do Waterfall exibem valor compacto e percentual; `uv run pytest tests/ui/test_charts.py -q` passa.
-
-- [ ] **R1-V2** *(REF-EXEC-03)* — **Modularização da Tela 1 (`executive_sections.py` < 400 linhas), 4 Abas de Drivers de Margem e Saneamento Dark Mode**: Extrair os blocos visuais da Tela 1 para `src/ui/components/executive_sections.py`, implementar as 4 abas de Geradores vs. Detratores (`Por Família`, `Por Produto`, `Por Lojista`, `Por Representante`) e substituir todas as cores hexadecimais fixas por variáveis `var(--kyb-*)`.
-  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
-  - *Arquivos:* `src/ui/components/executive_sections.py` (novo), `src/ui/pages/1_executive.py`, `tests/ui/test_executive_page.py`.
-  - *Depende de:* `R1-S1`, `R1-V1`
-  - *Especificação Técnica Mastigada (Anti-Alucinação):*
-    - **1. Sub-rodapés Executivos nos 5 KPI Cards**:
-      - **Card 1 (`Faturamento Bruto`)**: `subfooter_left=f"{format_int(int(dto.kpis.total_boxes))} cx ({format_int(dto.kpis.total_orders)} ped.)"`.
-      - **Card 4 (`Margem Líquida %`)**: calcular `disc_pct = dto.kpis.discount_amount / dto.kpis.gross_revenue * 100.0` e `comm_freight_pct = (dto.kpis.commission_amount + dto.kpis.freight_amount) / dto.kpis.gross_revenue * 100.0` e exibir `subfooter_left=f"Desc.: {disc_pct:.1f}% | Com.+Frete: {comm_freight_pct:.1f}%"`.
-    - **2. Quatro Abas na Seção `render_drivers_section()`**:
-      - Aba 1: `f"📂 Por {labels.product_family}"` (`dto.top_family_generators_df` e `dto.top_family_destroyers_df`).
-      - Aba 2: `"📦 Por Produto (SKU)"` (`dto.top_generators_df` e `dto.top_destroyers_df`).
-      - Aba 3: `f"👥 Por {labels.customer}"` (`dto.top_customer_generators_df` e `dto.top_customer_destroyers_df`).
-      - Aba 4: `f"🧑‍💼 Por {labels.sales_rep}"` (`dto.top_rep_generators_df` e `dto.top_rep_destroyers_df` — exibida quando `scenario.capabilities.rep_efficiency` for `True`).
-    - **3. Saneamento Dark Mode nos Banners**:
-      - No banner de contexto temporal e na manchete executiva, trocar `color: #475569` por `color: var(--kyb-text-muted)` e `color: #0d9488` por `color: var(--kyb-teal)`.
-    - **4. Limite de Linhas**:
-      - `src/ui/pages/1_executive.py` e `src/ui/components/executive_sections.py` devem ter cada um **$< 300$ linhas**.
-  - *DoD:* `1_executive.py` e `executive_sections.py` < 400 linhas; zero cores `#475569` ou `#0d9488` fixas em `1_executive.py`; AppTest da Tela 1 (`tests/ui/test_executive_page.py`) passa 100%.
-
----
-
-### 🟠 Onda R2 — Inteligência Acionável, Funil de Ciclo, White Space e RCAs na Tela 2 (Radar Comercial)
-
-> **Objetivo da Onda R2**: Destravar na interface da Tela 2 toda a riqueza analítica já calculada nos marts `mart_customer_risk`, `mart_rfm`, `mart_white_space` e `mart_rep_performance`: ativar a manchete dinâmica real, adicionar o 5º KPI Card (*Janela Ideal Pré-Churn*), criar os filtros táticos in-page, a Régua/Funil de Saúde do Ciclo de Recompra, o Explorador de Cross-Sell CNPJ a CNPJ com SKU Âncora + Pitch e reformular o Quadrante de RCAs com cores semânticas e eixos em português.
-
-#### 🧠 Serviços & Consultas Analíticas (`S` / `D`)
-
-- [ ] **R2-S1** *(REF-COM-01)* — **Queries do Funil de Ciclo (4 Estágios), Top Oportunidades White Space (SKU Âncora + Pitch) e Conexão Total de Filtros (`families`, `uf`, `quadrant`)**: Expandir `src/services/dto.py`, `src/services/commercial_queries.py`, `src/services/commercial_service.py` e `src/ui/cache.py` para alimentar os novos blocos prescritivos da Tela 2.
+- [x] **V1-S2** *(VIRTUS-JUST-01)* — **Motor de Justiça Comercial: Funil do Ciclo (4 Estágios), Campeões vs. Vampiros (4 Dimensões), Top White Space (SKU Âncora + Pitch), LTV/Retenção e Conexão Total de Filtros**: Expandir `src/services/dto.py`, `src/services/commercial_queries.py`, `src/services/commercial_service.py` e `src/ui/cache.py` para alimentar a **Página 3 — Justiça**.
   - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P0**
   - *Arquivos:* `src/services/dto.py`, `src/services/commercial_queries.py`, `src/services/commercial_service.py`, `src/ui/cache.py`, `tests/services/test_commercial_service.py`.
-  - *Depende de:* `M3-S4`
+  - *Depende de:* `M3-S4`, `V1-S1`
   - *Especificação Técnica Mastigada (Anti-Alucinação):*
-    - **1. Evolução dos DTOs em [`src/services/dto.py`](./src/services/dto.py)**:
-      - Em `CommercialKpisDTO`: adicionar `attention_customers: int = 0`, `attention_customers_pct: float = 0.0` e `attention_revenue_brl: float = 0.0` (clientes com `cr.risk_status == 'Atenção'`, isto é, $1,1 < \text{delay\_ratio} \le 1,5$).
-      - Em `CommercialPageDTO`: adicionar `cycle_funnel_df: pd.DataFrame = Field(default_factory=pd.DataFrame)` e `top_white_space_deals_df: pd.DataFrame = Field(default_factory=pd.DataFrame)`.
-    - **2. Novas Consultas e Ajustes em [`src/services/commercial_queries.py`](./src/services/commercial_queries.py)**:
-      - **`query_cycle_health_funnel()`**: agrupa os clientes da carteira filtrada pelos 4 estágios (`No Ciclo`, `Atenção`, `Em Risco Imediato`, `Adormecido / Perdido`), retornando `risk_status`, `customer_count`, `customer_share_pct`, `annual_revenue_brl`, `annual_margin_brl` e `avg_delay_ratio` ordenados na sequência lógica do funil (`CASE cr.risk_status WHEN 'No Ciclo' THEN 1 WHEN 'Atenção' THEN 2 WHEN 'Em Risco Imediato' THEN 3 ELSE 4 END`).
-      - **`query_top_white_space_deals()`**: consulta `gold.mart_white_space ws` com join em `dim_customer c`, `dim_sales_rep r` e `mart_rfm rfm`, filtrando por `regiao`, `uf`, `sales_reps`, `rfm_segment` e **`families`** (`ws.recommended_family IN (...)` quando `families` for selecionado na sidebar!). Retorna as top 100 recomendações (`rank_order = 1` ou maiores potenciais) com `customer_id`, `customer_name`, `state`, `sales_rep_name`, `rfm_segment`, `anchor_sku_name`, `recommended_family`, `recommended_top_sku`, `affinity_lift`, `potential_revenue_brl`, `potential_margin_brl` e `action_pitch`.
-      - **Ajuste em `query_priority_risk_customers()`**: incluir `ROUND(cr.churn_probability * 100.0, 1) AS churn_prob_pct`, `cr.prescription_action` e ordenar priorizando clientes com atraso (`ORDER BY CASE WHEN cr.delay_ratio > 1.1 THEN 0 ELSE 1 END ASC, cr.annual_revenue_at_risk DESC`).
-      - **Ajuste em `query_white_space_matrix_data()`**: aceitar e aplicar `families: Sequence[str] = ()` (`ws.recommended_family IN (...)`).
-      - **Ajuste em `query_rep_performance_data()`**: aceitar `uf: str = "Todas"` (filtrando representantes que atendem clientes naquela UF caso `uf != "Todas"`) e `quadrant: str = "Todos"`.
-    - **3. Atualização de `cached_commercial_dashboard()` em [`src/ui/cache.py`](./src/ui/cache.py)**:
-      - Adicionar parâmetros hasháveis `families: tuple[str, ...] = ()`, `risk_status: str = "Todos"` e `rfm_segment: str = "Todos"`.
-  - *DoD:* `cycle_funnel_df` soma 100% dos clientes filtrados; `top_white_space_deals_df` retorna `anchor_sku_name` e `action_pitch` não-vazios; filtro `families` filtra corretamente as recomendações White Space; todos os arquivos em `src/services/` permanecem `< 400 linhas`; `uv run pytest tests/services/test_commercial_service.py -q` passa.
+    - **1. Evolução de `CommercialKpisDTO` e `CommercialPageDTO` (`src/services/dto.py`)**:
+      - Em `CommercialKpisDTO`: adicionar `attention_customers: int = 0`, `attention_customers_pct: float = 0.0`, `attention_revenue_brl: float = 0.0` (`1.1 < delay_ratio <= 1.5`), `avg_ltv_brl: float = 0.0` e `vampire_customers_count: int = 0` (clientes com faturamento acima da mediana mas `margin_pct < 15.0%`).
+      - Em `CommercialPageDTO`: adicionar `cycle_funnel_df: pd.DataFrame`, `top_white_space_deals_df: pd.DataFrame`, `champions_df: pd.DataFrame` e `vampires_df: pd.DataFrame` (ou rankings por Família, SKU, Lojista e RCA).
+    - **2. Novas Consultas em [`src/services/commercial_queries.py`](./src/services/commercial_queries.py)**:
+      - **`query_cycle_health_funnel()`**: agrupa os clientes da carteira filtrada pelos 4 estágios (`No Ciclo`, `Atenção`, `Em Risco Imediato`, `Adormecido / Perdido`) com `customer_count`, `customer_share_pct`, `annual_revenue_brl`, `annual_margin_brl` e `avg_delay_ratio`.
+      - **`query_top_white_space_deals()`**: consulta `gold.mart_white_space ws` com join em `dim_customer`, `dim_sales_rep` e `mart_rfm`, filtrando por `regiao`, `uf`, `sales_reps`, `rfm_segment` e **`families`** (`ws.recommended_family IN (...)`), retornando `anchor_sku_name`, `recommended_family`, `recommended_top_sku`, `affinity_lift`, `potential_revenue_brl`, `potential_margin_brl` e `action_pitch`.
+      - **Enriquecimento de `query_rfm_summary()`**: adicionar cálculo de **LTV Estimado Médio (`estimated_ltv_brl`)** por segmento RFM (`ROUND(AVG(contribution_margin / GREATEST(churn_probability, 0.10)), 2)`).
+      - **Conexão de Filtros**: aplicar `families` em `query_white_space_matrix_data()` e `uf`/`quadrant` em `query_rep_performance_data()`.
+  - *DoD:* `cycle_funnel_df` soma 100% dos clientes filtrados; `top_white_space_deals_df` retorna `anchor_sku_name` e `action_pitch`; todos os arquivos em `src/services/` < 400 linhas; `uv run pytest tests/services/test_commercial_service.py -q` passa.
 
-#### 🎨 Gráficos & Interface da Tela 2 (`V`)
+#### 🎨 Identidade Visual & Interfaces de Prudência e Justiça (`V`)
 
-- [ ] **R2-V1** *(REF-COM-02)* — **Vetorização de `cycle_delay_scatter`, `rfm_treemap` por Margem Líquida e Reformulação do `quadrant_scatter` Colorido em Português**: Refatorar os 3 gráficos comerciais para eliminar `iterrows()`, corrigir títulos de eixo em inglês e aplicar cores semânticas por quadrante de RCA.
+- [x] **V1-V1** *(VIRTUS-PRUD-02)* — **Branding Virtus (`app.py`, `sidebar.py`, `logo.svg`) e Página 1 — 🦉 Prudência (`1_executive.py` + `prudence_sections.py`)**: Atualizar a navegação multipage para as **4 Virtudes Cardeais** e entregar a página **1. Prudência** completa com Pacing de Metas, Tendência Dupla com Meta + Projeção, Simulador What-If de 3 Alavancas e Radar de Anomalias.
   - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P0**
-  - *Arquivos:* `src/ui/components/commercial_charts.py`, `src/ui/components/charts.py`, `tests/ui/test_charts.py`.
-  - *Depende de:* `R2-S1`
+  - *Arquivos:* `src/ui/app.py`, `src/ui/components/sidebar.py`, `src/ui/assets/logo.svg`, `src/ui/assets/logo_dark.svg`, `src/ui/components/charts.py`, `src/ui/components/prudence_sections.py` (novo), `src/ui/pages/1_executive.py`, `tests/ui/test_executive_page.py`, `tests/ui/test_app.py`.
+  - *Depende de:* `V1-S1`
   - *Especificação Técnica Mastigada (Anti-Alucinação):*
-    - **1. `cycle_delay_scatter()` em [`src/ui/components/commercial_charts.py`](./src/ui/components/commercial_charts.py)**:
-      - Remover completamente `for _, row in subset.iterrows():`.
-      - Passar `customdata=subset[["customer_name", "state", "sales_rep_name", "recency_days", "expected_cycle_days", "delay_ratio", "annual_revenue_at_risk"]].to_numpy()` e usar `hovertemplate` nativo do Plotly.
-      - Adicionar linha guia pontilhada amarela para `y = 1.1x` (*Início da Janela Ideal de Abordagem*) além de `y = 1.0x` (*No Ciclo*) e `y = 1.5x` (*Risco Crítico*).
-    - **2. `rfm_treemap()` em [`src/ui/components/commercial_charts.py`](./src/ui/components/commercial_charts.py)**:
-      - Alterar `plot_df["size_val"] = np.maximum(plot_df["contribution_margin"], 1.0)` (tamanho = **Margem de Contribuição Líquida R$**, alinhado ao princípio *"Margem acima de Volume"*).
-      - Passar `customdata` vetorizado e atualizar `hovertemplate` para mostrar: **Segmento**, **Nº de Clientes (`% da carteira`)**, **Margem de Contribuição (R$ e %)**, **Faturamento Bruto (R$)**, **Ticket Médio (R$)** e **Clientes em Risco no Segmento**.
-    - **3. `quadrant_scatter()` em [`src/ui/components/charts.py`](./src/ui/components/charts.py)**:
-      - Adicionar parâmetros opcionais `xaxis_title: str = "Faturamento Bruto (R$)"`, `yaxis_title: str = "Margem Líquida (%)"` e `quadrant_col: str | None = "quadrant"`.
-      - Quando `quadrant_col` estiver presente no DataFrame, plotar uma trace por quadrante com cores executivas distintas:
-        - `"Estrela"`: `tokens["positive"]` (Verde Esmeralda)
-        - `"Volume sem margem"`: `tokens["negative"]` (Coral / Vermelho)
-        - `"Margem sem volume"`: `tokens["teal_500"]` (Azul Petróleo / Teal)
-        - `"Atenção"`: `tokens["warning"]` (Âmbar / Dourado)
-      - Adicionar anotações discretas (`fig.add_annotation`) nos 4 cantos do gráfico identificando visualmente cada quadrante e exibir no hover todas as métricas do RCA (`Faturamento`, `Margem %`, `Desconto Médio %`, `Positivação %`, `R$ em Risco`).
-  - *DoD:* zero ocorrências de `iterrows()` em `commercial_charts.py`; eixos de `quadrant_scatter` em português; 4 cores distintas por quadrante; testes em `tests/ui/test_charts.py` passam.
+    - **1. Navegação Virtus em [`src/ui/app.py`](./src/ui/app.py)**:
+      - `page_title="Virtus · Decision Intelligence (by Kyberna)"`, `page_icon="🏛️"`.
+      - Configurar `st.navigation(pages)` na sequência canônica das 4 Virtudes:
+        1. `1_executive.py` $\rightarrow$ `title="1. Prudência · Direção"`, `icon="🦉"`, `default=True`
+        2. `4_simulator.py` $\rightarrow$ `title="2. Fortaleza · Caixa & Risco"`, `icon="🛡️"`
+        3. `2_commercial_radar.py` $\rightarrow$ `title="3. Justiça · Comercial & Valor"`, `icon="⚖️"`
+        4. `3_inventory_demand.py` $\rightarrow$ `title="4. Temperança · Eficiência"`, `icon="🏺"`
+    - **2. Logotipo SVG (`logo.svg` e `logo_dark.svg`)**:
+      - Atualizar wordmark para **"VIRTUS"** com subtítulo **"DECISION INTELLIGENCE · BY KYBERNA"**.
+    - **3. Estrutura da Página 1 — 🦉 Prudência (`1_executive.py` + `prudence_sections.py` < 350 linhas)**:
+      - Título principal: `"🦉 1. Prudência — Visão Executiva, Previsibilidade & Direção"` (mantendo compatibilidade com testes de renderização).
+      - **5 KPI Cards com Pacing e Sub-rodapé Executivo**: Faturamento Bruto (com Caixas Master e `% da Meta`), Receita Líquida (com `% Impostos`), Margem de Contribuição R$, Margem Líquida % (com `Desc.: X% | Com.+Frete: Y%`) e Projeção de Fechamento 30d / Clientes Ativos.
+      - **Tendência Dupla + Linha de Meta (`dual_trend` sem `iterrows`)**: histórico mensal de Faturamento vs. Margem % com linha horizontal tracejada da Meta de Margem e destaque do ritmo projetado.
+      - **Simulador Executivo de Cenários What-If (`@st.fragment`)**: 3 controles deslizantes rápidos (*Variação de Preço %*, *Desconto Comercial Adicional %*, *Ajuste de Comissão/Custo %*) exibindo em tempo real os cards Antes $\times$ Depois e o veredito de **Volume de Equilíbrio (Breakeven)**.
+      - **Radar de Anomalias (Alertas de Prudência)** + Demonstrativo Mensal / Matriz Resumo.
+      - Substituir todas as cores fixas (`#475569`, `#0d9488`) por `var(--kyb-text-muted)` e `var(--kyb-teal)`.
+  - *DoD:* zero `iterrows()` em `charts.py`; `1_executive.py` e `prudence_sections.py` < 400 linhas; testes em `tests/ui/test_executive_page.py` e `tests/ui/test_app.py` passam 100%.
 
-- [ ] **R2-V2** *(REF-COM-03)* — **Topo Executivo da Tela 2: Manchete Dinâmica Real, Banner de Escopo, 5 KPI Cards, Filtros Táticos In-Page, Funil de Ciclo e Tabela Caixa-Branca**: Atualizar a primeira metade da Tela 2 (`2_commercial_radar.py` + `src/ui/components/commercial_sections.py`).
+- [x] **V1-V2** *(VIRTUS-JUST-02)* — **Gráficos Vetorizados e Página 3 — Justiça (`2_commercial_radar.py` + `justice_sections.py`)**: Vetorizar `cycle_delay_scatter`, `rfm_treemap` (por Margem Líquida) e `quadrant_scatter` (4 cores em pt-BR) e construir a página **3. Justiça** unindo Campeões vs. Vampiros (4 Abas), Quadrante da Força de Vendas, Saúde da Carteira (Funil do Ciclo + RFM + LTV) e Explorador White Space (SKU Âncora + Pitch).
   - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P0**
-  - *Arquivos:* `src/ui/components/commercial_sections.py` (novo), `src/ui/pages/2_commercial_radar.py`.
-  - *Depende de:* `R2-S1`, `R2-V1`
+  - *Arquivos:* `src/ui/components/commercial_charts.py`, `src/ui/components/charts.py`, `src/ui/components/justice_sections.py` (novo), `src/ui/pages/2_commercial_radar.py`, `tests/ui/test_charts.py`, `tests/ui/test_commercial_page.py`.
+  - *Depende de:* `V1-S2`, `V1-V1`
   - *Especificação Técnica Mastigada (Anti-Alucinação):*
-    - **1. Banner de Escopo & Data-Âncora + Manchete Dinâmica Real**:
-      - Exibir no topo o banner compacto de contexto (`⚓ Data-Âncora: 31/12/2024 | 📍 Escopo: Região/UF/RCA | 👥 Carteira: N clientes`).
-      - Renderizar `dto.headline_title` e `dto.headline_text` (vindos do `CommercialPageDTO`) acompanhados de `info_tooltip_html(...)` (`ⓘ`), eliminando o texto estático duplicado.
-    - **2. Barra de Filtros Táticos In-Page**:
-      - Em um container horizontal de 3 colunas acima dos KPIs, disponibilizar:
-        - `st.selectbox("Filtrar Status do Ciclo", ["Todos", "Atenção", "Em Risco Imediato", "Adormecido / Perdido", "No Ciclo"], key="_com_risk_filter")`
-        - `st.selectbox("Filtrar Segmento RFM", ["Todos", "Campeões", "Não Pode Perder", "Fiéis", "Em Risco", "Precisam de Atenção", "Promissores", "Hibernando", "Perdidos", "Novos Clientes"], key="_com_rfm_filter")`
-        - Botão ou indicador rápido do total de clientes filtrados.
-    - **3. Faixa de 5 KPI Cards Executivos**:
-      - **Card 1 (`Lojistas em Risco Crítico`)**: `at_risk_customers` (`delay_ratio > 1.5`), rodapé `% da carteira`, accent `"red"`.
-      - **Card 2 (`Receita Anual em Risco`)**: `annual_revenue_at_risk_brl`, rodapé `Margem: R$ X`, accent `"gold"`.
-      - **Card 3 (`Janela Ideal (Pré-Churn)`)**: `attention_customers` (`1.1 < delay_ratio <= 1.5`), rodapé `Faturamento: R$ Y (Abordar já!)`, accent `"brass"`.
-      - **Card 4 (`Potencial White Space`)**: `white_space_potential_revenue_brl`, rodapé `Margem: R$ Z`, accent `"teal"`.
-      - **Card 5 (`Positivação da Carteira`)**: `avg_positivation_pct`, rodapé `ativos de total`, accent `"green"`.
-    - **4. Régua / Funil Visual de Saúde do Ciclo de Recompra (4 Estágios)**:
-      - Renderizar barra/cards compactos horizontais com os 4 estágios de `dto.cycle_funnel_df` (🟢 *No Ciclo*, 🟡 *Janela Ideal 1,1x–1,5x*, 🟠 *Em Risco Imediato 1,5x–2,5x*, 🔴 *Adormecido >2,5x*) mostrando quantidade de CNPJs, `%` e R$ anualizado em cada estágio.
-    - **5. Tabela Priorizada de Risco Caixa-Branca**:
-      - Exibir colunas: `Lojista`, `UF`, `RCA`, `Segmento RFM`, `Status`, `Dias s/ Comprar` (`recency_days`), `Ciclo Esperado` (`expected_cycle_days`), `Atraso` (`delay_ratio`), `Prob. Churn %` (`churn_prob_pct`), `R$ em Risco` e `Oportunidade Mix`.
-  - *DoD:* `dto.headline_title` renderizado na página; 5 KPI cards com `.kyb-info-icon`; filtros in-page funcionais atualizando os dados via `cached_commercial_dashboard`.
-
-- [ ] **R2-V3** *(REF-COM-04)* — **Explorador Acionável de Cross-Sell (White Space com SKU Âncora + Pitch), Tabela Resumo RFM e Tabela Completa de RCAs**: Atualizar a segunda metade da Tela 2 para expor as oportunidades individuais de White Space e as métricas completas de eficiência de representantes.
-  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
-  - *Arquivos:* `src/ui/components/commercial_sections.py`, `src/ui/pages/2_commercial_radar.py`, `tests/ui/test_commercial_page.py`.
-  - *Depende de:* `R2-V2`
-  - *Especificação Técnica Mastigada (Anti-Alucinação):*
-    - **1. Seção RFM & White Space Enriquecida**:
-      - Abaixo do `rfm_treemap` e `white_space_heatmap`, adicionar 2 abas/expanders táticos:
-        - **Aba `🎯 Top Oportunidades de Cross-Sell (CNPJ a CNPJ)`**: renderiza `dto.top_white_space_deals_df` mostrando `Lojista`, `UF`, `RCA`, `Segmento RFM`, **`Já Compra (SKU Âncora)`** (`anchor_sku_name`), **`Ofertar Família`** (`recommended_family`), **`SKU Sugerido`** (`recommended_top_sku`), **`Lift Apriori`** (`affinity_lift`), **`Potencial (R$)`** (`potential_revenue_brl`), **`Margem Potencial (R$)`** (`potential_margin_brl`) e **`Argumento de Venda (Pitch)`** (`action_pitch`).
-        - **Aba `📊 Resumo Executivo dos 9 Segmentos RFM`**: renderiza `dto.rfm_summary_df` formatado com `Segmento`, `Clientes`, `% Carteira`, `Faturamento Bruto`, `Margem Contr. (R$)`, `Margem %`, `Ticket Médio` e `Clientes em Risco`.
-    - **2. Seção de Eficiência de RCAs Enriquecida**:
-      - Na tabela ao lado do `quadrant_scatter`, incluir as colunas: `RCA`, `Quadrante`, `Positivação %` (`positivation_pct`), `Mix (Fam./Cli)` (`avg_families_per_customer`), `Faturamento` (`gross_revenue`), `Desc. Médio %` (`avg_discount_pct`), `Margem %` (`margin_pct`), `Risco Carteira (R$)` (`revenue_at_risk_brl`), `White Space (R$)` (`white_space_potential_brl`) e `Ação Recomendada` (`action_prescription`).
-    - **3. Limite de Linhas**:
-      - Garantir que `src/ui/pages/2_commercial_radar.py` e `src/ui/components/commercial_sections.py` tenham cada um **$< 350$ linhas**.
-  - *DoD:* tabela de oportunidades White Space exibe `SKU Âncora` e `Argumento de Venda`; tabela de RCAs exibe `Positivação %` e `Mix`; `2_commercial_radar.py` e `commercial_sections.py` < 400 linhas; `uv run pytest tests/ui/test_commercial_page.py -q` passa.
+    - **1. Refatoração dos Gráficos (`commercial_charts.py` e `charts.py`)**:
+      - Remover `for _, row in subset.iterrows():` de `cycle_delay_scatter()`, usando `customdata` vetorizado e adicionando linha guia para `1.1x` (*Janela Ideal*).
+      - Em `rfm_treemap()`, definir tamanho por **Margem de Contribuição Líquida (`contribution_margin`)** e exibir LTV estimado no hover.
+      - Em `quadrant_scatter()`, traduzir eixos para português (`"Faturamento Bruto (R$)"`, `"Margem Líquida (%)"`) e colorir cada quadrante (*Estrela* = verde, *Volume sem margem* = vermelho, *Margem sem volume* = azul/teal, *Atenção* = âmbar).
+    - **2. Estrutura da Página 3 — Justiça (`2_commercial_radar.py` + `justice_sections.py` < 350 linhas)**:
+      - Banner de Escopo + Manchete Dinâmica Real (`dto.headline_title` / `dto.headline_text`) + Filtros Táticos In-Page (*Status do Ciclo* e *Segmento RFM*).
+      - **5 KPI Cards de Justiça Comercial**: *Lojistas em Risco Crítico*, *Receita Anual em Risco*, *Janela Ideal Pré-Churn (1,1x–1,5x)*, *Potencial White Space (R$)* e *Positivação & LTV Médio*.
+      - **Bloco 1 — Matriz de Rentabilidade (Campeões vs. "Vampiros")**: as **4 Abas de Geradores vs. Detratores de Margem** (`Por Família`, `Por Produto (SKU)`, `Por Lojista`, `Por Representante`), separando quem gera lucro líquido de quem drena margem.
+      - **Bloco 2 — Justiça da Força de Vendas (Performance Comercial)**: `quadrant_scatter` colorido + tabela completa de RCAs com `Positivação %`, `Mix (Fam./Cli)`, `Desc. Médio %`, `Margem %` e `Risco Carteira`.
+      - **Bloco 3 — Saúde da Base de Clientes & Eficiência de Retenção**: Funil de 4 Estágios do Ciclo de Recompra + Tabela Caixa-Branca + `rfm_treemap` + `white_space_heatmap` + Aba de **Top Oportunidades Cross-Sell CNPJ a CNPJ (`SKU Âncora` + `Pitch`)** e Aba de **Retenção & LTV por Segmento RFM**.
+  - *DoD:* zero `iterrows()` em `commercial_charts.py`; `2_commercial_radar.py` e `justice_sections.py` < 400 linhas; testes em `tests/ui/test_charts.py` e `tests/ui/test_commercial_page.py` passam 100%.
 
 ---
 
-### 🟢 Onda R3 — Saneamento Cross-Page, Auditoria de Limites (< 400 linhas) e Blindagem de Testes
+### 🟠 Onda V2 — Parâmetros de Capital de Giro, Estoque e Página 4 (**Temperança**)
 
-> **Objetivo da Onda R3**: Garantir que todas as alterações das Ondas R1 e R2 passem com 100% de cobertura nos testes automatizados (`services` + `ui`), zero violações de lint/tipagem (`ruff`, `mypy --strict`), zero `iterrows()` e sincronização documental com o `TASKS.md`.
+> **Objetivo da Onda V2**: Criar a base de parâmetros financeiros de governança (`config/finance/working_capital.yaml`) e o snapshot determinístico de estoque (`inventory_snapshot.py`), implementando a **Página 4 — Temperança** (`3_inventory_demand.py`) focada em estancar desperdícios: **Waterfall da Erosão Comercial**, **Auditoria de Descontos Acima da Política**, **Matriz ABC/XYZ + Capital Imobilizado (> 120 dias) vs. Ruptura Curva A** e **Vazamentos Financeiros de Prazo**.
 
-- [ ] **R3-V1** *(REF-QA-01)* — **Validação Integrada Dark Mode, Checagem de Limite de 400 Linhas, Suíte Completa `pytest` e Sincronização com `TASKS.md`**: Executar bateria de testes automatizados para Telas 1 e 2, validar ausência de cores chumbadas ou arquivos acima do limite nas camadas de `services` e `ui`, e atualizar o status de `M3-V1` no `TASKS.md`.
-  - *Avaliação:* 🎯 ⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
-  - *Arquivos:* `tests/ui/test_executive_page.py`, `tests/ui/test_commercial_page.py`, `tests/ui/test_app.py`, `TASKS.md`, `TASKS_REFACTORY.md`.
-  - *Depende de:* `R1-V2`, `R2-V3`
+#### 🗄️ Engenharia de Dados & Finanças (`D`)
+
+- [ ] **V2-D1** *(VIRTUS-FIN-01 + M4-D2)* — **Parâmetros de Capital de Giro (`working_capital.yaml`) e Snapshot Determinístico de Posição de Estoque (`inventory_snapshot.py`)**: Criar o arquivo de configuração financeira de governança e materializar `gold.inventory_snapshot` no DuckDB e Parquet.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P0**
+  - *Arquivos:* `config/finance/working_capital.yaml` (novo), `src/etl/gold/inventory_snapshot.py`, `src/etl/contracts.py` (`GoldInventorySnapshotSchema`), `src/etl/gold/star_schema.py`, `tests/etl/test_inventory_snapshot.py`.
+  - *Depende de:* `M2-D5`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. `config/finance/working_capital.yaml`**:
+      - Definir por cenário (`c1_toys`, `c2_beverages`, `c3_retail_chain`, `c4_single_store`):
+        - `fixed_cost_pct_of_avg_net_revenue`: ex. `0.14` (14% da receita líquida média mensal como Custo Fixo Estrutural para cálculo do Break-Even) e `cash_reserve_months_target: 3.5`.
+        - `pmr_days_by_size`: `{"P": 28, "M": 42, "G": 56}`, `high_discount_rep_extra_pmr_days: 18`, `standard_term_days: 30`.
+        - `pmp_supplier_days`: `35` (Prazo Médio de Pagamento a fornecedores).
+        - `monthly_capital_cost_rate`: `0.0135` (1,35% a.m. para cálculo do Custo Financeiro do Prazo Excedente).
+    - **2. `src/etl/gold/inventory_snapshot.py` (`build_inventory_snapshot`)**:
+      - Calcular `avg_daily_demand_90d` por `(product_id, branch_id)` a partir de `gold.fact_sales`.
+      - Ordenar SKUs por `product_id` e atribuir `coverage_days` determinístico (`seed=42`): 10% em `[1.0, 7.0]` (ruptura iminente), 60% em `[15.0, 60.0]` (saudável), 15% em `[60.1, 120.0]` (atenção) e 15% em `[125.0, 320.0]` (capital travado > 120d).
+      - Persistir `gold.inventory_snapshot` e `<scenario_id>.inventory_snapshot` no `kyberna.duckdb` e exportar Parquet Zstandard.
+  - *DoD:* `GoldInventorySnapshotSchema` valida 100%; proporções de estoque dentro de $\pm 3\text{ p.p.}$; `uv run pytest tests/etl/test_inventory_snapshot.py -q` passa.
+
+#### 🧠 Serviços & Interface de Temperança (`S` / `V`)
+
+- [ ] **V2-S1** *(VIRTUS-TEMP-01)* — **Serviço de Temperança (`temperance_service.py` + `temperance_queries.py`): Erosão Comercial, Descontos Acima da Política, Vazamentos Financeiros e Capital Imobilizado**: Implementar o serviço puro da **Página 4 — Temperança**.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P0**
+  - *Arquivos:* `src/services/dto.py` (`TemperanceKpisDTO`, `TemperancePageDTO`), `src/services/temperance_queries.py` (novo), `src/services/temperance_service.py` (novo), `src/ui/cache.py` (`cached_temperance_dashboard`), `tests/services/test_temperance_service.py` (novo).
+  - *Depende de:* `V2-D1`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. Métricas Calculadas em `TemperanceKpisDTO` e `TemperancePageDTO`**:
+      - **Erosão Comercial Total (`total_commercial_erosion_brl`)**: soma de `discount_amount + freight_amount + commission_amount` e Waterfall completo (`waterfall_df` com `amount` e `pct_of_gross`).
+      - **Desconto Fora da Política (`excess_discount_brl`)**: cruzando `gold.fact_sales f` com `gold.dim_customer c` e os tetos de `config/finance/discounts.yaml` (`P: 3%`, `M: 6%`, `G: 10%`), soma o valor em R$ concedido acima do teto do porte do cliente (`SUM(GREATEST(0.0, f.discount_amount - f.gross_revenue * policy_cap_rate))`), agrupado por RCA e por Família (`policy_violations_df`).
+      - **Vazamento Financeiro de Prazo (`financial_term_leak_brl`)**: custo financeiro de prazos concedidos acima de 30 dias usando `working_capital.yaml`.
+      - **Temperança de Estoque (`locked_capital_brl`, `stockout_risk_skus_count`, `abc_xyz_summary_df`, `inventory_items_df`)**: cruza `gold.inventory_snapshot` com `gold.mart_abc_xyz` e `gold.dim_product`, calculando `locked_capital_brl` (excesso $>120\text{d} \times \text{unit\_cost}$), SKUs Classe A em Ruptura Iminente (`coverage_days <= lead_time_days`) com sugestão de reposição em **Caixas Master**, e prescrição de queima/liquidação para SKUs `CZ`/`BY` travados.
+  - *DoD:* `SUM(locked_capital_brl)` positivo e consistente com `inventory_snapshot`; `excess_discount_brl` identifica os RCAs com viés agressivo de desconto; arquivos < 400 linhas; `uv run pytest tests/services/test_temperance_service.py -q` passa.
+
+- [ ] **V2-V1** *(VIRTUS-TEMP-02)* — **Página 4 — 🏺 Temperança (`3_inventory_demand.py` + `temperance_sections.py`)**: Construir a interface completa de **4. Temperança — Eficiência, Controle de Excessos e Desperdícios**.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
+  - *Arquivos:* `src/ui/components/temperance_sections.py` (novo), `src/ui/pages/3_inventory_demand.py`, `tests/ui/test_temperance_page.py` (novo).
+  - *Depende de:* `V2-S1`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. 5 KPI Cards de Temperança**:
+      - *Sangria Comercial (Descontos)* (`discount_amount` e `% Bruto`), *Desconto Fora da Política* (`excess_discount_brl`, accent `"red"`), *Capital Travado (> 120 dias)* (`locked_capital_brl`, accent `"gold"`), *Ruptura Iminente (Curva A)* (`stockout_risk_skus_count` e Receita Protegida R$) e *Vazamento Financeiro de Prazo* (`financial_term_leak_brl`).
+    - **2. Seção 1 — Erosão Comercial & Disciplina de Política**:
+      - Gráfico **Waterfall da Margem Real (`R$` e `%`)** lado a lado com o ranking/gráfico de **Violação de Teto de Desconto e Vazamento de Prazo por RCA e Família**.
+    - **3. Seção 2 — Temperança de Estoque & Matriz ABC/XYZ (`@st.fragment`)**:
+      - **Heatmap ABC/XYZ 3x3 interativo** + duas abas acionáveis:
+        - `🛑 Capital Imobilizado (> 120 dias)`: SKUs superestocados com R$ travado e prescrição (*Kit Promocional / Bonificação / Liquidação*).
+        - `🚨 Semáforo de Ruptura (Curva A/B)`: SKUs com cobertura menor que o Lead Time, exibindo **Ordem Sugerida em Caixas Master** e **Receita Protegida (R$)**.
+    - **4. Veredito de Temperança (`render_prescription_box`)**: quantifica o total em R$ recuperável somando o fim dos descontos fora do teto + liberação de 25% do estoque travado.
+  - *DoD:* `3_inventory_demand.py` e `temperance_sections.py` < 400 linhas; 100% dos KPIs e cabeçalhos com `.kyb-info-icon`; AppTest em `tests/ui/test_temperance_page.py` passa sem erros.
+
+---
+
+### 🟢 Onda V3 — Página 2 (**Fortaleza**: Solidez de Caixa, NCG & Risco) e Blindagem Cross-Page
+
+> **Objetivo da Onda V3**: Completar o fluxo das 4 Virtudes implementando a **Página 2 — Fortaleza** (`4_simulator.py` + `fortitude_service.py`) com Fôlego de Caixa, Dia do Break-Even Mensal, Ciclo Financeiro ($\text{PME} + \text{PMR} - \text{PMP}$), Necessidade de Capital de Giro (NCG), Risco de Concentração (Top 5/10) e Aging List da Carteira, fechando com validação 100% verde de `pytest`, `mypy` e `ruff`.
+
+#### 🧠 Serviços & Interface de Fortaleza (`S` / `V`)
+
+- [ ] **V3-S1** *(VIRTUS-FORT-01)* — **Serviço de Fortaleza (`fortitude_service.py` + `fortitude_queries.py`): Fôlego de Caixa, Break-Even Mensal, Ciclo Financeiro (NCG), Risco de Concentração e Aging List**: Implementar o serviço puro da **Página 2 — Fortaleza**.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
+  - *Arquivos:* `src/services/dto.py` (`FortitudeKpisDTO`, `FortitudePageDTO`), `src/services/fortitude_queries.py` (novo), `src/services/fortitude_service.py` (novo), `src/ui/cache.py` (`cached_fortitude_dashboard`), `tests/services/test_fortitude_service.py` (novo).
+  - *Depende de:* `V2-D1`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. Cálculos Canônicos em `FortitudeKpisDTO` e `FortitudePageDTO` (§6.5 do `VISION.md`)**:
+      - **Ponto de Equilíbrio (`breakeven_revenue_brl` e `breakeven_day_of_month`)**: usando o Custo Fixo do período (`working_capital.yaml`) e a `margin_pct` real da seleção, calcula a receita mínima para pagar 100% da estrutura e o **Dia do Mês do Break-Even** (`int(np.clip(np.ceil(30.0 * breakeven_revenue / max(monthly_gross_rev, 1.0)), 1, 30))`).
+      - **Fôlego de Caixa (`cash_runway_months` e `free_cash_generation_brl`)**: geração operacional líquida ($\text{Margem de Contribuição} - \text{Custos Fixos}$) e meses de sobrevivência cobertos pela reserva operacional.
+      - **Ciclo Financeiro e NCG (`pme_days`, `pmr_days`, `pmp_days`, `cash_conversion_cycle_days`, `ncg_brl`)**:
+        - `pme_days`: média ponderada de `coverage_days` de `gold.inventory_snapshot`.
+        - `pmr_days`: média ponderada do prazo de recebimento dos pedidos em `gold.fact_sales` segundo o porte do cliente e o RCA (`working_capital.yaml`).
+        - `pmp_days`: prazo médio de pagamento a fornecedores (`35` dias no C1).
+        - `cash_conversion_cycle_days = pme_days + pmr_days - pmp_days`.
+        - `ncg_brl`: capital de giro exigido em R$ para financiar os dias do ciclo financeiro.
+      - **Risco de Concentração (`concentration_df`, `top5_customers_share_pct`, `top10_customers_share_pct`, `top2_families_share_pct`)**: participação acumulada dos Top Clientes, Top RCAs e Top Famílias na Receita e na Margem.
+      - **Aging List / Saúde de Recebíveis e Carteira (`aging_buckets_df`)**: distribuição da carteira e da receita exposta nas faixas *Em Dia / No Ciclo*, *15–30 dias (Atenção)*, *31–60 dias (Risco Imediato)* e *> 60 dias (Crítico / Adormecido)*.
+  - *DoD:* equações de Break-Even e Ciclo Financeiro ($\text{PME} + \text{PMR} - \text{PMP}$) validadas por testes unitários; arquivos < 400 linhas; `uv run pytest tests/services/test_fortitude_service.py -q` passa.
+
+- [ ] **V3-V1** *(VIRTUS-FORT-02 + QA)* — **Página 2 — 🛡️ Fortaleza (`4_simulator.py` + `fortitude_sections.py`), Saneamento Dark Mode Global e Blindagem `pytest`**: Construir a interface da **Página 2 — Fortaleza** e validar as **4 Páginas do Virtus** ponta a ponta.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
+  - *Arquivos:* `src/ui/components/fortitude_sections.py` (novo), `src/ui/pages/4_simulator.py`, `tests/ui/test_fortitude_page.py` (novo), `tests/ui/test_app.py`, `TASKS.md`, `TASKS_REFACTORY.md`.
+  - *Depende de:* `V1-V2`, `V2-V1`, `V3-S1`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. Estrutura da Página 2 — 🛡️ Fortaleza (`4_simulator.py` + `fortitude_sections.py` < 350 linhas)**:
+      - **5 KPI Cards de Fortaleza**: *Dia do Break-Even Mensal* (ex.: `"Dia 18 do mês"`, rodapé `Meta: R$ X`), *Geração Livre de Caixa* (`free_cash_generation_brl` e `Runway: Y meses`), *Ciclo Financeiro de Caixa* (`cash_conversion_cycle_days` dias, rodapé `PME + PMR - PMP`), *Necessidade de Cap. Giro (NCG)* (`ncg_brl`) e *Concentração Top 10 Clientes* (`top10_customers_share_pct`).
+      - **Seção 1 — Ciclo Financeiro (PME, PMR, PMP) & Ponto de Equilíbrio Mensal**: gráfico horizontal comparativo das barras de PME + PMR vs. PMP e curva acumulada do Break-Even no mês.
+      - **Seção 2 — Risco de Concentração (Dependência) & Aging List da Carteira**: gráfico/tabela de concentração (Top Clientes / Famílias / RCAs) ao lado do gráfico de faixas de Aging (*Em Dia*, *15–30d*, *31–60d*, *> 60d*).
+      - **Veredito de Fortaleza (`render_prescription_box`)**: recomendação quantificada em R$ de liberação de NCG ao reduzir o PMR médio e o PME.
+    - **2. Auditoria Global de Qualidade (`Ruff`, `Mypy`, `Pytest`, `< 400 linhas`, Dark Mode)**:
+      - Garantir que todos os arquivos em `src/services/` e `src/ui/` possuam estritamente `< 400 linhas`, zero `iterrows()` e zero cores hexadecimais chumbadas fora de `theme.py`.
   - *DoD:*
     - `uv run ruff check .` e `uv run ruff format --check .` passam sem alertas;
     - `uv run mypy src` retorna 0 erros;
-    - `uv run pytest -q` (incluindo `tests/services` e `tests/ui`) 100% verde;
-    - Todos os arquivos em `src/services/` e `src/ui/` possuem estritamente `< 400 linhas`;
-    - Tarefa `M3-V1` marcada como `[x]` em `TASKS.md` e ondas `R1`..`R3` marcadas como `[x]` em `TASKS_REFACTORY.md`.
+    - `uv run pytest -q` (incluindo `tests/services` e `tests/ui` nas 4 páginas Virtus) 100% verde;
+    - Tarefas `M3-V1` e `M4-D2` sincronizadas como `[x]` em `TASKS.md`.
 
 ---
 
-## 📌 Achados & Observações Técnicas da Refatoração
+## 📌 Achados & Observações Técnicas da Remodelagem
 
-- `[2026-11-06]` (`R1-S1`) `src/services/executive_service.py` atingiu 494 linhas e `src/ui/pages/1_executive.py` atingiu 441 linhas após a inclusão do demonstrativo mensal na `M3-S3` — resolvido estruturalmente nas tarefas `R1-S1` e `R1-V2` com a extração de `src/ui/components/executive_sections.py`.
-- `[2026-11-06]` (`R2-V1`) Identificado uso residual de `df.iterrows()` em `charts.py` e `commercial_charts.py` e títulos de eixo em inglês em `quadrant_scatter` — endereçado em `R1-V1` e `R2-V1`.
+- `[2026-11-06]` (`V1-S1`) `src/services/executive_service.py` atingiu 494 linhas e `src/ui/pages/1_executive.py` atingiu 441 linhas após a inclusão do demonstrativo mensal na `M3-S3` — resolvido estruturalmente nas tarefas `V1-S1` e `V1-V1` com a extração de `src/ui/components/prudence_sections.py`.
+- `[2026-11-06]` (`V1-V2`) Identificado uso residual de `df.iterrows()` em `charts.py` e `commercial_charts.py` e títulos de eixo em inglês em `quadrant_scatter` — endereçado em `V1-V1` e `V1-V2`.
+- `[2026-11-09]` (`Virtus Architecture`) Aprovada a remodelagem estratégica das 4 páginas da aplicação para o framework de governança **Virtus** (**1. Prudência**, **2. Fortaleza**, **3. Justiça**, **4. Temperança**), mantendo os caminhos físicos dos 4 módulos em `src/ui/pages/` e reordenando a apresentação via `st.navigation` em `src/ui/app.py`.
 
 ---
 
 ## 📝 Registro Histórico de Mudanças (Changelog da Refatoração)
 
-- **v0.3.1-refactory** *(Planejado — Aguardando início da execução)*:
-  - **[2026-11-06] Criação do Plano de Refatoração (`TASKS_REFACTORY.md`)**: Estruturação das ondas `R1`, `R2` e `R3` a partir da auditoria crítica de produto, dados e UX sobre a Visão Executiva (Tela 1) e o Radar Comercial (Tela 2).
-
+- **v0.4.0-virtus** *(Onda V1 100% Concluída — Identidade Virtus, 1. Prudência e 3. Justiça)*:
+  - **[2026-11-09] Conclusão da Onda V1 (`V1-S1`, `V1-V1`, `V1-S2`, `V1-V2`)**:
+    - **Identidade e Navegação**: Reestruturação das 4 páginas em torno das **4 Virtudes Cardeais** (**1. Prudência**, **2. Fortaleza**, **3. Justiça**, **4. Temperança**), logotipo atualizado para "VIRTUS (by Kyberna)", remoção total de emojis para garantia de sobriedade corporativa B2B e unificação dos ícones de informação com a classe `.kyb-info-icon` (contraste perfeito claro/escuro).
+    - **1. Prudência (`1_executive.py` + `prudence_sections.py`)**: Pacing de Metas, Decomposição Waterfall, Tendência Dupla com Meta, Simulador Executivo What-If de 3 Alavancas (Breakeven Rápido), Radar de Anomalias SQL, Demonstrativo Mensal e Matriz 3x3 ABC/XYZ com políticas de sortimento.
+    - **3. Justiça (`2_commercial_radar.py` + `justice_sections.py`)**: Funil de 4 Estágios do Ciclo de Recompra, Matriz de Rentabilidade (Campeões vs. Vampiros em 4 Abas), Justiça da Força de Vendas (Quadrante colorido por mérito de margem + Tabela de RCAs), Dispersão de Atraso e Treemap RFM dimensionado por Margem Líquida com LTV Médio e Matriz White Space com SKU Âncora e Pitch Comercial.
+    - **Saneamento e Performance**: 100% dos arquivos com estritamente $< 400$ linhas, zero `df.iterrows()`, MyPy strict aprovado com 0 erros em 72 módulos e 100% dos testes unitários e de UI verdes.
+  - **[2026-11-09] Remodelagem do Plano para o Sistema Virtus (`TASKS_REFACTORY.md`)**: Substituição da divisão departamental tradicional pelas **4 Virtudes Cardeais da Governança** (**1. Prudência**, **2. Fortaleza**, **3. Justiça** e **4. Temperança**), integrando o saneamento analítico das Telas 1 e 2 com os novos indicadores de Pacing, Ciclo Financeiro (NCG), Break-Even, Risco de Concentração, Auditoria de Excesso de Desconto e Capital Imobilizado (`working_capital.yaml` + `inventory_snapshot.py`).
+  - **[2026-11-06] Criação Inicial do Plano de Refatoração (`v0.3.1-refactory`)**: Auditoria crítica de produto, dados e UX sobre a Visão Executiva e o Radar Comercial.
