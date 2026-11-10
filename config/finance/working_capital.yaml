@@ -1,0 +1,45 @@
+version: 1
+
+defaults: &defaults
+  fixed_cost_pct_of_avg_net_revenue: 0.14  # 14% da receita líquida média como custo fixo mensal (base Break-Even)
+  cash_reserve_months_target: 3.5          # Meta de segurança operacional (3,5 meses de despesas fixas)
+  standard_term_days: 30                   # Prazo comercial padrão de boleto
+  pmr_days_by_size:
+    P: 28
+    M: 42
+    G: 56
+  high_discount_rep_extra_pmr_days: 18     # RCAs com viés de desconto concedem prazo esticado
+  pmp_supplier_days: 35                    # Prazo médio de pagamento a fornecedores
+  monthly_capital_cost_rate: 0.0135        # 1,35% a.m. (custo financeiro de carregamento de prazo)
+  lead_time_days_default: 14
+  lead_time_days_by_family:
+    "Jogos Educativos": 14
+    "Jogos de Tabuleiro": 7
+    "Brinquedos de Madeira": 21
+    "Quebra-Cabeças": 10
+    "Pelúcias": 21
+    "Primeira Infância": 15
+    "Linha Escolar": 14
+    "Bonecas e Pelúcias": 21
+    "Veículos e Pistas": 15
+    "Blocos de Montar": 10
+    "Fantasias e Faz de Conta": 21
+
+c1_toys:
+  <<: *defaults
+  fixed_cost_pct_of_avg_net_revenue: 0.14
+
+c2_beverages:
+  <<: *defaults
+  fixed_cost_pct_of_avg_net_revenue: 0.16
+  pmp_supplier_days: 28
+
+c3_retail_chain:
+  <<: *defaults
+  fixed_cost_pct_of_avg_net_revenue: 0.12
+  pmp_supplier_days: 45
+
+c4_single_store:
+  <<: *defaults
+  fixed_cost_pct_of_avg_net_revenue: 0.20
+  pmp_supplier_days: 21

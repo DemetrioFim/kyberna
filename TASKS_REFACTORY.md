@@ -160,7 +160,7 @@ flowchart LR
 
 #### 🗄️ Engenharia de Dados & Finanças (`D`)
 
-- [ ] **V2-D1** *(VIRTUS-FIN-01 + M4-D2)* — **Parâmetros de Capital de Giro (`working_capital.yaml`) e Snapshot Determinístico de Posição de Estoque (`inventory_snapshot.py`)**: Criar o arquivo de configuração financeira de governança e materializar `gold.inventory_snapshot` no DuckDB e Parquet.
+- [x] **V2-D1** *(VIRTUS-FIN-01 + M4-D2)* — **Parâmetros de Capital de Giro (`working_capital.yaml`) e Snapshot Determinístico de Posição de Estoque (`inventory_snapshot.py`)**: Criar o arquivo de configuração financeira de governança e materializar `gold.inventory_snapshot` no DuckDB e Parquet.
   - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P0**
   - *Arquivos:* `config/finance/working_capital.yaml` (novo), `src/etl/gold/inventory_snapshot.py`, `src/etl/contracts.py` (`GoldInventorySnapshotSchema`), `src/etl/gold/star_schema.py`, `tests/etl/test_inventory_snapshot.py`.
   - *Depende de:* `M2-D5`
@@ -262,6 +262,13 @@ flowchart LR
 ---
 
 ## 📝 Registro Histórico de Mudanças (Changelog da Refatoração)
+
+- **v0.4.1-working-capital** *(Onda V2: V2-D1 / M4-D2 Concluída)*:
+  - **[2026-11-10] Conclusão de V2-D1 (`M4-D2`)**:
+    - **Parâmetros de Governança Financeira (`config/finance/working_capital.yaml`)**: Configuração declarativa de custos fixos operacionais (% da receita líquida média), fôlego de caixa (runway target: 3,5 meses), prazos médios de recebimento (PMR por porte P/M/G e penalidade por RCA de desconto excessivo), prazo médio de pagamento (PMP fornecedores: 35 dias), taxa financeira mensal de prazo (1,35% a.m.) e lead times de fornecimento por família de produto.
+    - **Snapshot Sintético Determinístico de Estoque (`src/etl/gold/inventory_snapshot.py`)**: Materialização física e contábil de 397 SKUs a partir do ritmo de vendas dos últimos 90 dias em `gold.fact_sales`. Amostragem determinística (`seed=42`) dividida estritamente nas 4 faixas de cobertura logística (Ruptura iminente ≤7d: 10,1%; Saudável: 59,9%; Atenção: 15,1%; Capital Travado >120d: 14,9% e R$ 50.991,52 equivalentes a 15,1% do estoque contábil total).
+    - **Modularização de Contratos (`src/etl/gold_contracts.py`)**: Extração de `gold_contracts.py` (232 linhas) e refatoração de `contracts.py` (243 linhas), mantendo ambos estritamente abaixo do limite de 400 linhas com validação `GoldInventorySnapshotSchema`.
+    - **Integração CLI e Testes Automatizados**: Comando `uv run kyberna gold inventory-snapshot` integrado ao Typer e ao pipeline `gold build`. Suíte unitária `tests/etl/test_inventory_snapshot.py` 100% verde (5 testes).
 
 - **v0.4.0-virtus** *(Onda V1 100% Concluída — Identidade Virtus, 1. Prudência e 3. Justiça)*:
   - **[2026-11-09] Conclusão da Onda V1 (`V1-S1`, `V1-V1`, `V1-S2`, `V1-V2`)**:

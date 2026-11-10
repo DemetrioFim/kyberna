@@ -9,6 +9,7 @@ from src.core.logging import setup_logging, timed_step
 from src.core.paths import get_duckdb_path, get_project_root
 from src.core.scenarios import list_scenario_configs, load_scenario_config
 from src.etl.audit import generate_audit_report
+from src.etl.gold.inventory_snapshot import build_inventory_snapshot
 from src.etl.gold.marts import build_gold_marts
 from src.etl.gold.star_schema import build_gold_star_schema
 from src.etl.ingest.fixture import generate_fixture
@@ -273,13 +274,17 @@ def gold_build(
                     # 3. Marts analíticos Gold
                     mart_counts = build_gold_marts(con, scenario_id="c1_toys")
 
+                    # 4. Snapshot de estoque Gold
+                    inv_df = build_inventory_snapshot(con, scenario_id="c1_toys")
+
                     typer.echo(
                         f"Cenário C1 (Brinquedos) construído com sucesso:\n"
                         f"  - Star Schema: {star_counts['dim_product']:,} produtos, "
                         f"{star_counts['dim_customer']:,} clientes, "
                         f"{star_counts['fact_sales']:,} vendas faturadas.\n"
                         f"  - Marts: {mart_counts['mart_margin_monthly']:,} registros mensais agregados, "
-                        f"{mart_counts.get('mart_abc_xyz', 0):,} SKUs classificados em ABC/XYZ."
+                        f"{mart_counts.get('mart_abc_xyz', 0):,} SKUs classificados em ABC/XYZ.\n"
+                        f"  - Estoque: {len(inv_df):,} SKUs com snapshot físico e contábil."
                     )
                 finally:
                     con.close()
@@ -287,6 +292,39 @@ def gold_build(
             # TODO(M6-D1 / M6-D2 / M6-D3): Builders para os demais cenários (C2, C3, C4)
             msg = f"Builder para o cenário '{scn}' será implementado nos próximos marcos."
             raise NotImplementedError(msg)
+
+
+@gold_app.command("inventory-snapshot")
+def gold_inventory_snapshot(
+    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
+    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
+    seed: int = typer.Option(42, "--seed", help="Semente pseudo-aleatória determinística"),
+) -> None:
+    """Gera o snapshot diário de posição física e contábil de estoque."""
+    con = duckdb.connect(str(get_duckdb_path()))
+    try:
+        with timed_step("gold_inventory_snapshot"):
+            df = build_inventory_snapshot(
+                con,
+                scenario_id=scenario,  # type: ignore[arg-type]
+                as_of_date=as_of,
+                seed=seed,
+            )
+
+        total_value = float(df["stock_value_brl"].sum())
+        locked_df = df[df["coverage_days"] > 120.0]
+        locked_val = float(locked_df["stock_value_brl"].sum())
+        rupture_df = df[df["coverage_days"] <= 7.0]
+
+        typer.echo(
+            f"\nSnapshot de Estoque gerado com sucesso para '{scenario}' ({len(df):,} SKUs):\n"
+            f"  - Valor Total em Estoque: R$ {total_value:,.2f}\n"
+            f"  - Capital Travado (>120d): R$ {locked_val:,.2f} "
+            f"({locked_val / total_value * 100:.1f}% do total em {len(locked_df)} SKUs)\n"
+            f"  - Ruptura Iminente (<=7d): {len(rupture_df)} SKUs em risco de desabastecimento"
+        )
+    finally:
+        con.close()
 
 
 # ------------------------------------------------------------------------------
