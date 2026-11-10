@@ -158,3 +158,50 @@ class CommercialPageDTO(BaseModel):
     prescription_html: str
     prescription_impact_brl: float | None = None
     as_of_date_label: str = "31/12/2024"
+
+
+class TemperanceKpisDTO(BaseModel):
+    """Métricas consolidadas de controle de excessos, desperdícios e estoques."""
+
+    # 1. Erosão Comercial
+    gross_revenue: float
+    total_commercial_erosion_brl: float  # discount + commission + freight
+    total_commercial_erosion_pct: float  # erosion / gross * 100
+    discount_amount: float
+    discount_pct_of_gross: float
+
+    # 2. Disciplina de Descontos e Prazos
+    excess_discount_brl: float  # concedido acima do teto de tabela por porte
+    excess_discount_pct_of_discount: float
+    financial_term_leak_brl: float  # custo de carregamento para prazos > 30d
+    freight_erosion_brl: float
+    commission_erosion_brl: float
+
+    # 3. Temperança de Estoque
+    total_stock_value_brl: float
+    locked_capital_brl: float  # estoque em SKUs com cobertura > 120d
+    locked_skus_count: int
+    stockout_risk_skus_count: int  # SKUs Curva A com cobertura <= lead_time
+    stockout_risk_revenue_brl: float  # receita estimada em risco de ruptura
+
+
+class TemperancePageDTO(BaseModel):
+    """Payload completo e tipado consumido pela Página 4 — Temperança."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    scenario_id: ScenarioId
+    kpis: TemperanceKpisDTO
+    headline_title: str
+    headline_text: str
+    waterfall_df: pd.DataFrame
+    policy_violations_by_rep_df: pd.DataFrame
+    policy_violations_by_family_df: pd.DataFrame
+    term_leak_by_rep_df: pd.DataFrame
+    locked_inventory_df: pd.DataFrame
+    stockout_risk_df: pd.DataFrame
+    abc_xyz_summary_df: pd.DataFrame
+    prescription_title: str
+    prescription_html: str
+    prescription_impact_brl: float | None = None
+    as_of_date_label: str = "31/12/2024"

@@ -179,7 +179,7 @@ flowchart LR
 
 #### 🧠 Serviços & Interface de Temperança (`S` / `V`)
 
-- [ ] **V2-S1** *(VIRTUS-TEMP-01)* — **Serviço de Temperança (`temperance_service.py` + `temperance_queries.py`): Erosão Comercial, Descontos Acima da Política, Vazamentos Financeiros e Capital Imobilizado**: Implementar o serviço puro da **Página 4 — Temperança**.
+- [x] **V2-S1** *(VIRTUS-TEMP-01)* — **Serviço de Temperança (`temperance_service.py` + `temperance_queries.py`): Erosão Comercial, Descontos Acima da Política, Vazamentos Financeiros e Capital Imobilizado**: Implementar o serviço puro da **Página 4 — Temperança**.
   - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P0**
   - *Arquivos:* `src/services/dto.py` (`TemperanceKpisDTO`, `TemperancePageDTO`), `src/services/temperance_queries.py` (novo), `src/services/temperance_service.py` (novo), `src/ui/cache.py` (`cached_temperance_dashboard`), `tests/services/test_temperance_service.py` (novo).
   - *Depende de:* `V2-D1`
@@ -263,7 +263,12 @@ flowchart LR
 
 ## 📝 Registro Histórico de Mudanças (Changelog da Refatoração)
 
-- **v0.4.1-working-capital** *(Onda V2: V2-D1 / M4-D2 Concluída)*:
+- **v0.4.1-working-capital** *(Onda V2: V2-D1 / M4-D2 e V2-S1 Concluídas)*:
+  - **[2026-11-10] Conclusão de V2-S1 (`VIRTUS-TEMP-01`)**:
+    - **Serviço Puro de Temperança (`src/services/temperance_service.py` e queries modulares)**: Implementação da inteligência de estancamento de sangrias financeiras para a Página 4. Consolidação das 3 fontes de vazamento de margem: (1) Erosão Comercial total no Waterfall contábil de 9 etapas (R$ 2,66 mi ou 13,5% do faturamento bruto); (2) Auditoria de descontos concedidos fora da política comercial (R$ 380,08 mil concedidos acima do teto de porte P/M/G de `discounts.yaml`, isolando o ranking de RCAs indisciplinados como RCA-025, RCA-028 e RCA-019); (3) Custo financeiro do dinheiro no tempo em prazos médios esticados além de 30 dias (R$ 129,16 mil calculados com base na taxa de 1,35% a.m. de `working_capital.yaml`).
+    - **Temperança de Estoque Prescritiva**: Integração com `gold.inventory_snapshot` identificando 59 SKUs com mais de 120 dias de cobertura (R$ 50,99 mil travados) e 37 SKUs da Curva A/B com estoque físico inferior ao lead time do fornecedor (com geração automática de ordens sugeridas de ressuprimento em caixas master).
+    - **Modularização Estrita (< 400 linhas)**: Divisão limpa em `temperance_queries.py` (354 linhas) e `temperance_inventory_queries.py` (181 linhas), além de `dto.py` (207 linhas) e `temperance_service.py` (173 linhas).
+    - **Cache e Suíte de Testes**: Função `@st.cache_data` `cached_temperance_dashboard` em `src/ui/cache.py` e 7 testes unitários dedicados em `tests/services/test_temperance_service.py` 100% aprovados.
   - **[2026-11-10] Conclusão de V2-D1 (`M4-D2`)**:
     - **Parâmetros de Governança Financeira (`config/finance/working_capital.yaml`)**: Configuração declarativa de custos fixos operacionais (% da receita líquida média), fôlego de caixa (runway target: 3,5 meses), prazos médios de recebimento (PMR por porte P/M/G e penalidade por RCA de desconto excessivo), prazo médio de pagamento (PMP fornecedores: 35 dias), taxa financeira mensal de prazo (1,35% a.m.) e lead times de fornecimento por família de produto.
     - **Snapshot Sintético Determinístico de Estoque (`src/etl/gold/inventory_snapshot.py`)**: Materialização física e contábil de 397 SKUs a partir do ritmo de vendas dos últimos 90 dias em `gold.fact_sales`. Amostragem determinística (`seed=42`) dividida estritamente nas 4 faixas de cobertura logística (Ruptura iminente ≤7d: 10,1%; Saudável: 59,9%; Atenção: 15,1%; Capital Travado >120d: 14,9% e R$ 50.991,52 equivalentes a 15,1% do estoque contábil total).
