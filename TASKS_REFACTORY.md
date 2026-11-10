@@ -191,7 +191,7 @@ flowchart LR
       - **Temperança de Estoque (`locked_capital_brl`, `stockout_risk_skus_count`, `abc_xyz_summary_df`, `inventory_items_df`)**: cruza `gold.inventory_snapshot` com `gold.mart_abc_xyz` e `gold.dim_product`, calculando `locked_capital_brl` (excesso $>120\text{d} \times \text{unit\_cost}$), SKUs Classe A em Ruptura Iminente (`coverage_days <= lead_time_days`) com sugestão de reposição em **Caixas Master**, e prescrição de queima/liquidação para SKUs `CZ`/`BY` travados.
   - *DoD:* `SUM(locked_capital_brl)` positivo e consistente com `inventory_snapshot`; `excess_discount_brl` identifica os RCAs com viés agressivo de desconto; arquivos < 400 linhas; `uv run pytest tests/services/test_temperance_service.py -q` passa.
 
-- [ ] **V2-V1** *(VIRTUS-TEMP-02)* — **Página 4 — 🏺 Temperança (`3_inventory_demand.py` + `temperance_sections.py`)**: Construir a interface completa de **4. Temperança — Eficiência, Controle de Excessos e Desperdícios**.
+- [x] **V2-V1** *(VIRTUS-TEMP-02)* — **Página 4 — 🏺 Temperança (`3_inventory_demand.py` + `temperance_sections.py` + `temperance_inventory_section.py`)**: Construir a interface completa de **4. Temperança — Eficiência, Controle de Excessos e Desperdícios**.
   - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
   - *Arquivos:* `src/ui/components/temperance_sections.py` (novo), `src/ui/pages/3_inventory_demand.py`, `tests/ui/test_temperance_page.py` (novo).
   - *Depende de:* `V2-S1`
@@ -263,7 +263,14 @@ flowchart LR
 
 ## 📝 Registro Histórico de Mudanças (Changelog da Refatoração)
 
-- **v0.4.1-working-capital** *(Onda V2: V2-D1 / M4-D2 e V2-S1 Concluídas)*:
+- **v0.4.1-working-capital** *(Onda V2: V2-D1, V2-S1 e V2-V1 100% Concluídas)*:
+  - **[2026-11-10] Conclusão de V2-V1 (`VIRTUS-TEMP-02`)**:
+    - **Página 4 Completa — Temperança (`src/ui/pages/3_inventory_demand.py`)**: Interface de alto impacto orientada à disciplina de margem e auditoria operacional, sem emojis em títulos e em conformidade estrita com o Design System Kyberna.
+    - **5 KPI Cards com Alinhamento Executivo e Ícones de Informação**: *Erosão Comercial Total* (R$ e % do faturamento bruto), *Descontos Fora de Tabela* (R$ concedido acima do teto de porte, accent red), *Custo de Prazo Esticado* (R$ em carregamento financeiro de boletos >30d), *Capital Travado (>120d)* (R$ a custo contábil e contagem de SKUs imobilizados) e *Ruptura Iminente (Curva A)* (SKUs com estoque físico menor ou igual ao lead time de ressuprimento).
+    - **Erosão Comercial e Auditoria de Política Comercial**: Gráfico Waterfall vertical dinâmico com porcentagem de perda em relação à receita bruta em cada degrau, integrado lado a lado com painel tabulado com ranking de violações por Representante (RCA), violações por Família de produto e Custo Financeiro por Prazo Excedente.
+    - **Gestão Prescritiva de Estoque & Matriz ABC/XYZ (`temperance_inventory_section.py`)**: `@st.fragment` com Heatmap interativo 3x3 cruzando relevância financeira e variabilidade de demanda, acompanhado de 2 abas operacionais prontas para ação: *Capital Imobilizado* (SKUs parados há mais de 120 dias com prescrição de liquidação imediata) e *Semáforo de Ruptura* (SKUs Curva A/B com ordem sugerida de reposição calculada em **Caixas Master**).
+    - **Veredito Executivo de Temperança**: Caixa analítica quantificada projetando recuperação de até R$ 278,8 mil no caixa operacional estancando concessões fora da política e realizando liquidação planejada do estoque travado.
+    - **Modularidade e Testes de UI**: Divisão modular em `temperance_sections.py` (308 linhas) e `temperance_inventory_section.py` (147 linhas) respeitando o teto de 400 linhas. Teste de ponta a ponta `tests/ui/test_temperance_page.py` com `AppTest` 100% verde.
   - **[2026-11-10] Conclusão de V2-S1 (`VIRTUS-TEMP-01`)**:
     - **Serviço Puro de Temperança (`src/services/temperance_service.py` e queries modulares)**: Implementação da inteligência de estancamento de sangrias financeiras para a Página 4. Consolidação das 3 fontes de vazamento de margem: (1) Erosão Comercial total no Waterfall contábil de 9 etapas (R$ 2,66 mi ou 13,5% do faturamento bruto); (2) Auditoria de descontos concedidos fora da política comercial (R$ 380,08 mil concedidos acima do teto de porte P/M/G de `discounts.yaml`, isolando o ranking de RCAs indisciplinados como RCA-025, RCA-028 e RCA-019); (3) Custo financeiro do dinheiro no tempo em prazos médios esticados além de 30 dias (R$ 129,16 mil calculados com base na taxa de 1,35% a.m. de `working_capital.yaml`).
     - **Temperança de Estoque Prescritiva**: Integração com `gold.inventory_snapshot` identificando 59 SKUs com mais de 120 dias de cobertura (R$ 50,99 mil travados) e 37 SKUs da Curva A/B com estoque físico inferior ao lead time do fornecedor (com geração automática de ordens sugeridas de ressuprimento em caixas master).

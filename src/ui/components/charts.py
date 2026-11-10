@@ -26,8 +26,21 @@ def waterfall_margin(
         fig.update_layout(template=template_name, title="Sem dados para o Waterfall")
         return fig
 
-    # Textos dos valores para exibição direta nas barras (vetorizado)
-    text_values = [format_brl(float(val), compact=True, decimals=1) for val in steps_df["amount"]]
+    # Textos dos valores para exibição direta nas barras (vetorizado com suporte a % de receita bruta)
+    if "pct_of_gross" in steps_df.columns:
+        text_values = [
+            f"{format_brl(float(val), compact=True, decimals=1)} ({float(pct):.1f}%)"
+            if m == "relative"
+            else format_brl(float(val), compact=True, decimals=1)
+            for val, pct, m in zip(
+                steps_df["amount"],
+                steps_df["pct_of_gross"],
+                steps_df["measure"],
+                strict=False,
+            )
+        ]
+    else:
+        text_values = [format_brl(float(val), compact=True, decimals=1) for val in steps_df["amount"]]
 
     fig = go.Figure(
         go.Waterfall(
