@@ -147,6 +147,42 @@ def render_champions_vampires_section(dto: CommercialPageDTO, labels: ScenarioLa
                 render_margin_drivers_table(dest_df, is_generator=False)
 
 
+def render_sales_reps_table(dto: CommercialPageDTO, rep_label: str) -> None:
+    """Renderiza a tabela de desempenho dos RCAs com scroll interno."""
+    if dto.rep_performance_df.empty:
+        st.info("Nenhum dado de representantes disponível no filtro.")
+        return
+    df = dto.rep_performance_df
+    target_cols = [
+        "sales_rep_name",
+        "quadrant",
+        "gross_revenue",
+        "margin_pct",
+        "avg_discount_pct",
+        "revenue_at_risk_brl",
+        "action_prescription",
+    ]
+    cols = [c for c in target_cols if c in df.columns]
+    rep_display_df = df[cols].copy()
+
+    rep_cfg: dict[str, Any] = {
+        "sales_rep_name": st.column_config.TextColumn(rep_label),
+        "quadrant": st.column_config.TextColumn("Quadrante"),
+        "gross_revenue": st.column_config.NumberColumn("Faturamento", format="R$ %,.2f"),
+        "margin_pct": st.column_config.NumberColumn("Margem %", format="%.1f%%"),
+        "avg_discount_pct": st.column_config.NumberColumn("Desconto Médio", format="%.1f%%"),
+        "revenue_at_risk_brl": st.column_config.NumberColumn("Risco Carteira", format="R$ %,.2f"),
+        "action_prescription": st.column_config.TextColumn("Ação Recomendada", width="medium"),
+    }
+    st.dataframe(
+        rep_display_df,
+        use_container_width=True,
+        hide_index=True,
+        height=210,
+        column_config={k: v for k, v in rep_cfg.items() if k in cols},
+    )
+
+
 def render_sales_rep_justice_section(
     dto: CommercialPageDTO,
     rep_label: str,
@@ -184,45 +220,45 @@ def render_sales_rep_justice_section(
             st.info("Nenhum dado de representantes disponível no filtro.")
 
     with col_tbl:
-        st.markdown(
-            "<span style='font-size: 0.9rem; font-weight: 600; color: var(--kyb-text);'>"
-            f"Diagnóstico e Prescrição por {rep_label}"
-            "</span>",
-            unsafe_allow_html=True,
-        )
+        render_sales_reps_table(dto, rep_label)
 
-        if not dto.rep_performance_df.empty:
-            df = dto.rep_performance_df
-            target_cols = [
-                "sales_rep_name",
-                "quadrant",
-                "gross_revenue",
-                "margin_pct",
-                "avg_discount_pct",
-                "revenue_at_risk_brl",
-                "action_prescription",
-            ]
-            cols = [c for c in target_cols if c in df.columns]
-            rep_display_df = df[cols].copy()
 
-            rep_cfg: dict[str, Any] = {
-                "sales_rep_name": st.column_config.TextColumn(rep_label),
-                "quadrant": st.column_config.TextColumn("Quadrante"),
-                "gross_revenue": st.column_config.NumberColumn("Faturamento", format="R$ %,.2f"),
-                "margin_pct": st.column_config.NumberColumn("Margem %", format="%.1f%%"),
-                "avg_discount_pct": st.column_config.NumberColumn("Desconto Médio", format="%.1f%%"),
-                "revenue_at_risk_brl": st.column_config.NumberColumn("Risco Carteira", format="R$ %,.2f"),
-                "action_prescription": st.column_config.TextColumn("Ação Recomendada", width="medium"),
-            }
-            active_rep_cfg: dict[str, Any] = {k: v for k, v in rep_cfg.items() if k in cols}
+def render_critical_customers_table(dto: CommercialPageDTO, customer_label: str) -> None:
+    """Renderiza a tabela de clientes críticos com scroll interno."""
+    if dto.priority_risk_df.empty:
+        st.info("Nenhum cliente em risco encontrado para o filtro selecionado.")
+        return
+    df = dto.priority_risk_df
+    target_cols = [
+        "customer_name",
+        "state",
+        "sales_rep_name",
+        "risk_status",
+        "delay_ratio",
+        "annual_revenue_at_risk",
+        "top_opportunity_family",
+        "top_opportunity_brl",
+    ]
+    cols = [c for c in target_cols if c in df.columns]
+    display_df = df[cols].copy()
 
-            st.dataframe(
-                rep_display_df,
-                use_container_width=True,
-                hide_index=True,
-                height=380,
-                column_config=active_rep_cfg,
-            )
+    cust_cfg: dict[str, Any] = {
+        "customer_name": st.column_config.TextColumn(customer_label),
+        "state": st.column_config.TextColumn("UF", width="small"),
+        "sales_rep_name": st.column_config.TextColumn("RCA"),
+        "risk_status": st.column_config.TextColumn("Status"),
+        "delay_ratio": st.column_config.NumberColumn("Atraso", format="%.2fx"),
+        "annual_revenue_at_risk": st.column_config.NumberColumn("R$ em Risco", format="R$ %,.2f"),
+        "top_opportunity_family": st.column_config.TextColumn("Oportunidade Mix"),
+        "top_opportunity_brl": st.column_config.NumberColumn("Potencial R$", format="R$ %,.2f"),
+    }
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        hide_index=True,
+        height=210,
+        column_config={k: v for k, v in cust_cfg.items() if k in cols},
+    )
 
 
 def render_portfolio_health_section(
@@ -240,67 +276,56 @@ def render_portfolio_health_section(
         ),
     )
 
-    # 1. Funil horizontal do ciclo
     if not dto.cycle_funnel_df.empty:
         fig_funnel = cycle_health_funnel_chart(dto.cycle_funnel_df, theme_mode=theme_mode)
         st.plotly_chart(fig_funnel, use_container_width=True)
 
-    # 2. Clientes em risco e dispersão de atraso
     col_table, col_scatter = st.columns([1.1, 0.9])
-
     with col_table:
-        st.markdown(
-            "<span style='font-size: 0.9rem; font-weight: 600; color: var(--kyb-text);'>"
-            "Clientes Críticos Ordenados por R$ em Risco"
-            "</span>",
-            unsafe_allow_html=True,
-        )
-
-        if not dto.priority_risk_df.empty:
-            df = dto.priority_risk_df
-            target_cols = [
-                "customer_name",
-                "state",
-                "sales_rep_name",
-                "risk_status",
-                "delay_ratio",
-                "annual_revenue_at_risk",
-                "top_opportunity_family",
-                "top_opportunity_brl",
-            ]
-            cols = [c for c in target_cols if c in df.columns]
-            display_df = df[cols].copy()
-
-            cust_cfg: dict[str, Any] = {
-                "customer_name": st.column_config.TextColumn(customer_label),
-                "state": st.column_config.TextColumn("UF", width="small"),
-                "sales_rep_name": st.column_config.TextColumn("RCA"),
-                "risk_status": st.column_config.TextColumn("Status"),
-                "delay_ratio": st.column_config.NumberColumn("Atraso", format="%.2fx"),
-                "annual_revenue_at_risk": st.column_config.NumberColumn("R$ em Risco", format="R$ %,.2f"),
-                "top_opportunity_family": st.column_config.TextColumn("Oportunidade Mix"),
-                "top_opportunity_brl": st.column_config.NumberColumn("Potencial R$", format="R$ %,.2f"),
-            }
-            active_cust_cfg: dict[str, Any] = {k: v for k, v in cust_cfg.items() if k in cols}
-
-            st.dataframe(
-                display_df,
-                use_container_width=True,
-                hide_index=True,
-                height=380,
-                column_config=active_cust_cfg,
-            )
-        else:
-            st.info("Nenhum cliente em risco encontrado para o filtro selecionado.")
-
+        render_critical_customers_table(dto, customer_label)
     with col_scatter:
         fig_scatter = cycle_delay_scatter(dto.priority_risk_df, theme_mode=theme_mode)
         st.plotly_chart(fig_scatter, use_container_width=True)
 
-    # 3. Treemap RFM
-    st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top: 0.5rem;'></div>", unsafe_allow_html=True)
     fig_rfm = rfm_treemap(dto.rfm_summary_df, theme_mode=theme_mode)
     st.plotly_chart(fig_rfm, use_container_width=True)
+
+
+def render_white_space_deals_table(dto: CommercialPageDTO, customer_label: str) -> None:
+    """Renderiza a tabela de oportunidades White Space com scroll interno."""
+    if dto.top_white_space_deals_df.empty:
+        st.info("Nenhuma oportunidade White Space mapeada no recorte selecionado.")
+        return
+    df = dto.top_white_space_deals_df
+    target_cols = [
+        "customer_name",
+        "recommended_family",
+        "anchor_sku_name",
+        "recommended_top_sku",
+        "potential_revenue_brl",
+        "affinity_lift",
+        "action_pitch",
+    ]
+    cols = [c for c in target_cols if c in df.columns]
+    deals_df = df[cols].copy()
+
+    col_cfg: dict[str, Any] = {
+        "customer_name": st.column_config.TextColumn(customer_label),
+        "recommended_family": st.column_config.TextColumn("Família Ausente"),
+        "anchor_sku_name": st.column_config.TextColumn("Perfil / Âncora"),
+        "recommended_top_sku": st.column_config.TextColumn("SKU Recomendado"),
+        "potential_revenue_brl": st.column_config.NumberColumn("Potencial", format="R$ %,.2f"),
+        "affinity_lift": st.column_config.NumberColumn("Lift Afinidade", format="%.2fx"),
+        "action_pitch": st.column_config.TextColumn("Argumento Comercial (Pitch)", width="large"),
+    }
+    st.dataframe(
+        deals_df,
+        use_container_width=True,
+        hide_index=True,
+        height=210,
+        column_config={k: v for k, v in col_cfg.items() if k in cols},
+    )
 
 
 def render_white_space_opportunities_section(
@@ -319,50 +344,8 @@ def render_white_space_opportunities_section(
     )
 
     col_heat, col_deals = st.columns([0.9, 1.1])
-
     with col_heat:
         fig_ws = white_space_heatmap(dto.white_space_matrix_df, theme_mode=theme_mode)
         st.plotly_chart(fig_ws, use_container_width=True)
-
     with col_deals:
-        st.markdown(
-            "<span style='font-size: 0.9rem; font-weight: 600; color: var(--kyb-text);'>"
-            "Top Oportunidades com SKU Âncora e Argumento de Venda"
-            "</span>",
-            unsafe_allow_html=True,
-        )
-
-        if not dto.top_white_space_deals_df.empty:
-            df = dto.top_white_space_deals_df
-            target_cols = [
-                "customer_name",
-                "recommended_family",
-                "anchor_sku_name",
-                "recommended_top_sku",
-                "potential_revenue_brl",
-                "affinity_lift",
-                "action_pitch",
-            ]
-            cols = [c for c in target_cols if c in df.columns]
-            deals_df = df[cols].copy()
-
-            col_cfg: dict[str, Any] = {
-                "customer_name": st.column_config.TextColumn(customer_label),
-                "recommended_family": st.column_config.TextColumn("Família Ausente"),
-                "anchor_sku_name": st.column_config.TextColumn("Perfil / Âncora"),
-                "recommended_top_sku": st.column_config.TextColumn("SKU Recomendado"),
-                "potential_revenue_brl": st.column_config.NumberColumn("Potencial", format="R$ %,.2f"),
-                "affinity_lift": st.column_config.NumberColumn("Lift Afinidade", format="%.2fx"),
-                "action_pitch": st.column_config.TextColumn("Argumento Comercial (Pitch)", width="large"),
-            }
-            active_cfg: dict[str, Any] = {k: v for k, v in col_cfg.items() if k in cols}
-
-            st.dataframe(
-                deals_df,
-                use_container_width=True,
-                hide_index=True,
-                height=380,
-                column_config=active_cfg,
-            )
-        else:
-            st.info("Nenhuma oportunidade White Space mapeada no recorte selecionado.")
+        render_white_space_deals_table(dto, customer_label)

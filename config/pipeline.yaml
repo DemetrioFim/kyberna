@@ -28,8 +28,9 @@ thresholds:
   abc_b_cutoff: 0.95   # 80% a 95% acumulado -> Classe B; > 95% -> Classe C
 
   # Classificação Volatilidade XYZ (Coeficiente de Variação semanal - CV)
-  xyz_x_cutoff: 0.50   # CV <= 0.50 -> Alta previsibilidade (X)
-  xyz_y_cutoff: 1.00   # 0.50 < CV <= 1.00 -> Previsibilidade moderada (Y); > 1.00 ou inativo -> Errada/Esporádica (Z)
+  # Calibrado para demanda semanal B2B (mediana real de CV = 2.21 em 26 semanas com zeros)
+  xyz_x_cutoff: 1.50   # CV <= 1.50 -> Alta previsibilidade e regularidade (X)
+  xyz_y_cutoff: 2.50   # 1.50 < CV <= 2.50 -> Previsibilidade moderada / sazonal (Y); > 2.50 -> Intermitente / Errático (Z)
 
   # Políticas Prescritivas por Célula da Matriz 3x3 ABC/XYZ
   abc_xyz_policies:

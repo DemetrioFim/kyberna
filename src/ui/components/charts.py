@@ -60,11 +60,12 @@ def waterfall_margin(
 
     fig.update_layout(
         template=template_name,
-        title="<b>Decomposição Contábil da Margem de Contribuição Líquida</b>",
-        yaxis_title="Valor (R$)",
+        title="<b>Onde a Margem é Drenada? (Faturamento Bruto → Lucro Líquido)</b>",
         showlegend=False,
-        margin={"l": 40, "r": 40, "t": 60, "b": 40},
-        waterfallgap=0.3,
+        height=280,
+        margin={"l": 25, "r": 20, "t": 35, "b": 25},
+        yaxis={"showgrid": False, "showticklabels": False, "title": ""},
+        waterfallgap=0.25,
     )
     return fig
 
@@ -141,17 +142,18 @@ def dual_trend(
 
     fig.update_layout(
         template=template_name,
-        title="<b>Evolução Mensal: Volume Faturado vs. Margem Real (%)</b>",
-        yaxis={"title": "Faturamento Bruto (R$)", "side": "left", "showgrid": True},
+        title="<b>Ritmo Mensal: A Margem Acompanha o Faturamento?</b>",
+        yaxis={"title": "Faturamento (R$)", "side": "left", "showgrid": True},
         yaxis2={
-            "title": "Margem Líquida (%)",
+            "title": "Margem (%)",
             "side": "right",
             "overlaying": "y",
             "ticksuffix": "%",
             "showgrid": False,
         },
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1},
-        margin={"l": 40, "r": 50, "t": 60, "b": 40},
+        height=280,
+        margin={"l": 30, "r": 35, "t": 35, "b": 25},
     )
     return fig
 
@@ -223,10 +225,21 @@ def abc_xyz_heatmap(
 
     fig.update_layout(
         template=template_name,
-        title="<b>Matriz ABC/XYZ (Relevância Financeira x Previsibilidade da Demanda)</b>",
-        xaxis_title="<b>Volatilidade da Demanda (XYZ)</b> → X (Regular) | Y (Sazonal) | Z (Errático)",
-        yaxis_title="<b>Relevância de Margem (ABC)</b> → A (80%) | B (15%) | C (5%)",
-        margin={"l": 40, "r": 40, "t": 60, "b": 40},
+        title=None,
+        xaxis={
+            "tickmode": "array",
+            "tickvals": ["X", "Y", "Z"],
+            "ticktext": ["X · Regular", "Y · Sazonal", "Z · Intermitente"],
+            "title": None,
+        },
+        yaxis={
+            "tickmode": "array",
+            "tickvals": ["A", "B", "C"],
+            "ticktext": ["Classe A (80%)", "Classe B (15%)", "Classe C (5%)"],
+            "title": None,
+        },
+        height=280,
+        margin={"l": 20, "r": 20, "t": 10, "b": 25},
     )
     return fig
 
@@ -371,11 +384,12 @@ def quadrant_scatter(
 
     fig.update_layout(
         template=template_name,
-        title="<b>Quadrante de Eficiência Comercial (Cortes nas Medianas)</b>",
+        title="<b>Quem Vende com Margem vs. Quem Compra Volume com Desconto?</b>",
         xaxis_title=final_x_title,
         yaxis_title=final_y_title,
         annotations=annotations,
         showlegend=False,
-        margin={"l": 40, "r": 40, "t": 60, "b": 40},
+        height=280,
+        margin={"l": 30, "r": 30, "t": 35, "b": 35},
     )
     return fig

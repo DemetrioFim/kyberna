@@ -24,137 +24,104 @@ from src.ui.components.prudence_sections import (
 from src.ui.state import get_app_state
 
 
-def _render_visual_section(dto: ExecutivePageDTO, theme_mode: str) -> None:
-    """Renderiza a seção comparativa em duas colunas: Waterfall e Tendência Dupla com Meta."""
-    col_wat, col_trend = st.columns([1, 1])
+def _render_sku_list_table(dto: ExecutivePageDTO) -> None:
+    """Renderiza a lista de SKUs com scroll interno de 210px."""
+    if dto.abc_xyz_skus_df.empty:
+        st.info("Nenhum SKU disponível para a seleção atual.")
+        return
 
-    with col_wat:
-        section_header(
-            "Decomposição da Margem Real",
-            "Do faturamento bruto até o lucro líquido no bolso",
-            help_text=(
-                "Demonstração visual contábil (Waterfall) das deduções da receita bruta: "
-                "Descontos comerciais, Impostos sobre vendas, CPV, Comissões de RCAs e Frete CIF "
-                "até a Margem de Contribuição líquida final."
-            ),
-        )
-        fig_wat = waterfall_margin(dto.waterfall_df, theme_mode=theme_mode)
-        st.plotly_chart(fig_wat, use_container_width=True)
+    display_skus = dto.abc_xyz_skus_df.copy()
+    if st.session_state.get("selected_abc_xyz_cell"):
+        display_skus = display_skus[display_skus["abc_xyz_class"] == st.session_state.selected_abc_xyz_cell]
 
-    with col_trend:
-        section_header(
-            "Evolução: Volume vs. Margem %",
-            "Identifique visualmente o efeito boca de jacaré",
-            help_text=(
-                "Evolução histórica mensal do Faturamento Bruto (barras) versus Margem Líquida % (linha). "
-                "Linha tracejada indica a Meta de Margem de governança (26.0%)."
-            ),
-        )
-        fig_trend = dual_trend(
-            dto.monthly_trend_df,
-            theme_mode=theme_mode,
-            target_margin_pct=dto.kpis.margin_target_pct,
-        )
-        st.plotly_chart(fig_trend, use_container_width=True)
+    sku_view = display_skus.rename(
+        columns={
+            "product_name": "Produto",
+            "family": "Família",
+            "abc_xyz_class": "Célula",
+            "gross_revenue": "Fat. Bruto (R$)",
+            "contribution_margin": "Margem Líq. (R$)",
+            "margin_pct": "Margem Líq. (%)",
+            "weekly_cv": "Volatilidade (CV)",
+            "policy": "Política Operacional",
+        }
+    )
+    st.dataframe(
+        sku_view,
+        use_container_width=True,
+        height=210,
+        column_config={
+            "Fat. Bruto (R$)": st.column_config.NumberColumn(format="R$ %.2f"),
+            "Margem Líq. (R$)": st.column_config.NumberColumn(format="R$ %.2f"),
+            "Margem Líq. (%)": st.column_config.NumberColumn(format="%.1f%%"),
+            "Volatilidade (CV)": st.column_config.NumberColumn(format="%.2f"),
+        },
+        hide_index=True,
+    )
 
 
 @st.fragment
 def _render_abc_xyz_fragment(dto: ExecutivePageDTO, theme_mode: str) -> None:
-    """Fragmento isolado para exploração interativa da Matriz ABC/XYZ sem rerun global."""
-    section_header(
-        "Matriz 3x3 ABC/XYZ & Gestão Prescritiva de Portfólio",
-        "Cruza a contribuição na margem (ABC) com a volatilidade da demanda semanal (XYZ)",
-        help_text=(
-            "Classificação bidimensional de SKUs: Curva ABC por contribuição na margem "
-            "(A=80%, B=15%, C=5%) e Matriz XYZ por previsibilidade de demanda: "
-            "X estável (CV ≤ 0,5), Y moderado (CV entre 0,5 e 1,0) e Z errático (CV superior a 1,0)."
-        ),
-    )
+    """Fragmento isolado para exploração interativa da Matriz ABC/XYZ em cockpit."""
+    col_mat_head, col_mat_ctrl = st.columns([1.5, 1.0])
 
-    col_mat, col_ctrl = st.columns([2, 1])
+    with col_mat_head:
+        section_header(
+            "Matriz 3x3 ABC/XYZ & Demanda",
+            "Cruza relevância financeira e variabilidade",
+            help_text=(
+                "Classificação bidimensional de SKUs: Curva ABC por contribuição na margem "
+                "(A=80%, B=15%, C=5%) e Matriz XYZ por regularidade da demanda semanal: "
+                "X estável (CV ≤ 1,5), Y sazonal (CV entre 1,5 e 2,5) e Z intermitente (CV superior a 2,5)."
+            ),
+        )
 
-    with col_ctrl:
-        cell_options = [
-            "Todas",
-            "AX",
-            "AY",
-            "AZ",
-            "BX",
-            "BY",
-            "BZ",
-            "CX",
-            "CY",
-            "CZ",
-        ]
-        current_cell = st.session_state.get("selected_abc_xyz_cell", "Todas")
-        cell_idx = cell_options.index(current_cell) if current_cell in cell_options else 0
+    cell_options = [
+        "Todas",
+        "AX",
+        "AY",
+        "AZ",
+        "BX",
+        "BY",
+        "BZ",
+        "CX",
+        "CY",
+        "CZ",
+    ]
+    current_cell = st.session_state.get("selected_abc_xyz_cell", "Todas")
+    cell_idx = cell_options.index(current_cell) if current_cell in cell_options else 0
 
+    with col_mat_ctrl:
         selected_cell = st.selectbox(
             "Filtrar Célula da Matriz",
             options=cell_options,
             index=cell_idx,
             key="_abc_xyz_cell_select",
+            label_visibility="collapsed",
         )
         st.session_state.selected_abc_xyz_cell = selected_cell if selected_cell != "Todas" else None
 
-        if selected_cell != "Todas" and not dto.abc_xyz_matrix_df.empty:
-            cell_col = "abc_xyz_cell" if "abc_xyz_cell" in dto.abc_xyz_matrix_df.columns else "cell"
-            cell_info = dto.abc_xyz_matrix_df[dto.abc_xyz_matrix_df[cell_col] == selected_cell]
-            if not cell_info.empty:
-                policy_text = str(cell_info["recommended_policy"].iloc[0])
-                sku_cnt = int(cell_info["sku_count"].iloc[0])
-                m_share = float(cell_info["margin_share_pct"].iloc[0])
-                st.info(
-                    f"**Célula {selected_cell}** ({sku_cnt} SKUs | {m_share:.1f}% da Margem Total)\n\n"
-                    f"**Política Prescritiva:** {policy_text}"
-                )
+    fig_heatmap = abc_xyz_heatmap(
+        dto.abc_xyz_matrix_df,
+        theme_mode=theme_mode,
+        selected_cell=st.session_state.get("selected_abc_xyz_cell"),
+    )
+    st.plotly_chart(fig_heatmap, use_container_width=True)
 
-    with col_mat:
-        fig_heatmap = abc_xyz_heatmap(
-            dto.abc_xyz_matrix_df,
-            theme_mode=theme_mode,
-            selected_cell=st.session_state.get("selected_abc_xyz_cell"),
-        )
-        st.plotly_chart(fig_heatmap, use_container_width=True)
-
-    if not dto.abc_xyz_skus_df.empty:
-        display_skus = dto.abc_xyz_skus_df.copy()
-        if st.session_state.get("selected_abc_xyz_cell"):
-            display_skus = display_skus[
-                display_skus["abc_xyz_class"] == st.session_state.selected_abc_xyz_cell
-            ]
-
-        with st.expander(f"Ver Lista de SKUs ({len(display_skus)} itens)", expanded=False):
-            sku_view = display_skus.rename(
-                columns={
-                    "product_name": "Produto",
-                    "family": "Família",
-                    "abc_xyz_class": "Célula",
-                    "gross_revenue": "Fat. Bruto (R$)",
-                    "contribution_margin": "Margem Líq. (R$)",
-                    "margin_pct": "Margem Líq. (%)",
-                    "weekly_cv": "Volatilidade (CV)",
-                    "policy": "Política Operacional",
-                }
-            )
-            st.dataframe(
-                sku_view,
-                use_container_width=True,
-                column_config={
-                    "Fat. Bruto (R$)": st.column_config.NumberColumn(format="R$ %.2f"),
-                    "Margem Líq. (R$)": st.column_config.NumberColumn(format="R$ %.2f"),
-                    "Margem Líq. (%)": st.column_config.NumberColumn(format="%.1f%%"),
-                    "Volatilidade (CV)": st.column_config.NumberColumn(format="%.2f"),
-                },
-                hide_index=True,
-            )
+    if selected_cell != "Todas" and not dto.abc_xyz_matrix_df.empty:
+        cell_col = "abc_xyz_cell" if "abc_xyz_cell" in dto.abc_xyz_matrix_df.columns else "cell"
+        cell_info = dto.abc_xyz_matrix_df[dto.abc_xyz_matrix_df[cell_col] == selected_cell]
+        if not cell_info.empty:
+            policy_text = str(cell_info["recommended_policy"].iloc[0])
+            st.caption(f"**Célula {selected_cell}:** {policy_text}")
 
 
 def render_page() -> None:
-    """Renderiza a página 'Visão Executiva & Margem Real'."""
+    """Renderiza a página 'Visão Executiva & Margem Real' em formato Cockpit Z-Pattern."""
     state = get_app_state()
     scenario = load_scenario_config(state.scenario_id)
 
+    # 1. Faixa 1 — Topo (Status em 5s): Título + Subtítulo + Manchete + 5 KPI Cards
     st.title("Visão Executiva & Margem Real")
     st.caption(
         f"Previsibilidade de metas e proteção de margem: **{scenario.display_name}** "
@@ -172,53 +139,74 @@ def render_page() -> None:
         selected_month=state.selected_month,
     )
 
-    # 1. Manchete Integrada com Badges & 5 KPI Cards de Pacing
     render_prudence_headline(dto)
     render_prudence_kpis(dto, scenario.labels.customer_plural)
-    st.markdown("---")
 
-    # 2. Painel Central de Direção em 3 Abas
-    tab_overview, tab_table, tab_portfolio = st.tabs(
-        [
-            "Visão Geral: DRE Waterfall & Evolução Mensal",
-            "Demonstrativo Contábil Mês a Mês",
-            "Portfólio ABC/XYZ & Gestão de Demanda",
-        ]
-    )
+    # 2. Faixa 2 — Meio (Diagnóstico Visual em 2 Colunas lado a lado)
+    col_diag_left, col_diag_right = st.columns([1.1, 1.0])
 
-    with tab_overview:
-        _render_visual_section(dto, theme_mode=state.theme_mode)
+    with col_diag_left:
+        t_evol, t_wat = st.tabs(
+            [
+                "Ritmo Mensal: Volume vs. Margem %",
+                "Decomposição DRE (Waterfall)",
+            ]
+        )
+        with t_evol:
+            fig_trend = dual_trend(
+                dto.monthly_trend_df,
+                theme_mode=state.theme_mode,
+                target_margin_pct=dto.kpis.margin_target_pct,
+            )
+            st.plotly_chart(fig_trend, use_container_width=True)
+        with t_wat:
+            fig_wat = waterfall_margin(dto.waterfall_df, theme_mode=state.theme_mode)
+            st.plotly_chart(fig_wat, use_container_width=True)
 
-    with tab_table:
-        render_monthly_sales_table_section(dto)
-
-    with tab_portfolio:
+    with col_diag_right:
         _render_abc_xyz_fragment(dto, theme_mode=state.theme_mode)
 
-    st.markdown("---")
+    # 3. Faixa 3 — Base (Detalhamento & Plano de Ação em 2 Colunas lado a lado)
+    col_act_left, col_act_right = st.columns([1.2, 1.0])
 
-    # 3. Sala de Decisão: Radar de Anomalias & Simulador Rápido What-If
-    col_anom, col_whatif = st.columns([1, 1])
-    with col_anom:
-        render_prudence_anomalies_section(dto)
-    with col_whatif:
-        render_what_if_quick_fragment(dto)
+    with col_act_left:
+        t_anom, t_table, t_skus = st.tabs(
+            [
+                "Radar de Anomalias",
+                "Demonstrativo Mês a Mês",
+                "Portfólio de SKUs",
+            ]
+        )
+        with t_anom:
+            render_prudence_anomalies_section(dto)
+        with t_table:
+            render_monthly_sales_table_section(dto)
+        with t_skus:
+            _render_sku_list_table(dto)
 
-    st.markdown("---")
-
-    # 4. Veredito Prescritivo de Prudência
-    action_msg = "Definir tabela regressiva de descontos e revisar parâmetros de frete no simulador."
-    render_prescription_box(
-        title=dto.prescription_title,
-        recommendation_html=dto.prescription_html,
-        impact_brl=dto.prescription_impact_brl,
-        action_hint=action_msg,
-        help_text=(
-            "Diagnóstico prescritivo gerado a partir do desvio de margem dos clientes que operam "
-            "abaixo do piso saudável (22%). Estima o impacto de proteção de margem ao aplicar "
-            "ajustes comerciais."
-        ),
-    )
+    with col_act_right:
+        t_presc, t_whatif = st.tabs(
+            [
+                "Veredito Prescritivo",
+                "Simulador Rápido What-If",
+            ]
+        )
+        with t_presc:
+            render_prescription_box(
+                title=dto.prescription_title,
+                recommendation_html=dto.prescription_html,
+                impact_brl=dto.prescription_impact_brl,
+                action_hint=(
+                    "Definir tabela regressiva de descontos e revisar parâmetros de frete no simulador."
+                ),
+                help_text=(
+                    "Diagnóstico prescritivo gerado a partir do desvio de margem dos clientes que operam "
+                    "abaixo do piso saudável (22%). Estima o impacto de proteção de margem ao aplicar "
+                    "ajustes comerciais."
+                ),
+            )
+        with t_whatif:
+            render_what_if_quick_fragment(dto)
 
 
 render_page()

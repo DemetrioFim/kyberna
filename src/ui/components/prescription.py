@@ -18,20 +18,50 @@ def section_header(
     badge_html = f' <span class="badge badge-source">{html.escape(badge)}</span>' if badge else ""
     info_html = f" {info_tooltip_html(help_text, align='left')}" if help_text else ""
     subtitle_html = (
-        '<div style="font-size: 0.88rem; color: var(--kyb-text-muted); '
-        f'margin-bottom: 0.8rem;">{html.escape(subtitle)}</div>'
+        '<div style="font-size: 0.78rem; color: var(--kyb-text-muted); '
+        f'margin-bottom: 0.35rem;">{html.escape(subtitle)}</div>'
         if subtitle
         else ""
     )
 
     content = (
-        f'<div style="margin-top: 1.5rem; margin-bottom: 0.5rem;">'
-        f'<h4 style="margin: 0; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700;">'
-        f"{html.escape(title)}{badge_html}{info_html}</h4>"
+        f'<div style="margin-top: 0.35rem; margin-bottom: 0.2rem;">'
+        f'<h5 style="margin: 0; display: inline-flex; align-items: center; gap: 0.4rem; '
+        f'font-weight: 700; font-size: 0.92rem;">'
+        f"{html.escape(title)}{badge_html}{info_html}</h5>"
         f"{subtitle_html}"
         f"</div>"
     )
     st.markdown(content, unsafe_allow_html=True)
+
+
+def render_cockpit_header(
+    title: str,
+    subtitle: str,
+    *,
+    headline_title: str,
+    headline_text: str,
+    as_of_date_label: str = "31/12/2024",
+    help_text: str | None = None,
+) -> None:
+    """Renderiza o cabeçalho executivo compacto de cockpit (Faixa 1 — Topo em 2 linhas)."""
+    info_html = f" {info_tooltip_html(help_text, align='left')}" if help_text else ""
+    header_html = (
+        f'<div class="cockpit-header">'
+        f'<div class="cockpit-header-top">'
+        f'<div class="cockpit-title-group">'
+        f'<h2 class="cockpit-title">{html.escape(title)}</h2>'
+        f'<span class="cockpit-subtitle">{html.escape(subtitle)}</span>'
+        f"</div>"
+        f'<div class="cockpit-meta-group">'
+        f'<span class="cockpit-headline-pill">{html.escape(headline_title)}{info_html}</span>'
+        f'<span class="cockpit-date-tag">Corte: <strong>{html.escape(as_of_date_label)}</strong></span>'
+        f"</div>"
+        f"</div>"
+        f'<div class="cockpit-header-bottom">{html.escape(headline_text)}</div>'
+        f"</div>"
+    )
+    st.markdown(header_html, unsafe_allow_html=True)
 
 
 def prescription_box_html(

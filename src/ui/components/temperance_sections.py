@@ -147,7 +147,7 @@ def render_temperance_kpi_cards(dto: TemperancePageDTO) -> None:
         )
 
 
-def _render_violations_rep_chart(df: pd.DataFrame, theme_mode: str) -> go.Figure:
+def render_violations_rep_chart(df: pd.DataFrame, theme_mode: str) -> go.Figure:
     """Gera gráfico de barras horizontais com o ranking de excesso de desconto por RCA."""
     tokens = get_theme_tokens(theme_mode)
     template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
@@ -171,12 +171,108 @@ def _render_violations_rep_chart(df: pd.DataFrame, theme_mode: str) -> go.Figure
     )
     fig.update_layout(
         template=template_name,
-        title="<b>Top RCAs por Desconto Acima da Política (R$)</b>",
-        xaxis_title="Excesso em Desconto (R$)",
-        margin={"l": 20, "r": 50, "t": 40, "b": 30},
-        height=320,
+        title=None,
+        xaxis_title=None,
+        margin={"l": 20, "r": 40, "t": 10, "b": 15},
+        height=280,
     )
     return fig
+
+
+def render_policy_violations_tabs(dto: TemperancePageDTO) -> None:
+    """Renderiza as abas de auditoria de política comercial e custos de prazo com scroll interno."""
+    t_reps, t_fams, t_terms = st.tabs(
+        [
+            "Por Representante (RCA)",
+            "Por Família de Produto",
+            "Custo Financeiro de Prazo",
+        ]
+    )
+
+    with t_reps:
+        if not dto.policy_violations_by_rep_df.empty:
+            cols_show = [
+                "rep_name",
+                "total_orders",
+                "gross_revenue",
+                "avg_discount_pct",
+                "excess_discount_brl",
+            ]
+            df_rep_table = dto.policy_violations_by_rep_df[cols_show].copy()
+            df_rep_table.columns = [
+                "Representante",
+                "Pedidos",
+                "Faturamento (R$)",
+                "Desc. Médio %",
+                "Excesso Fora do Teto (R$)",
+            ]
+            st.dataframe(
+                df_rep_table.head(10).style.format(
+                    {
+                        "Faturamento (R$)": _fmt_brl,
+                        "Desc. Médio %": _fmt_pct,
+                        "Excesso Fora do Teto (R$)": _fmt_brl,
+                        "Pedidos": _fmt_int,
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+                height=210,
+            )
+        else:
+            st.info("Nenhuma violação de política identificada para a seleção atual.")
+
+    with t_fams:
+        if not dto.policy_violations_by_family_df.empty:
+            cols_fam = [
+                "family",
+                "total_orders",
+                "gross_revenue",
+                "avg_discount_pct",
+                "excess_discount_brl",
+            ]
+            df_fam_table = dto.policy_violations_by_family_df[cols_fam].copy()
+            df_fam_table.columns = [
+                "Família",
+                "Pedidos",
+                "Faturamento (R$)",
+                "Desc. Médio %",
+                "Excesso Fora do Teto (R$)",
+            ]
+            st.dataframe(
+                df_fam_table.style.format(
+                    {
+                        "Faturamento (R$)": _fmt_brl,
+                        "Desc. Médio %": _fmt_pct,
+                        "Excesso Fora do Teto (R$)": _fmt_brl,
+                        "Pedidos": _fmt_int,
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+                height=210,
+            )
+
+    with t_terms:
+        if not dto.term_leak_by_rep_df.empty:
+            cols_term = ["rep_name", "avg_pmr_days", "term_leak_brl"]
+            df_term_table = dto.term_leak_by_rep_df[cols_term].copy()
+            df_term_table.columns = [
+                "Representante",
+                "Prazo Médio (dias)",
+                "Custo Financeiro de Prazo (R$)",
+            ]
+            st.dataframe(
+                df_term_table.head(10).style.format(
+                    {
+                        "Prazo Médio (dias)": _fmt_days_full,
+                        "Custo Financeiro de Prazo (R$)": _fmt_brl,
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+                height=210,
+            )
 
 
 def render_commercial_erosion_and_policy_section(dto: TemperancePageDTO, theme_mode: str) -> None:
@@ -198,98 +294,10 @@ def render_commercial_erosion_and_policy_section(dto: TemperancePageDTO, theme_m
             "Identificação de descontos fora de tabela e custos ocultos de prazo esticado",
             help_text="Auditoria com as regras de discounts.yaml e working_capital.yaml.",
         )
-        t_reps, t_fams, t_terms = st.tabs(
-            [
-                "Por Representante (RCA)",
-                "Por Família de Produto",
-                "Custo Financeiro de Prazo",
-            ]
-        )
-
-        with t_reps:
-            if not dto.policy_violations_by_rep_df.empty:
-                fig_rep = _render_violations_rep_chart(dto.policy_violations_by_rep_df, theme_mode=theme_mode)
-                st.plotly_chart(fig_rep, use_container_width=True)
-
-                cols_show = [
-                    "rep_name",
-                    "total_orders",
-                    "gross_revenue",
-                    "avg_discount_pct",
-                    "excess_discount_brl",
-                ]
-                df_rep_table = dto.policy_violations_by_rep_df[cols_show].copy()
-                df_rep_table.columns = [
-                    "Representante",
-                    "Pedidos",
-                    "Faturamento (R$)",
-                    "Desc. Médio %",
-                    "Excesso Fora do Teto (R$)",
-                ]
-                st.dataframe(
-                    df_rep_table.head(10).style.format(
-                        {
-                            "Faturamento (R$)": _fmt_brl,
-                            "Desc. Médio %": _fmt_pct,
-                            "Excesso Fora do Teto (R$)": _fmt_brl,
-                            "Pedidos": _fmt_int,
-                        }
-                    ),
-                    use_container_width=True,
-                    hide_index=True,
-                )
-            else:
-                st.info("Nenhuma violação de política identificada para a seleção atual.")
-
-        with t_fams:
-            if not dto.policy_violations_by_family_df.empty:
-                cols_fam = [
-                    "family",
-                    "total_orders",
-                    "gross_revenue",
-                    "avg_discount_pct",
-                    "excess_discount_brl",
-                ]
-                df_fam_table = dto.policy_violations_by_family_df[cols_fam].copy()
-                df_fam_table.columns = [
-                    "Família",
-                    "Pedidos",
-                    "Faturamento (R$)",
-                    "Desc. Médio %",
-                    "Excesso Fora do Teto (R$)",
-                ]
-                st.dataframe(
-                    df_fam_table.style.format(
-                        {
-                            "Faturamento (R$)": _fmt_brl,
-                            "Desc. Médio %": _fmt_pct,
-                            "Excesso Fora do Teto (R$)": _fmt_brl,
-                            "Pedidos": _fmt_int,
-                        }
-                    ),
-                    use_container_width=True,
-                    hide_index=True,
-                )
-
-        with t_terms:
-            if not dto.term_leak_by_rep_df.empty:
-                cols_term = ["rep_name", "avg_pmr_days", "term_leak_brl"]
-                df_term_table = dto.term_leak_by_rep_df[cols_term].copy()
-                df_term_table.columns = [
-                    "Representante",
-                    "Prazo Médio (dias)",
-                    "Custo Financeiro de Prazo (R$)",
-                ]
-                st.dataframe(
-                    df_term_table.head(10).style.format(
-                        {
-                            "Prazo Médio (dias)": _fmt_days_full,
-                            "Custo Financeiro de Prazo (R$)": _fmt_brl,
-                        }
-                    ),
-                    use_container_width=True,
-                    hide_index=True,
-                )
+        if not dto.policy_violations_by_rep_df.empty:
+            fig_rep = render_violations_rep_chart(dto.policy_violations_by_rep_df, theme_mode=theme_mode)
+            st.plotly_chart(fig_rep, use_container_width=True)
+        render_policy_violations_tabs(dto)
 
 
 def render_temperance_verdict_section(dto: TemperancePageDTO) -> None:

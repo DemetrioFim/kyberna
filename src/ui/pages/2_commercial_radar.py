@@ -4,37 +4,40 @@ import streamlit as st
 
 from src.core.scenarios import load_scenario_config
 from src.ui.cache import cached_commercial_dashboard
+from src.ui.components.charts import quadrant_scatter
+from src.ui.components.commercial_charts import (
+    cycle_delay_scatter,
+    cycle_health_funnel_chart,
+    rfm_treemap,
+    white_space_heatmap,
+)
 from src.ui.components.justice_sections import (
     render_champions_vampires_section,
+    render_critical_customers_table,
     render_justice_banner,
     render_justice_headline,
     render_justice_kpi_cards,
-    render_portfolio_health_section,
-    render_sales_rep_justice_section,
-    render_white_space_opportunities_section,
+    render_sales_reps_table,
+    render_white_space_deals_table,
 )
-from src.ui.components.prescription import (
-    render_prescription_box,
-    section_header,
-)
+from src.ui.components.prescription import render_prescription_box
 from src.ui.state import get_app_state
 
 
 def render_page() -> None:
-    """Entrypoint da Página 3 — Justiça (Rentabilidade Comercial, Margem & Carteira / Radar Comercial)."""
+    """Entrypoint da Página 3 — Justiça em formato Cockpit Z-Pattern."""
     state = get_app_state()
     scenario_cfg = load_scenario_config(state.scenario_id)
     labels = scenario_cfg.labels
     theme_mode = state.theme_mode
 
-    # Título do Radar Comercial
+    # 1. Faixa 1 — Topo (Status em 5s): Título + Subtítulo + Manchete + 5 KPI Cards
     st.title("Radar Comercial, Margem & Carteira")
     st.caption(
         f"Equilíbrio de rentabilidade, retenção de carteira e eficiência da força de vendas: "
         f"**{scenario_cfg.display_name}** ({scenario_cfg.company_profile})."
     )
 
-    # Consulta com cache do Streamlit
     dto = cached_commercial_dashboard(
         state.scenario_id,
         regiao=state.regiao,
@@ -46,54 +49,89 @@ def render_page() -> None:
         quadrant="Todos",
     )
 
-    # 1. Banner Filosófico e Manchete Executiva da Justiça
     render_justice_banner(dto)
     render_justice_headline(dto)
-
-    # 2. Faixa de KPI Cards Virtus (5 Indicadores-Chave)
     render_justice_kpi_cards(dto, labels.customer_plural)
 
-    # 3. Bloco 1 — Matriz de Rentabilidade: Campeões vs. Vampiros (4 Abas)
-    render_champions_vampires_section(dto, labels)
+    # 2. Faixa 2 — Meio (Diagnóstico Visual em 2 Colunas lado a lado)
+    col_diag_left, col_diag_right = st.columns([1.0, 1.0])
 
-    # 4. Bloco 2 — Justiça da Força de Vendas (Quadrante + Tabela de Desempenho dos RCAs)
-    render_sales_rep_justice_section(
-        dto,
-        rep_label=labels.sales_rep,
-        show_rep_efficiency=scenario_cfg.capabilities.rep_efficiency,
-        theme_mode=theme_mode,
-    )
+    with col_diag_left:
+        t_quad, t_champ = st.tabs(
+            [
+                f"Força de Vendas ({labels.sales_rep}s)",
+                "Rentabilidade (Campeões vs. Vampiros)",
+            ]
+        )
+        with t_quad:
+            if not dto.rep_performance_df.empty:
+                fig_quad = quadrant_scatter(
+                    dto.rep_performance_df,
+                    x_col="gross_revenue",
+                    y_col="margin_pct",
+                    label_col="sales_rep_name",
+                    size_col="revenue_at_risk_brl",
+                    theme_mode=theme_mode,
+                )
+                st.plotly_chart(fig_quad, use_container_width=True)
+            else:
+                st.info("Nenhum dado de representantes no filtro.")
+        with t_champ:
+            render_champions_vampires_section(dto, labels)
 
-    # 5. Bloco 3 — Saúde da Carteira, Funil do Ciclo e Dispersão de Atraso
-    render_portfolio_health_section(
-        dto,
-        customer_label=labels.customer,
-        theme_mode=theme_mode,
-    )
+    with col_diag_right:
+        t_scatter, t_rfm, t_funnel, t_ws = st.tabs(
+            [
+                "Atraso de Recompra (Ciclo)",
+                "Segmentação RFM & LTV",
+                "Funil de Recompra",
+                "Matriz White Space",
+            ]
+        )
+        with t_scatter:
+            fig_scatter = cycle_delay_scatter(dto.priority_risk_df, theme_mode=theme_mode)
+            st.plotly_chart(fig_scatter, use_container_width=True)
+        with t_rfm:
+            fig_rfm = rfm_treemap(dto.rfm_summary_df, theme_mode=theme_mode)
+            st.plotly_chart(fig_rfm, use_container_width=True)
+        with t_funnel:
+            if not dto.cycle_funnel_df.empty:
+                fig_funnel = cycle_health_funnel_chart(dto.cycle_funnel_df, theme_mode=theme_mode)
+                st.plotly_chart(fig_funnel, use_container_width=True)
+            else:
+                st.info("Sem dados de funil no filtro.")
+        with t_ws:
+            fig_ws = white_space_heatmap(dto.white_space_matrix_df, theme_mode=theme_mode)
+            st.plotly_chart(fig_ws, use_container_width=True)
 
-    # 6. Bloco 4 — Oportunidades White Space (Cross-Sell com SKU Âncora & Pitch Comercial)
-    render_white_space_opportunities_section(
-        dto,
-        customer_label=labels.customer,
-        theme_mode=theme_mode,
-    )
+    # 3. Faixa 3 — Base (Detalhamento & Ação em 2 Colunas lado a lado)
+    col_act_left, col_act_right = st.columns([1.35, 1.0])
 
-    # 7. Prescrição Tática de Justiça e Governança Comercial
-    section_header(
-        "Prescrição Tática de Governança Comercial e Reativação",
-        "Recomendações quantificadas em R$ para direcionamento imediato da equipe de vendas",
-        help_text=(
-            "Diretrizes geradas pelo motor analítico priorizando ações de resgate com maior "
-            "retorno em margem de contribuição líquida e menor risco de atrito comercial."
-        ),
-    )
-    render_prescription_box(
-        title=dto.prescription_title,
-        recommendation_html=dto.prescription_html,
-        impact_brl=dto.prescription_impact_brl,
-        action_hint="Priorize o contato com os lojistas do topo da lista antes do fechamento semanal.",
-        help_text="Diretrizes táticas consolidadas com base no valor em risco e oportunidades de cross-sell.",
-    )
+    with col_act_left:
+        t_crit, t_deals, t_reps = st.tabs(
+            [
+                f"{labels.customer_plural} em Risco",
+                "Pitch Cross-Sell (White Space)",
+                f"Desempenho dos {labels.sales_rep}s",
+            ]
+        )
+        with t_crit:
+            render_critical_customers_table(dto, labels.customer)
+        with t_deals:
+            render_white_space_deals_table(dto, labels.customer)
+        with t_reps:
+            render_sales_reps_table(dto, labels.sales_rep)
+
+    with col_act_right:
+        render_prescription_box(
+            title=dto.prescription_title,
+            recommendation_html=dto.prescription_html,
+            impact_brl=dto.prescription_impact_brl,
+            action_hint="Priorize o contato com os lojistas do topo da lista antes do fechamento semanal.",
+            help_text=(
+                "Diretrizes táticas consolidadas com base no valor em risco e oportunidades de cross-sell."
+            ),
+        )
 
 
 render_page()

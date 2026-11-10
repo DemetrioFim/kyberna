@@ -342,6 +342,7 @@ def render_monthly_sales_table_section(dto: ExecutivePageDTO) -> None:
     st.dataframe(
         df_display,
         use_container_width=True,
+        height=210,
         column_config={
             "Fat. Bruto (R$)": st.column_config.NumberColumn("Fat. Bruto", format="R$ %.2f"),
             "Δ Fat. MoM %": st.column_config.NumberColumn("Δ Fat. MoM", format="%.1f%%"),

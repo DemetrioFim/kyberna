@@ -39,6 +39,7 @@ flowchart LR
 | **`V2-D1`** | **Finanças & Estoque** (Dados) | Criação de `config/finance/working_capital.yaml` (Custos Fixos, PMR, PMP, Teto de Desconto, Custo de Prazo) + `inventory_snapshot.py` (`M4-D2`) | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
 | **`V2-S1`** | **4. Temperança** (Backend/SQL) | `temperance_service.py`: Waterfall da Sangria (`R$` e `%`), Auditoria de Desconto Acima do Teto, Vazamento de Prazo e Capital Travado ABC/XYZ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
 | **`V2-V1`** | **4. Temperança** (Gráficos + UI) | Página **4. Temperança** (`3_inventory_demand.py` + `temperance_sections.py`): Waterfall com `%`, Matriz ABC/XYZ filtrável, Capital Travado $>120\text{d}$ vs. Ruptura A | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
+| **`V2-V2`** | **Cockpit 1080p & ABC/XYZ** (UI/ML) | Redesign Cockpit sem scroll (Leitura em Z / DAR: Topo 18% / Meio 45% / Base 37%), Data-Ink Ratio, limpeza de títulos Plotly e calibração estatística ABC/XYZ (18% X / 44% Y / 38% Z) | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
 | **`V3-S1`** | **2. Fortaleza** (Backend/SQL) | `fortitude_service.py`: Fôlego de Caixa (Runway), Dia do Break-Even Mensal, Ciclo Financeiro ($\text{PME}+\text{PMR}-\text{PMP}$), NCG, Concentração Top 5/10 e Aging | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
 | **`V3-V1`** | **2. Fortaleza** (UI + QA Global) | Página **2. Fortaleza** (`4_simulator.py` + `fortitude_sections.py`) + Saneamento Dark Mode `var(--kyb-*)` e Suíte Completa `pytest` nas 4 Virtudes | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
 
@@ -63,6 +64,16 @@ flowchart LR
 >    - Proibido usar cores hexadecimais estáticas (`#475569`, `#0F172A`, `#0d9488`) em strings HTML nas páginas ou seções; use sempre `var(--kyb-text)`, `var(--kyb-text-muted)`, `var(--kyb-teal)`, `var(--kyb-card-bg)` e `var(--kyb-border)`.
 > 6. **Execução de Testes `AppTest` no Windows**:
 >    - Testes em `tests/services/` rodam normalmente no sandbox. Testes em `tests/ui/` que instanciam `streamlit.testing.v1.AppTest` usam `socket.socketpair()` e devem ser executados com `BypassSandbox: true` e `default_timeout=10`.
+> 7. **Regra de Ouro do Viewport 1080p Sem Scroll (Leitura em Z / Metodologia DAR)**:
+>    - Todas as páginas Virtus devem caber perfeitamente em telas padrão **16:9 (1920×1080px) sem rolagem vertical de página** ($\le 750\text{px}$ de altura útil), organizadas na metodologia **DAR (Dashboard → Analysis → Reporting)** em 3 faixas:
+>      - **Faixa 1 — Topo (~18%)**: Cabeçalho compacto `.cockpit-header` + 5 KPI Cards (`.kpi-card`).
+>      - **Faixa 2 — Meio (~45%)**: Diagnóstico visual em 2 colunas lado a lado (`[1, 1]`) com gráficos Plotly de altura fixa `height=280` e revelação progressiva em `st.tabs`.
+>      - **Faixa 3 — Base (~37%)**: Detalhamento operacional com **scroll exclusivamente interno (`height=210`)** em `st.dataframe` na esquerda + Veredito Prescritivo (`.prescription-box`) na direita.
+> 8. **Data-Ink Ratio (Tufte) e Calibração Empírica ABC/XYZ**:
+>    - Proibido duplicar títulos entre `section_header` e gráficos Plotly (`title=None` nos layouts Plotly).
+>    - Proibido criar colunas laterais isoladas apenas para abrigar um `st.selectbox` deixando buraco branco abaixo. Alinhe filtros no cabeçalho ou use `label_visibility="collapsed"`.
+>    - Eixos com anotações diretas nas barras/células devem simplificar ticks ou ocultar legendas redundantes.
+>    - Cortes XYZ calibrados em `config/pipeline.yaml` para demanda B2B semanal com zeros (`xyz_x_cutoff: 1.50`, `xyz_y_cutoff: 2.50`), gerando uma distribuição equilibrada (≈18% X, ≈44% Y, ≈38% Z).
 
 ---
 
@@ -207,6 +218,24 @@ flowchart LR
     - **4. Veredito de Temperança (`render_prescription_box`)**: quantifica o total em R$ recuperável somando o fim dos descontos fora do teto + liberação de 25% do estoque travado.
   - *DoD:* `3_inventory_demand.py` e `temperance_sections.py` < 400 linhas; 100% dos KPIs e cabeçalhos com `.kyb-info-icon`; AppTest em `tests/ui/test_temperance_page.py` passa sem erros.
 
+- [x] **V2-V2** *(VIRTUS-COCKPIT-01)* — **Redesign Cockpit Executivo 1080p Sem Scroll (Leitura em Z / Metodologia DAR), Saneamento Data-Ink Ratio e Recalibração da Matriz ABC/XYZ**: Reestruturar as 4 páginas para o formato de tela única (1920×1080px sem rolagem de página vertical), eliminar poluição visual de títulos duplicados no Plotly, embutir filtros sem buracos brancos e calibrar os cortes XYZ para a distribuição empírica real de vendas B2B.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P0**
+  - *Arquivos:* `config/pipeline.yaml`, `src/ml/abc_xyz.py`, `src/ui/assets/styles.css`, `src/ui/components/charts.py`, `src/ui/components/commercial_charts.py`, `src/ui/components/prescription.py`, `src/ui/pages/1_executive.py`, `src/ui/pages/2_commercial_radar.py`, `src/ui/pages/3_inventory_demand.py`, `tests/ui/test_executive_page.py`, `tests/ui/test_commercial_page.py`, `tests/ui/test_temperance_page.py`, `tests/ui/test_app.py`.
+  - *Depende de:* `V1-V1`, `V1-V2`, `V2-V1`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. Arquitetura de 3 Faixas Horizontais (DAR)**:
+      - Faixa 1 (Topo ~18%): cabeçalho compacto `.cockpit-header` + 5 KPI cards.
+      - Faixa 2 (Meio ~45%): 2 colunas lado a lado (`st.columns([1, 1])`) com gráficos Plotly `height=280` e revelação progressiva em abas `st.tabs`.
+      - Faixa 3 (Base ~37%): tabelas ricas com scroll restrito exclusivamente ao interior do componente (`height=210`) na esquerda + veredito prescritivo na direita.
+    - **2. Saneamento de Data-Ink Ratio na Matriz ABC/XYZ (`charts.py`)**:
+      - Remover o título interno duplicado do Plotly (`title=None`).
+      - Eixo X e Y com ticks autodescritivos (`["X · Regular", "Y · Sazonal", "Z · Intermitente"]` e `["Classe A (80%)", "Classe B (15%)", "Classe C (5%)"]`), ocultando títulos redundantes e setas longas.
+      - Eliminar a coluna lateral vazia do seletor de células; alinhar no topo com `label_visibility="collapsed"`.
+    - **3. Recalibração dos Cortes XYZ em `config/pipeline.yaml` e `abc_xyz.py`**:
+      - `xyz_x_cutoff: 1.50` e `xyz_y_cutoff: 2.50` adequados para séries semanais com preenchimento de zeros em 26 semanas (mediana real de CV = 2,21).
+      - Reconstrução de `gold.mart_abc_xyz` passando de 93% em Z para 18% X (71 SKUs), 44% Y (175 SKUs) e 38% Z (151 SKUs), tornando todas as 9 células úteis e equilibradas.
+  - *DoD:* zero scroll de página vertical em 1080p; gráficos com `height=280` e tabelas com `height=210`; `mart_abc_xyz` calibrado com 18% X / 44% Y / 38% Z; `tests/ui/test_app.py`, `test_executive_page.py`, `test_commercial_page.py` e `test_temperance_page.py` 100% verdes.
+
 ---
 
 ### 🟢 Onda V3 — Página 2 (**Fortaleza**: Solidez de Caixa, NCG & Risco) e Blindagem Cross-Page
@@ -238,11 +267,14 @@ flowchart LR
   - *Arquivos:* `src/ui/components/fortitude_sections.py` (novo), `src/ui/pages/4_simulator.py`, `tests/ui/test_fortitude_page.py` (novo), `tests/ui/test_app.py`, `TASKS.md`, `TASKS_REFACTORY.md`.
   - *Depende de:* `V1-V2`, `V2-V1`, `V3-S1`
   - *Especificação Técnica Mastigada (Anti-Alucinação):*
-    - **1. Estrutura da Página 2 — 🛡️ Fortaleza (`4_simulator.py` + `fortitude_sections.py` < 350 linhas)**:
-      - **5 KPI Cards de Fortaleza**: *Dia do Break-Even Mensal* (ex.: `"Dia 18 do mês"`, rodapé `Meta: R$ X`), *Geração Livre de Caixa* (`free_cash_generation_brl` e `Runway: Y meses`), *Ciclo Financeiro de Caixa* (`cash_conversion_cycle_days` dias, rodapé `PME + PMR - PMP`), *Necessidade de Cap. Giro (NCG)* (`ncg_brl`) e *Concentração Top 10 Clientes* (`top10_customers_share_pct`).
-      - **Seção 1 — Ciclo Financeiro (PME, PMR, PMP) & Ponto de Equilíbrio Mensal**: gráfico horizontal comparativo das barras de PME + PMR vs. PMP e curva acumulada do Break-Even no mês.
-      - **Seção 2 — Risco de Concentração (Dependência) & Aging List da Carteira**: gráfico/tabela de concentração (Top Clientes / Famílias / RCAs) ao lado do gráfico de faixas de Aging (*Em Dia*, *15–30d*, *31–60d*, *> 60d*).
-      - **Veredito de Fortaleza (`render_prescription_box`)**: recomendação quantificada em R$ de liberação de NCG ao reduzir o PMR médio e o PME.
+    - **1. Estrutura da Página 2 — 🛡️ Fortaleza (`4_simulator.py` + `fortitude_sections.py` < 350 linhas) em Cockpit Z-Pattern (3 Faixas)**:
+      - **Faixa 1 — Topo (Status em 5s)**: Cabeçalho Cockpit + **5 KPI Cards de Fortaleza**: *Dia do Break-Even Mensal* (ex.: `"Dia 18 do mês"`, rodapé `Meta: R$ X`), *Geração Livre de Caixa* (`free_cash_generation_brl` e `Runway: Y meses`), *Ciclo Financeiro de Caixa* (`cash_conversion_cycle_days` dias, rodapé `PME + PMR - PMP`), *Necessidade de Cap. Giro (NCG)* (`ncg_brl`) e *Concentração Top 10 Clientes* (`top10_customers_share_pct`).
+      - **Faixa 2 — Meio (Diagnóstico Visual em 2 Colunas `height=280`)**:
+        - Coluna Esquerda: Abas *Ciclo Financeiro (PME, PMR, PMP)* vs. *Ponto de Equilíbrio Mensal* (gráfico comparativo horizontal das barras e curva acumulada do Break-Even).
+        - Coluna Direita: Abas *Risco de Concentração (Top 5/10)* vs. *Exposição por Aging da Carteira* (treemap/barras de concentração e faixas de aging).
+      - **Faixa 3 — Base (Detalhamento & Ação em 2 Colunas)**:
+        - Coluna Esquerda: Abas com scroll interno `height=210` (*Clientes em Atraso / Aging* e *Concentração por Carteira*).
+        - Coluna Direita: *Veredito de Fortaleza (`render_prescription_box`)* com recomendação quantificada em R$ de liberação de NCG ao reduzir o PMR médio e o PME.
     - **2. Auditoria Global de Qualidade (`Ruff`, `Mypy`, `Pytest`, `< 400 linhas`, Dark Mode)**:
       - Garantir que todos os arquivos em `src/services/` e `src/ui/` possuam estritamente `< 400 linhas`, zero `iterrows()` e zero cores hexadecimais chumbadas fora de `theme.py`.
   - *DoD:*
@@ -258,12 +290,18 @@ flowchart LR
 - `[2026-11-06]` (`V1-S1`) `src/services/executive_service.py` atingiu 494 linhas e `src/ui/pages/1_executive.py` atingiu 441 linhas após a inclusão do demonstrativo mensal na `M3-S3` — resolvido estruturalmente nas tarefas `V1-S1` e `V1-V1` com a extração de `src/ui/components/prudence_sections.py`.
 - `[2026-11-06]` (`V1-V2`) Identificado uso residual de `df.iterrows()` em `charts.py` e `commercial_charts.py` e títulos de eixo em inglês em `quadrant_scatter` — endereçado em `V1-V1` e `V1-V2`.
 - `[2026-11-09]` (`Virtus Architecture`) Aprovada a remodelagem estratégica das 4 páginas da aplicação para o framework de governança **Virtus** (**1. Prudência**, **2. Fortaleza**, **3. Justiça**, **4. Temperança**), mantendo os caminhos físicos dos 4 módulos em `src/ui/pages/` e reordenando a apresentação via `st.navigation` em `src/ui/app.py`.
+- `[2026-11-10]` (`Cockpit 1080p / ABC-XYZ`) Identificada perda de contexto executivo por rolagem de página vertical em monitores 1080p e distorção na Matriz ABC/XYZ (93,7% dos produtos em Z por corte teórico $CV \le 1.0$ versus mediana empírica $2,21$). Resolvido na tarefa `V2-V2`: adoção do padrão Cockpit 1080p sem scroll (DAR em 3 faixas: Topo 18%, Meio 45% com gráficos `height=280`, Base 37% com tabelas de scroll interno `height=210`), eliminação de títulos duplicados no Plotly (`title=None`) e recalibração dos cortes XYZ ($X \le 1,50$ e $Y \le 2,50$) equilibrando a matriz em 18% X / 44% Y / 38% Z.
 
 ---
 
 ## 📝 Registro Histórico de Mudanças (Changelog da Refatoração)
 
-- **v0.4.1-working-capital** *(Onda V2: V2-D1, V2-S1 e V2-V1 100% Concluídas)*:
+- **v0.4.2-cockpit-virtus** *(Onda V2: V2-D1, V2-S1, V2-V1 e V2-V2 100% Concluídas)*:
+  - **[2026-11-10] Conclusão de V2-V2 (`VIRTUS-COCKPIT-01`)**:
+    - **Padrão de Cockpit Executivo 1080p Sem Scroll (Leitura em Z / Metodologia DAR)**: Estruturação das Páginas 1 (Prudência), 3 (Justiça) e 4 (Temperança) em 3 faixas horizontais de alto impacto que cabem integralmente no viewport 1080p sem rolagem de página vertical.
+    - **Saneamento Data-Ink Ratio**: Remoção de títulos redundantes no Plotly, simplificação de eixos para ticks autodescritivos (`X · Regular`, `Y · Sazonal`, `Z · Intermitente` e `Classe A 80%`, `Classe B 15%`, `Classe C 5%`), eliminação de colunas vazias abaixo de filtros via `label_visibility="collapsed"` alinhado ao cabeçalho.
+    - **Recalibração Estatística da Matriz ABC/XYZ**: Ajuste de `config/pipeline.yaml` e `abc_xyz.py` com cortes de CV semanal calibrados para vendas B2B com zeros ($X \le 1,50$, $Y \le 2,50$), redistribuindo os 397 SKUs de 93% em Z para **18% X (71 SKUs)**, **44% Y (175 SKUs)** e **38% Z (151 SKUs)** com regeneração de `gold.mart_abc_xyz` e planilha de conciliação `conciliacao_c1_toys.xlsx`.
+    - **Blindagem Automatizada**: Suíte completa `tests/ui/` (`test_app.py`, `test_executive_page.py`, `test_commercial_page.py`, `test_temperance_page.py`) e `tests/ml/test_abc_xyz.py` 100% aprovada.
   - **[2026-11-10] Conclusão de V2-V1 (`VIRTUS-TEMP-02`)**:
     - **Página 4 Completa — Temperança (`src/ui/pages/3_inventory_demand.py`)**: Interface de alto impacto orientada à disciplina de margem e auditoria operacional, sem emojis em títulos e em conformidade estrita com o Design System Kyberna.
     - **5 KPI Cards com Alinhamento Executivo e Ícones de Informação**: *Erosão Comercial Total* (R$ e % do faturamento bruto), *Descontos Fora de Tabela* (R$ concedido acima do teto de porte, accent red), *Custo de Prazo Esticado* (R$ em carregamento financeiro de boletos >30d), *Capital Travado (>120d)* (R$ a custo contábil e contagem de SKUs imobilizados) e *Ruptura Iminente (Curva A)* (SKUs com estoque físico menor ou igual ao lead time de ressuprimento).

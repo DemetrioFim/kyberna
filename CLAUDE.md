@@ -223,7 +223,7 @@ class DataRepository(Protocol):
 - Nomes de código em **inglês**; textos de UI, logs voltados ao usuário e documentação em **pt-BR**.
 - Sem `print` em `src/` — use `logging` via `src/core/logging.py`.
 - Sem segredos no código. Tudo via `Settings` + `.env` (dev) / secrets do Container Apps e GitHub Environments (prod).
-- Constantes de negócio (thresholds de 120 dias, cortes ABC 80/95, CV do XYZ 0,5/1,0) vivem em YAML de config, não hard-coded.
+- Constantes de negócio (thresholds de 120 dias, cortes ABC 80/95, CV do XYZ 1,5/2,5 calibrados para demanda semanal B2B) vivem em YAML de config, não hard-coded.
 
 ### 5.2 DuckDB (SQL no ETL/Financeiro) + Pandas 2.x (ML e Serviços)
 ```sql
@@ -269,6 +269,13 @@ for i, row in df.iterrows(): ...
 - Todo widget interativo tem `key` única e descritiva (`key="sim_price_change_pct"`) para testes.
 - Gráficos sempre com `template="kyberna_light"` ou `template="kyberna_dark"` (conforme tema ativo registrado em `src/ui/theme.py`) e `use_container_width=True`/largura responsiva.
 - Formatação brasileira: `R$ 1.234.567,89`, `12,3%`, datas `dd/mm/aaaa` via `src/ui/formatting.py`.
+- **Arquitetura de Cockpit Executivo 1080p Sem Scroll (Leitura em Z / Metodologia DAR):**
+  - **Zero Scroll de Página (1920×1080px)**: Todas as 4 páginas devem caber perfeitamente no viewport padrão 1080p sem rolagem vertical de página ($\le 750\text{px}$ de altura útil total).
+  - **Grade em 3 Faixas Horizontais (DAR - Dashboard → Analysis → Reporting)**:
+    1. *Faixa 1 — Topo (~18%)*: Cabeçalho compacto `.cockpit-header` + 5 KPI cards (`.kpi-card`).
+    2. *Faixa 2 — Meio (~45%)*: Diagnóstico visual em 2 colunas lado a lado com gráficos Plotly de altura fixa `height=280` e revelação progressiva em abas `st.tabs`.
+    3. *Faixa 3 — Base (~37%)*: Detalhamento e ação com tabelas de **scroll restrito exclusivamente ao interior do componente (`height=210`)** na esquerda + Veredito Prescritivo (`.prescription-box`) na direita.
+  - **Data-Ink Ratio**: Proibido repetir título dentro do gráfico Plotly quando já houver `section_header` acima (`title=None` nos layouts); eixos com ticks autodescritivos; filtros inline no cabeçalho ou compactos com `label_visibility="collapsed"` para evitar colunas vazias; zero emojis na interface.
 - **Obrigatoriedade de Ícones Informativos (`ⓘ`):** Todo KPI Card (`render_kpi_card`), cabeçalho de seção analítica (`section_header`) e bloco prescritivo (`render_prescription_box`) em todas as telas (`M2` a `M7`) **deve obrigatoriamente** exibir o ícone azul de informação (`.kyb-info-icon`) com tooltip explicativo detalhando (1) o conceito da métrica, (2) a fórmula resumida e (3) a leitura executiva. O argumento `help_text: str` é obrigatório na assinatura de `render_kpi_card` e validado contra strings vazias.
 
 ### 5.6 Identidade visual Kyberna (Light Mode ☀️ & Dark Mode 🌙)

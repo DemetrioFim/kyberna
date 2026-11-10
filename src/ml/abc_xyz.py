@@ -21,8 +21,8 @@ DEFAULT_SCENARIO: Final[ScenarioId] = "c1_toys"
 DEFAULT_METRIC: Final[str] = "contribution_margin"
 DEFAULT_A_CUTOFF: Final[float] = 0.80
 DEFAULT_B_CUTOFF: Final[float] = 0.95
-DEFAULT_X_CUTOFF: Final[float] = 0.50
-DEFAULT_Y_CUTOFF: Final[float] = 1.00
+DEFAULT_X_CUTOFF: Final[float] = 1.50
+DEFAULT_Y_CUTOFF: Final[float] = 2.50
 
 DEFAULT_POLICIES: Final[dict[str, str]] = {
     "AX": "Ruptura zero / Estoque de segurança alto e ressuprimento contínuo (JIT)",
@@ -157,18 +157,18 @@ def classify_abc_xyz(
             - Classe A: Top 80% do acumulado (ou primeiro item que atinge o limiar)
             - Classe B: Próximos 15% (de 80% a 95% do acumulado)
             - Classe C: Cauda longa (> 95% do acumulado ou margem/receita zerada/negativa)
-        - Curva XYZ: previsibilidade da demanda semanal (lookback de 26 semanas):
-          - Classe X: Demanda estável e altamente previsível (CV <= 0,50 e demanda > 0)
-          - Classe Y: Demanda com variabilidade moderada (0,50 < CV <= 1,00 e demanda > 0)
-          - Classe Z: Demanda errática/intermitente (CV > 1,00 ou sem vendas no período)
+        - Curva XYZ: previsibilidade da demanda semanal (lookback de 26 semanas, calibrado):
+          - Classe X: Demanda estável e regular (CV <= 1,50 e demanda > 0)
+          - Classe Y: Demanda com variabilidade moderada/sazonal (1,50 < CV <= 2,50 e demanda > 0)
+          - Classe Z: Demanda intermitente/errática (CV > 2,50 ou sem vendas no período)
 
     Args:
         sku_features_df: DataFrame gerado por `compute_sku_features`.
         metric: Métrica de valor para o corte ABC ("contribution_margin" ou "gross_revenue").
         a_cutoff: Limiar acumulado para Classe A (default: 0.80).
         b_cutoff: Limiar acumulado para Classe B (default: 0.95).
-        x_cutoff: Limiar superior de CV para Classe X (default: 0.50).
-        y_cutoff: Limiar superior de CV para Classe Y (default: 1.00).
+        x_cutoff: Limiar superior de CV para Classe X (default: 1.50).
+        y_cutoff: Limiar superior de CV para Classe Y (default: 2.50).
         policies: Dicionário mapeando as 9 células ("AX" a "CZ") para políticas em texto.
         scenario_id: Identificador do cenário de negócio.
         as_of_date: Data de corte temporal analítica.
@@ -262,7 +262,6 @@ def classify_abc_xyz(
         (validated_df["abc_class"] == "C").sum(),
     )
     return validated_df
-    return validated_df
 
 
 def compute_abc_xyz_matrix_summary(
@@ -271,20 +270,7 @@ def compute_abc_xyz_matrix_summary(
 ) -> pd.DataFrame:
     """Gera a tabela resumo da Matriz 3x3 ABC/XYZ com todas as 9 células garantidas.
 
-    Grão de saída: 9 linhas (AX, AY, AZ, BX, BY, BZ, CX, CY, CZ).
-
-    Colunas retornadas:
-        - cell: identificador da célula ("AX" ... "CZ")
-        - abc_class: "A", "B", "C"
-        - xyz_class: "X", "Y", "Z"
-        - sku_count: quantidade de SKUs na célula
-        - sku_pct: percentual do portfólio de SKUs (%)
-        - gross_revenue: faturamento bruto total da célula (R$)
-        - revenue_pct: percentual do faturamento total (%)
-        - contribution_margin: margem de contribuição total da célula (R$)
-        - margin_pct: percentual da margem total (%)
-        - avg_margin_rate: margem percentual média na célula (%)
-        - policy: recomendação prescritiva para a célula
+    Grão de saída: 9 linhas (AX .. CZ) com sku_count, receita, margem e política prescritiva.
 
     Args:
         mart_df: DataFrame retornado por `classify_abc_xyz` ou `mart_abc_xyz`.

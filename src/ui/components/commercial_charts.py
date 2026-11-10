@@ -118,7 +118,8 @@ def cycle_delay_scatter(
         xaxis_title="Ciclo Médio Histórico (dias)",
         yaxis_title="Dias sem Comprar (Recência)",
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1},
-        margin={"l": 40, "r": 40, "t": 60, "b": 40},
+        height=280,
+        margin={"l": 30, "r": 30, "t": 35, "b": 35},
     )
     return fig
 
@@ -168,8 +169,9 @@ def rfm_treemap(
 
     fig.update_layout(
         template=template_name,
-        title=f"<b>Mapa de Segmentação RFM B2B (Tamanho = {size_label} | Cor = Margem %)</b>",
-        margin={"l": 20, "r": 20, "t": 50, "b": 20},
+        title=f"<b>Segmentação RFM (Tamanho = {size_label} | Cor = Margem %)</b>",
+        height=280,
+        margin={"l": 10, "r": 10, "t": 35, "b": 10},
     )
 
     hovertemplate = (
@@ -329,9 +331,10 @@ def white_space_heatmap(
 
     fig.update_layout(
         template=template_name,
-        title="<b>Matriz White Space: Potencial de Cross-Sell por Família e Segmento RFM</b>",
+        title="<b>Matriz White Space: Potencial de Cross-Sell</b>",
         xaxis_title="Segmento RFM do Lojista",
-        yaxis_title="Família Recomendada (Cross-Sell)",
-        margin={"l": 40, "r": 40, "t": 60, "b": 40},
+        yaxis_title="Família Recomendada",
+        height=280,
+        margin={"l": 30, "r": 30, "t": 35, "b": 35},
     )
     return fig

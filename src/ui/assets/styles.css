@@ -32,6 +32,19 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+.main .block-container,
+[data-testid="stMainBlockContainer"] {
+  padding-top: 1rem !important;
+  padding-bottom: 0.75rem !important;
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+  max-width: 100% !important;
+}
+
+[data-testid="stVerticalBlock"] {
+  gap: 0.55rem !important;
+}
+
 header[data-testid="stHeader"] {
   background-color: transparent !important;
 }
@@ -219,6 +232,77 @@ div[data-testid="stAlert"] * {
 }
 
 /* ==============================================================================
+   Cabeçalho Executivo de Cockpit (.cockpit-header)
+   ============================================================================== */
+
+.cockpit-header {
+  background: var(--kyb-card-bg);
+  border: 1px solid var(--kyb-border);
+  border-left: 4px solid var(--kyb-teal);
+  border-radius: 8px;
+  padding: 0.55rem 0.95rem;
+  margin-bottom: 0.55rem;
+  box-shadow: var(--kyb-shadow);
+}
+
+.cockpit-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.cockpit-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+}
+
+.cockpit-title {
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  color: var(--kyb-text) !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.cockpit-subtitle {
+  font-size: 0.8rem;
+  color: var(--kyb-text-muted);
+}
+
+.cockpit-meta-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.cockpit-headline-pill {
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--kyb-teal);
+  background: rgba(31, 122, 140, 0.08);
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  border: 1px solid rgba(31, 122, 140, 0.2);
+}
+
+.cockpit-date-tag {
+  font-size: 0.74rem;
+  color: var(--kyb-text-muted);
+}
+
+.cockpit-header-bottom {
+  font-size: 0.82rem;
+  color: var(--kyb-text);
+  line-height: 1.35;
+}
+
+/* ==============================================================================
    Cards Analíticos Kyberna (.kpi-card)
    ============================================================================== */
 
@@ -226,17 +310,17 @@ div[data-testid="stAlert"] * {
   background-color: var(--kyb-card-bg);
   border: 1px solid var(--kyb-border);
   border-radius: 8px;
-  padding: 1.1rem 1.25rem;
+  padding: 0.65rem 0.9rem;
   box-shadow: var(--kyb-shadow);
   position: relative;
   overflow: visible;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.25rem;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
 }
 
 .kpi-card-teal { border-top: 3px solid var(--kyb-teal); }
@@ -248,34 +332,34 @@ div[data-testid="stAlert"] * {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 0.5rem;
-  margin-bottom: 0.35rem;
+  gap: 0.4rem;
+  margin-bottom: 0.2rem;
 }
 
 .kpi-title {
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: var(--kyb-text-muted);
   margin-bottom: 0;
   flex: 1;
 }
 
 .kpi-value {
-  font-size: 1.75rem;
+  font-size: 1.45rem;
   font-weight: 700;
   color: var(--kyb-text);
   line-height: 1.15;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.25rem;
 }
 
 .kpi-subfooter {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--kyb-text-muted);
   border-top: 1px dashed var(--kyb-border);
-  padding-top: 0.5rem;
-  margin-top: 0.5rem;
+  padding-top: 0.35rem;
+  margin-top: 0.35rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -292,27 +376,27 @@ div[data-testid="stAlert"] * {
   border-right: 1px solid var(--kyb-border);
   border-bottom: 1px solid var(--kyb-border);
   border-radius: 0 8px 8px 0;
-  padding: 1rem 1.25rem;
-  margin: 1.25rem 0;
+  padding: 0.65rem 0.95rem;
+  margin: 0.45rem 0;
   box-shadow: var(--kyb-shadow);
 }
 
 .prescription-title {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--kyb-brass);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.4rem;
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
 }
 
 .prescription-content {
-  font-size: 0.95rem;
+  font-size: 0.84rem;
   color: var(--kyb-text);
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 /* ==============================================================================
