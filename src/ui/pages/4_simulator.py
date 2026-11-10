@@ -4,10 +4,10 @@ import streamlit as st
 
 
 def render_page() -> None:
-    """Renderiza a página '2. Fortaleza — Solidez Financeira, Caixa & Resiliência'."""
-    st.title("2. Fortaleza — Solidez Financeira, Caixa & Resiliência")
+    """Renderiza a página 'Solidez Financeira, Caixa & Resiliência'."""
+    st.title("Solidez Financeira, Caixa & Resiliência")
     st.caption(
-        "Simulação dinâmica de preço, desconto comercial e comissão com volume de equilíbrio (breakeven)."
+        "Fôlego de caixa, cobertura de custos fixos, ciclo financeiro e simulação de resiliência a choques."
     )
 
     # Controles interativos básicos para validação do esqueleto

@@ -81,20 +81,20 @@ app_dir = Path(__file__).parent
 pages = [
     st.Page(
         str(app_dir / "pages" / "1_executive.py"),
-        title="1. Prudência · Direção & Cenários",
+        title="Visão Executiva & Direção",
         default=True,
     ),
     st.Page(
         str(app_dir / "pages" / "4_simulator.py"),
-        title="2. Fortaleza · Caixa & Resiliência",
+        title="Solidez Financeira & Caixa",
     ),
     st.Page(
         str(app_dir / "pages" / "2_commercial_radar.py"),
-        title="3. Justiça · Rentabilidade Comercial",
+        title="Radar Comercial & Margem",
     ),
     st.Page(
         str(app_dir / "pages" / "3_inventory_demand.py"),
-        title="4. Temperança · Eficiência Operacional",
+        title="Eficiência & Capital de Giro",
     ),
 ]
 

@@ -205,31 +205,6 @@ div[role="option"][aria-selected="true"] {
   color: var(--kyb-teal) !important;
 }
 
-/* Ícones de Ajuda e Tooltips (?) */
-div[data-testid="stTooltipIcon"],
-[data-testid="stTooltipHoverTarget"],
-div[data-testid="stHelpContainer"] {
-  opacity: 0.85;
-}
-
-div[data-testid="stTooltipIcon"] svg,
-[data-testid="stTooltipHoverTarget"] svg,
-div[data-testid="stHelpContainer"] svg,
-div[data-testid="stTooltipIcon"] path,
-[data-testid="stTooltipHoverTarget"] path {
-  fill: var(--kyb-text-muted) !important;
-  stroke: var(--kyb-text-muted) !important;
-  color: var(--kyb-text-muted) !important;
-}
-
-div[data-testid="stTooltipIcon"]:hover svg,
-[data-testid="stTooltipHoverTarget"]:hover svg {
-  fill: var(--kyb-teal) !important;
-  stroke: var(--kyb-teal) !important;
-  color: var(--kyb-teal) !important;
-  opacity: 1;
-}
-
 /* Caixas de Alerta (st.info, st.warning, st.success, etc.) */
 div[data-testid="stAlert"] {
   background-color: var(--kyb-card-bg) !important;
@@ -501,7 +476,22 @@ div[data-testid="stAlert"] * {
    Padronização de Todos os Ícones de Informação/Tooltip para .kyb-info-icon
    ============================================================================== */
 
-[data-testid="stTooltipIcon"],
+div[data-testid="stTooltipIcon"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 0 0 4px !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  vertical-align: middle !important;
+}
+
 [data-testid="stTooltipHoverTarget"],
 button[data-testid="stTooltipHoverTarget"],
 .stTooltipIcon {
@@ -518,13 +508,12 @@ button[data-testid="stTooltipHoverTarget"],
   border: 1px solid rgba(31, 122, 140, 0.25) !important;
   box-sizing: border-box !important;
   padding: 0 !important;
-  margin: 0 0 0 6px !important;
+  margin: 0 !important;
   cursor: help !important;
   transition: all 0.15s ease-in-out !important;
   vertical-align: middle !important;
 }
 
-[data-testid="stTooltipIcon"]:hover,
 [data-testid="stTooltipHoverTarget"]:hover,
 button[data-testid="stTooltipHoverTarget"]:hover,
 .stTooltipIcon:hover {
@@ -534,7 +523,6 @@ button[data-testid="stTooltipHoverTarget"]:hover,
   box-shadow: 0 0 0 2px rgba(31, 122, 140, 0.2) !important;
 }
 
-[data-testid="stTooltipIcon"] svg,
 [data-testid="stTooltipHoverTarget"] svg,
 button[data-testid="stTooltipHoverTarget"] svg,
 .stTooltipIcon svg {

@@ -4,9 +4,11 @@ import streamlit as st
 
 
 def render_page() -> None:
-    """Renderiza a página '4. Temperança — Eficiência Operacional & Estoque'."""
-    st.title("4. Temperança — Eficiência Operacional & Gestão de Desperdícios")
-    st.caption("Forecast 30 dias via StatsForecast, semáforo de ruptura e destravamento de capital parado.")
+    """Renderiza a página 'Eficiência Operacional & Controle de Excessos'."""
+    st.title("Eficiência Operacional & Controle de Excessos")
+    st.caption(
+        "Forecast de demanda 30 dias, prevenção de rupturas e destravamento de capital parado em estoque."
+    )
 
     col1, col2, col3 = st.columns(3)
 

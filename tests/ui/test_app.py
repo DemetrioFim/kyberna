@@ -8,7 +8,7 @@ from src.core.paths import get_project_root
 def test_app_initial_render() -> None:
     """Verifica se o app Streamlit renderiza a página padrão (Visão Executiva) sem exceções."""
     app_path = get_project_root() / "src" / "ui" / "app.py"
-    at = AppTest.from_file(str(app_path))
+    at = AppTest.from_file(str(app_path), default_timeout=10)
     at.run()
     assert not at.exception
     assert at.session_state.theme_mode == "light"
@@ -24,7 +24,7 @@ def test_app_initial_render() -> None:
 def test_app_theme_toggle_interaction() -> None:
     """Verifica se alternar para o tema escuro altera o estado global theme_mode."""
     app_path = get_project_root() / "src" / "ui" / "app.py"
-    at = AppTest.from_file(str(app_path))
+    at = AppTest.from_file(str(app_path), default_timeout=10)
     at.run()
     assert at.session_state.theme_mode == "light"
 

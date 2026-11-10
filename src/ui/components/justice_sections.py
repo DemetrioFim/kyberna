@@ -20,31 +20,8 @@ from src.ui.formatting import format_brl, format_int
 
 
 def render_justice_banner(dto: CommercialPageDTO) -> None:
-    """Renderiza o banner de identidade da 3ª Virtude Cardeal — Justiça."""
-    b_style = (
-        "background: linear-gradient(135deg, rgba(13, 148, 136, 0.12) 0%, "
-        "rgba(217, 119, 6, 0.08) 100%); "
-        "border-left: 4px solid var(--kyb-teal); border-radius: 8px; "
-        "padding: 0.9rem 1.25rem; margin-bottom: 1.25rem;"
-    )
-    h_style = (
-        "font-size: 0.82rem; font-weight: 700; text-transform: uppercase; "
-        "letter-spacing: 0.06em; color: var(--kyb-teal); margin-bottom: 0.25rem;"
-    )
-    t_style = "font-size: 0.92rem; color: var(--kyb-text); line-height: 1.45;"
-
-    h_title = "3. Justiça — Rentabilidade Comercial, Margem & Carteira (Radar Comercial)"
-    html = (
-        f'<div style="{b_style}">'
-        f'<div style="{h_style}">{h_title}</div>'
-        f'<div style="{t_style}">'
-        '<strong>A premissa executiva:</strong> <em>"A troca de valor entre a empresa, seus clientes '
-        'e sua força de vendas está justa e saudável?"</em> Vender muito com margem ruim destrói caixa — '
-        "a Justiça identifica quem gera lucro líquido real e quem sangra a margem da companhia."
-        "</div>"
-        "</div>"
-    )
-    st.markdown(html, unsafe_allow_html=True)
+    """Exibe barra informativa (pass-through mantido para compatibilidade)."""
+    pass
 
 
 def render_justice_headline(dto: CommercialPageDTO) -> None:
@@ -181,7 +158,7 @@ def render_sales_rep_justice_section(
         return
 
     section_header(
-        f"Justiça da Força de Vendas ({rep_label}s)",
+        f"Performance & Mérito da Força de Vendas ({rep_label}s)",
         "Avaliação meritocrática: volume faturado vs. margem líquida preservada e disciplina de descontos",
         help_text=(
             "Cortes nas medianas da equipe: 'Estrela' (alto volume e alta margem); "

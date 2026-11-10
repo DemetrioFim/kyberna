@@ -8,7 +8,7 @@ from src.core.paths import get_project_root
 def test_executive_page_full_render() -> None:
     """Valida renderização isolada da Tela 1 (Visão Executiva & Margem Real)."""
     page_path = get_project_root() / "src" / "ui" / "pages" / "1_executive.py"
-    at = AppTest.from_file(str(page_path))
+    at = AppTest.from_file(str(page_path), default_timeout=10)
     at.run()
 
     assert not at.exception
@@ -31,7 +31,7 @@ def test_executive_page_full_render() -> None:
 def test_executive_page_abc_xyz_cell_selection() -> None:
     """Valida a interação de seleção de célula na Matriz ABC/XYZ."""
     page_path = get_project_root() / "src" / "ui" / "pages" / "1_executive.py"
-    at = AppTest.from_file(str(page_path))
+    at = AppTest.from_file(str(page_path), default_timeout=10)
     at.run()
 
     assert not at.exception

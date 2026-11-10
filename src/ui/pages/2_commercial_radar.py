@@ -27,11 +27,10 @@ def render_page() -> None:
     labels = scenario_cfg.labels
     theme_mode = state.theme_mode
 
-    # Título Virtus e Radar Comercial
-    st.title("3. Justiça — Rentabilidade Comercial, Margem & Carteira")
+    # Título do Radar Comercial
+    st.title("Radar Comercial, Margem & Carteira")
     st.caption(
-        f"A troca de valor entre a empresa, seus clientes e sua força de vendas está justa e saudável? "
-        f"Diagnóstico de margem líquida, Radar Comercial de churn e sortimento ausente: "
+        f"Equilíbrio de rentabilidade, retenção de carteira e eficiência da força de vendas: "
         f"**{scenario_cfg.display_name}** ({scenario_cfg.company_profile})."
     )
 

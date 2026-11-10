@@ -34,7 +34,7 @@ def build_commercial_headline(kpis: CommercialKpisDTO) -> tuple[str, str]:
 
     if kpis.at_risk_customers > 0:
         title = (
-            f"Justiça Comercial · Radar de Churn: {kpis.at_risk_customers} clientes fora do ciclo "
+            f"Radar Comercial · Radar de Churn: {kpis.at_risk_customers} clientes fora do ciclo "
             f"com {rev_risk_str} em risco imediato"
         )
         text = (
@@ -44,7 +44,7 @@ def build_commercial_headline(kpis: CommercialKpisDTO) -> tuple[str, str]:
             f"(White Space) pronto para abordagem imediata pelos representantes responsáveis."
         )
     else:
-        title = "Justiça Comercial: Carteira de Clientes no Ciclo Saudável"
+        title = "Radar Comercial: Carteira de Clientes no Ciclo Saudável"
         text = (
             f"Nenhum cliente crítico em atraso detectado no recorte selecionado. Oportunidade de "
             f"<b>{ws_rev_str}</b> em expansão de mix (White Space) disponível para alavancar faturamento."
@@ -71,7 +71,7 @@ def build_commercial_prescription(
     top_margin_at_risk = float(priority_df.head(top_count)["annual_margin_at_risk"].sum())
     top_ws_potential = float(priority_df.head(top_count)["top_opportunity_brl"].sum())
 
-    title = "Plano Tático de Justiça: Reativação e Oferta de Sortimento"
+    title = "Plano Tático de Ação: Reativação e Oferta de Sortimento"
     html = (
         f"<p>Priorize a abordagem imediata dos <b>Top {top_count} lojistas</b> com maior valor exposto. "
         f"Este grupo isolado responde por <b>{format_brl(top_revenue_at_risk)}</b> de receita anualizada "

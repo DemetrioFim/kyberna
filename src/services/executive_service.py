@@ -274,7 +274,7 @@ def build_executive_dashboard(
         repo, where_sql=where_sql, params=params, joins=joins, target_rate=0.22
     )
 
-    headline_title = "Manchete de Prudência: Direção, Pacing & Margem Real"
+    headline_title = "Síntese Executiva: Ritmo de Metas & Margem Real"
     headline_text = (
         f"Faturamento de <strong>{format_brl(kpis.gross_revenue, compact=True)}</strong> gerou "
         f"<strong>{format_brl(kpis.contribution_margin, compact=True)}</strong> em Margem Líquida "
@@ -283,7 +283,7 @@ def build_executive_dashboard(
         f"<strong>{format_brl(kpis.projected_quarter_revenue_brl, compact=True)}</strong>."
     )
 
-    prescription_title = "Veredito de Prudência: Proteção e Captura de Margem no Bolso"
+    prescription_title = "Diagnóstico Executivo: Proteção e Captura de Margem"
     prescription_html = (
         f"Foram identificados <strong>{low_margin_count} lojistas</strong> com margem inferior a 22,0% "
         f"(frente à média da carteira de {kpis.contribution_margin_pct:.1f}%). "

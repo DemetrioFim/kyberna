@@ -17,8 +17,6 @@ from src.ui.components.prescription import (
 from src.ui.components.prudence_sections import (
     render_monthly_sales_table_section,
     render_prudence_anomalies_section,
-    render_prudence_banner,
-    render_prudence_drivers_section,
     render_prudence_headline,
     render_prudence_kpis,
     render_what_if_quick_fragment,
@@ -63,6 +61,16 @@ def _render_visual_section(dto: ExecutivePageDTO, theme_mode: str) -> None:
 @st.fragment
 def _render_abc_xyz_fragment(dto: ExecutivePageDTO, theme_mode: str) -> None:
     """Fragmento isolado para exploração interativa da Matriz ABC/XYZ sem rerun global."""
+    section_header(
+        "Matriz 3x3 ABC/XYZ & Gestão Prescritiva de Portfólio",
+        "Cruza a contribuição na margem (ABC) com a volatilidade da demanda semanal (XYZ)",
+        help_text=(
+            "Classificação bidimensional de SKUs: ABC por contribuição acumulada na margem "
+            "(A=80%, B=15%, C=5%) e XYZ por estabilidade semanal da demanda "
+            "(X estável CV≤0.5, Y moderado 0.5<CV≤1.0, Z errático CV>1.0)."
+        ),
+    )
+
     col_mat, col_ctrl = st.columns([2, 1])
 
     with col_ctrl:
@@ -144,11 +152,11 @@ def _render_abc_xyz_fragment(dto: ExecutivePageDTO, theme_mode: str) -> None:
 
 
 def render_page() -> None:
-    """Renderiza a página '1. Prudência — Visão Executiva & Margem Real'."""
+    """Renderiza a página 'Visão Executiva & Margem Real'."""
     state = get_app_state()
     scenario = load_scenario_config(state.scenario_id)
 
-    st.title("1. Prudência — Visão Executiva & Margem Real")
+    st.title("Visão Executiva & Margem Real")
     st.caption(
         f"Previsibilidade de metas e proteção de margem: **{scenario.display_name}** "
         f"({scenario.company_profile})."
@@ -165,48 +173,41 @@ def render_page() -> None:
         selected_month=state.selected_month,
     )
 
-    # 1. Banner Temporal & Manchete Dinâmica de Prudência
-    render_prudence_banner(dto)
+    # 1. Manchete Integrada com Badges & 5 KPI Cards de Pacing
     render_prudence_headline(dto)
-
-    # 2. 5 KPI Cards com Pacing Executivo
     render_prudence_kpis(dto, scenario.labels.customer_plural)
     st.markdown("---")
 
-    # 3. Seção Visual: Waterfall da Margem Real e Tendência Dupla com Meta
-    _render_visual_section(dto, theme_mode=state.theme_mode)
-    st.markdown("---")
-
-    # 4. Simulador Executivo What-If de 3 Alavancas (Breakeven Rápido)
-    render_what_if_quick_fragment(dto)
-    st.markdown("---")
-
-    # 5. Radar de Anomalias & Alertas Críticos de Prudência
-    render_prudence_anomalies_section(dto)
-    st.markdown("---")
-
-    # 6. Demonstrativo de Vendas Mensal (Mês a Mês)
-    render_monthly_sales_table_section(dto)
-    st.markdown("---")
-
-    # 7. Matriz 3x3 ABC/XYZ com Fragmento Interativo
-    section_header(
-        "Matriz 3x3 ABC/XYZ & Gestão Prescritiva de Portfólio",
-        "Cruza a contribuição na margem (ABC) com a volatilidade da demanda semanal (XYZ)",
-        help_text=(
-            "Classificação bidimensional de SKUs: ABC por contribuição acumulada na margem "
-            "(A=80%, B=15%, C=5%) e XYZ por estabilidade semanal da demanda "
-            "(X estável CV≤0.5, Y moderado 0.5<CV≤1.0, Z errático CV>1.0)."
-        ),
+    # 2. Painel Central de Direção em 3 Abas
+    tab_overview, tab_table, tab_portfolio = st.tabs(
+        [
+            "Visão Geral: DRE Waterfall & Evolução Mensal",
+            "Demonstrativo Contábil Mês a Mês",
+            "Portfólio ABC/XYZ & Gestão de Demanda",
+        ]
     )
-    _render_abc_xyz_fragment(dto, theme_mode=state.theme_mode)
+
+    with tab_overview:
+        _render_visual_section(dto, theme_mode=state.theme_mode)
+
+    with tab_table:
+        render_monthly_sales_table_section(dto)
+
+    with tab_portfolio:
+        _render_abc_xyz_fragment(dto, theme_mode=state.theme_mode)
+
     st.markdown("---")
 
-    # 8. Matriz de Lucratividade: Geradores vs. Destratores de Margem (4 Abas)
-    render_prudence_drivers_section(dto, scenario.labels)
+    # 3. Sala de Decisão: Radar de Anomalias & Simulador Rápido What-If
+    col_anom, col_whatif = st.columns([1, 1])
+    with col_anom:
+        render_prudence_anomalies_section(dto)
+    with col_whatif:
+        render_what_if_quick_fragment(dto)
+
     st.markdown("---")
 
-    # 9. Veredito Prescritivo de Prudência
+    # 4. Veredito Prescritivo de Prudência
     action_msg = "Definir tabela regressiva de descontos e revisar parâmetros de frete no simulador."
     render_prescription_box(
         title=dto.prescription_title,

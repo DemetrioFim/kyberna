@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.core.scenarios import ScenarioLabels
 from src.services.dto import ExecutivePageDTO
 from src.services.simulator import simulate_quick_what_if
 from src.ui.components.kpi_card import info_tooltip_html, render_kpi_card
 from src.ui.components.prescription import section_header
-from src.ui.components.tables import render_margin_drivers_table
 from src.ui.formatting import (
     format_brl,
     format_int,
@@ -18,34 +16,14 @@ from src.ui.formatting import (
 
 def render_prudence_banner(dto: ExecutivePageDTO) -> None:
     """Exibe barra informativa com o período de vendas filtrado, comparativo e data-âncora."""
-    info_icon = info_tooltip_html(
-        "Indica a janela exata de faturamento considerada em todos os cards, gráficos e tabelas, "
-        "além da régua histórica adotada para o cálculo de variações percentuais (Δ).",
-        align="left",
-    )
-    b_style = (
-        'style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; '
-        "gap: 0.75rem; background: var(--kyb-card-bg); border: 1px solid var(--kyb-border); "
-        'border-radius: 6px; padding: 0.6rem 1rem; margin: 0.5rem 0 1rem 0; font-size: 0.88rem;"'
-    )
-    banner_html = (
-        f"<div {b_style}>"
-        f"<div><span><strong>Período:</strong> "
-        f'<span style="color: var(--kyb-teal); font-weight: 600;">{dto.period_label}</span></span>'
-        f"{info_icon}</div>"
-        f"<div><span><strong>Comparativo (Δ):</strong> "
-        f'<span style="color: var(--kyb-text-muted);">{dto.comparison_label}</span></span></div>'
-        f"<div><span><strong>Data-Âncora:</strong> "
-        f'<span style="color: var(--kyb-text-muted);">{dto.as_of_date_label}</span></span></div>'
-        "</div>"
-    )
-    st.markdown(banner_html, unsafe_allow_html=True)
+    pass
 
 
 def render_prudence_headline(dto: ExecutivePageDTO) -> None:
-    """Renderiza a manchete executiva dinâmica de Prudência com chamada de direção."""
+    """Renderiza a manchete executiva dinâmica integrada com badges de período."""
     headline_info = info_tooltip_html(
-        "Síntese executiva calculando ritmo comercial contra metas e dispersão de margem real.",
+        "Síntese executiva calculando ritmo comercial contra metas e dispersão de margem real "
+        "na janela temporal filtrada.",
         align="left",
     )
     h_style = (
@@ -56,12 +34,28 @@ def render_prudence_headline(dto: ExecutivePageDTO) -> None:
     )
     t_style = (
         'style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; '
-        'color: var(--kyb-teal); margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem;"'
+        "color: var(--kyb-teal); margin-bottom: 0.35rem; display: flex; justify-content: space-between; "
+        'align-items: center; flex-wrap: wrap; gap: 0.5rem;"'
+    )
+    chips_style = (
+        'style="font-size: 0.78rem; font-weight: 500; text-transform: none; letter-spacing: normal; '
+        'color: var(--kyb-text-muted); display: inline-flex; align-items: center; gap: 0.6rem;"'
     )
     manchete_html = (
         f"<div {h_style}>"
-        f"<div {t_style}><span>{dto.headline_title}</span>{headline_info}</div>"
-        f'<div style="font-size: 1rem; line-height: 1.45; color: var(--kyb-text);">{dto.headline_text}</div>'
+        f"<div {t_style}>"
+        f"<span>{dto.headline_title}{headline_info}</span>"
+        f"<span {chips_style}>"
+        f"<span><strong>Período:</strong> "
+        f'<span style="color: var(--kyb-teal); font-weight: 600;">{dto.period_label}</span></span>'
+        f"<span>•</span>"
+        f"<span><strong>Comparativo (Δ):</strong> {dto.comparison_label}</span>"
+        f"<span>•</span>"
+        f"<span><strong>Data-Âncora:</strong> {dto.as_of_date_label}</span>"
+        f"</span>"
+        f"</div>"
+        f'<div style="font-size: 0.95rem; line-height: 1.45; color: var(--kyb-text);">'
+        f"{dto.headline_text}</div>"
         "</div>"
     )
     st.markdown(manchete_html, unsafe_allow_html=True)
@@ -148,108 +142,127 @@ def render_prudence_kpis(dto: ExecutivePageDTO, customer_plural: str) -> None:
 
 @st.fragment
 def render_what_if_quick_fragment(dto: ExecutivePageDTO) -> None:
-    """Fragmento interativo de simulação rápida de cenários com 3 alavancas e cálculo de breakeven."""
+    """Fragmento executivo de simulação rápida de sensibilidade de margem (What-If)."""
     section_header(
-        "Simulador Executivo de Cenários (What-If)",
-        "Analise instantaneamente o impacto de preço, desconto e custos no lucro líquido e breakeven",
+        "Simulador Rápido de Preço & Margem",
+        "Simule o impacto de ajustes comerciais no lucro final da operação",
         help_text=(
             "Simulação dinâmica considerando elasticidade de demanda (-1.2). "
-            "Calcula o volume extra necessário para compensar descontos adicionais."
+            "Calcula o impacto direto de variações na tabela de preços e na concessão de descontos "
+            "sobre o lucro líquido final no bolso e o volume necessário para breakeven."
         ),
     )
 
-    col_ctrl, col_res = st.columns([1, 2])
-
-    with col_ctrl:
-        st.markdown("###### Alavancas de Decisão")
+    col_p, col_d = st.columns(2)
+    with col_p:
         price_delta = st.slider(
-            "Tabela de Preços (% delta)",
-            min_value=-15.0,
-            max_value=15.0,
-            value=0.0,
-            step=0.5,
-            help="Reajuste percentual aplicado a todos os preços de tabela.",
-            key="_what_if_price",
-        )
-        discount_delta = st.slider(
-            "Desconto Adicional (p.p.)",
-            min_value=-5.0,
+            "Ajuste de Preço (%)",
+            min_value=-10.0,
             max_value=10.0,
             value=0.0,
             step=0.5,
-            help="Aumento ou redução de desconto médio concedido pela força de vendas.",
-            key="_what_if_disc",
+            key="_what_if_price",
         )
-        cogs_delta = st.slider(
-            "Custo Mercadoria / CPV (%)",
-            min_value=-10.0,
-            max_value=15.0,
+    with col_d:
+        discount_delta = st.slider(
+            "Variação no Desconto (%)",
+            min_value=-5.0,
+            max_value=5.0,
             value=0.0,
             step=0.5,
-            help="Inflação ou redução no custo unitário das matérias-primas e produtos.",
-            key="_what_if_cogs",
+            key="_what_if_disc",
         )
 
     res = simulate_quick_what_if(
         dto.kpis,
         price_change_pct=price_delta,
         discount_change_pp=discount_delta,
-        commission_or_cost_change_pct=cogs_delta,
     )
 
-    with col_res:
-        st.markdown("###### Resultado Projetado da Simulação")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.metric(
-                label="Faturamento Simulado",
-                value=format_brl(res["simulated_revenue_brl"], compact=True),
-                delta=f"{res['estimated_volume_pct']:+.1f}% vol est.",
-                help="Receita bruta projetada ajustada pelo novo preço e elasticidade de volume.",
-            )
-        with c2:
-            st.metric(
-                label="Margem Contribuição",
-                value=format_brl(res["simulated_margin_brl"], compact=True),
-                delta=f"{format_brl(res['margin_delta_brl'], compact=True)} no bolso",
-                delta_color="normal" if res["margin_delta_brl"] >= 0 else "inverse",
-                help="Resultado líquido final de margem operacional após deduções.",
-            )
-        with c3:
-            be_val = res["breakeven_volume_pct"]
-            be_str = f"{be_val:+.1f}% volume" if be_val < 500 else "Inviável"
-            st.metric(
-                label="Volume de Breakeven",
-                value=be_str,
-                delta=f"Margem: {res['simulated_margin_pct']:.1f}%",
-                help="Variação percentual de volume necessária para manter o mesmo lucro líquido original.",
-            )
+    margin_sim = res["simulated_margin_brl"]
+    margin_delta = res["margin_delta_brl"]
+    margin_pct = res["simulated_margin_pct"]
+    rev_sim = res["simulated_revenue_brl"]
+    be_vol = res["breakeven_volume_pct"]
 
-        if res["margin_delta_brl"] < 0:
-            st.caption(
-                f"*Atenção de Prudência:* Para compensar essa concessão e manter o lucro atual, "
-                f"a equipe comercial precisa vender **{res['breakeven_volume_pct']:+.1f}% mais unidades**."
-            )
-        elif res["margin_delta_brl"] > 0:
-            st.caption(
-                f"*Ganho de Prudência:* Esta calibragem gera "
-                f"**{format_brl(res['margin_delta_brl'], compact=True)} adicionais** de margem líquida."
-            )
+    delta_color = (
+        "var(--kyb-pos)"
+        if margin_delta > 0
+        else "var(--kyb-neg)"
+        if margin_delta < 0
+        else "var(--kyb-text-muted)"
+    )
+    delta_sign = "+" if margin_delta > 0 else ""
+
+    if margin_delta > 0:
+        conclusion_html = (
+            "<strong>Potencial de Ganho:</strong> Esta calibragem gera "
+            f'<strong style="color: var(--kyb-pos);">'
+            f"{format_brl(margin_delta, compact=True)} adicionais</strong> "
+            "de margem líquida direta no caixa."
+        )
+    elif margin_delta < 0:
+        vol_str = f"{be_vol:+.1f}%" if be_vol < 500 else "inviável"
+        conclusion_html = (
+            "<strong>Ponto de Atenção:</strong> Concessão de margem; a equipe comercial precisa vender "
+            f'<strong style="color: var(--kyb-neg);">{vol_str} mais unidades</strong> '
+            "para manter o lucro original."
+        )
+    else:
+        conclusion_html = (
+            "<strong>Cenário Base:</strong> Parâmetros comerciais atuais mantidos sem variações simuladas."
+        )
+
+    sub_status = "no bolso da empresa" if margin_delta != 0 else "estável"
+    lbl_style = (
+        'style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; '
+        'letter-spacing: 0.05em; color: var(--kyb-text-muted); margin-bottom: 0.2rem;"'
+    )
+    card_sim_html = (
+        '<div style="background: var(--kyb-card-bg); border: 1px solid var(--kyb-border); '
+        'border-radius: 8px; padding: 0.9rem 1.15rem; margin-top: 0.4rem; box-shadow: var(--kyb-shadow);">'
+        '<div style="display: flex; justify-content: space-between; align-items: flex-start; '
+        'gap: 1rem; margin-bottom: 0.65rem;">'
+        "<div>"
+        f"<div {lbl_style}>Margem Líquida Projetada</div>"
+        '<div style="font-size: 1.5rem; font-weight: 700; color: var(--kyb-text); line-height: 1.15;">'
+        f"{format_brl(margin_sim, compact=True)}</div>"
+        f'<div style="font-size: 0.8rem; color: var(--kyb-text-muted); margin-top: 0.25rem;">'
+        f"Receita: {format_brl(rev_sim, compact=True)} • Margem: {margin_pct:.1f}%</div>"
+        "</div>"
+        '<div style="text-align: right;">'
+        f"<div {lbl_style}>Impacto no Lucro</div>"
+        f'<div style="font-size: 1.5rem; font-weight: 700; color: {delta_color}; line-height: 1.15;">'
+        f"{delta_sign}{format_brl(margin_delta, compact=True)}</div>"
+        f'<div style="font-size: 0.8rem; color: {delta_color}; margin-top: 0.25rem; font-weight: 600;">'
+        f"{sub_status}</div>"
+        "</div>"
+        "</div>"
+        '<div style="font-size: 0.84rem; line-height: 1.4; color: var(--kyb-text); '
+        'border-top: 1px dashed var(--kyb-border); padding-top: 0.55rem;">'
+        f"{conclusion_html}"
+        "</div>"
+        "</div>"
+    )
+    st.markdown(card_sim_html, unsafe_allow_html=True)
 
 
 def render_prudence_anomalies_section(dto: ExecutivePageDTO) -> None:
     """Renderiza a seção do Radar de Anomalias e alertas de governança."""
-    if dto.anomalies_df is None or dto.anomalies_df.empty:
-        return
-
     section_header(
-        "Radar de Anomalias & Alertas de Prudência",
-        "Detecção estatística automática de desvios de desconto, margem comprimida e risco de churn",
+        "Radar de Anomalias & Desvios da Semana",
+        "Detecção estatística automática de descontos fora da política, margem comprimida e risco",
         help_text=(
             "Monitoramento contínuo de exceções nas vendas que ameaçam a entrega da meta de margem "
             "ou indicam quebra de disciplina comercial antes do fechamento do mês."
         ),
     )
+
+    if dto.anomalies_df is None or dto.anomalies_df.empty:
+        st.info(
+            "Nenhuma anomalia crítica detectada no período. Parâmetros operacionais dentro da normalidade."
+        )
+        return
 
     df_anom = dto.anomalies_df.copy()
     for row in df_anom.to_dict(orient="records"):
@@ -269,72 +282,26 @@ def render_prudence_anomalies_section(dto: ExecutivePageDTO) -> None:
 
         card_top = (
             '<div style="display: flex; justify-content: space-between; align-items: center; '
-            'margin-bottom: 0.25rem;">'
-            f'<span style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; '
+            'margin-bottom: 0.2rem;">'
+            f'<span style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; '
             f'color: {color_border};">[{sev}] {cat}</span>'
-            f'<span style="font-size: 0.85rem; font-weight: 600; color: var(--kyb-text);">'
+            f'<span style="font-size: 0.82rem; font-weight: 600; color: var(--kyb-text);">'
             f"Impacto Est.: {format_brl(impact, compact=True)}</span>"
             "</div>"
         )
         card_html = (
             f'<div style="background: var(--kyb-card-bg); border-left: 4px solid {color_border}; '
             "border-top: 1px solid var(--kyb-border); border-right: 1px solid var(--kyb-border); "
-            "border-bottom: 1px solid var(--kyb-border); border-radius: 6px; padding: 0.75rem 1rem; "
-            'margin-bottom: 0.6rem;">'
+            "border-bottom: 1px solid var(--kyb-border); border-radius: 6px; padding: 0.6rem 0.85rem; "
+            'margin-bottom: 0.5rem;">'
             f"{card_top}"
-            f'<div style="font-size: 0.95rem; font-weight: 600; color: var(--kyb-text); '
-            f'margin-bottom: 0.2rem;">{title}</div>'
-            f'<div style="font-size: 0.85rem; color: var(--kyb-text-muted);">'
+            f'<div style="font-size: 0.9rem; font-weight: 600; color: var(--kyb-text); '
+            f'margin-bottom: 0.15rem;">{title}</div>'
+            f'<div style="font-size: 0.82rem; color: var(--kyb-text-muted);">'
             f"<strong>Recomendação:</strong> {rec}</div>"
             "</div>"
         )
         st.markdown(card_html, unsafe_allow_html=True)
-
-
-def render_prudence_drivers_section(dto: ExecutivePageDTO, labels: ScenarioLabels) -> None:
-    """Renderiza o ranking dos maiores geradores e destruidores de margem em 4 dimensões."""
-    section_header(
-        "Matriz de Lucratividade: Geradores vs. Destratores de Margem",
-        "Descubra quem alavanca o lucro líquido e onde ocorrem sangrias comerciais",
-        help_text=(
-            "Identificação dos 10 maiores geradores de margem líquida (R$) versus os 10 maiores detratores "
-            "(menor margem % ou margem negativa) para orientar renegociação imediata."
-        ),
-    )
-
-    t_fam, t_prod, t_cust, t_rep = st.tabs(
-        [
-            f"Por {labels.product_family}",
-            "Por Produto (SKU)",
-            f"Por {labels.customer_plural}",
-            f"Por {labels.sales_rep}",
-        ]
-    )
-    tabs_data = [
-        (
-            t_fam,
-            f"Top Linhas / {labels.product_family}",
-            dto.top_family_generators_df,
-            dto.top_family_destroyers_df,
-        ),
-        (t_prod, "Top 10 Produtos (SKUs)", dto.top_generators_df, dto.top_destroyers_df),
-        (
-            t_cust,
-            f"Top 10 {labels.customer_plural}",
-            dto.top_customer_generators_df,
-            dto.top_customer_destroyers_df,
-        ),
-        (t_rep, f"Top 10 {labels.sales_rep}", dto.top_rep_generators_df, dto.top_rep_destroyers_df),
-    ]
-    for tab, title, gen_df, dest_df in tabs_data:
-        with tab:
-            c1, c2 = st.columns(2)
-            with c1:
-                st.markdown(f"##### {title} Mais Lucrativos")
-                render_margin_drivers_table(gen_df, is_generator=True)
-            with c2:
-                st.markdown(f"##### {title} com Menor Margem %")
-                render_margin_drivers_table(dest_df, is_generator=False)
 
 
 def render_monthly_sales_table_section(dto: ExecutivePageDTO) -> None:
