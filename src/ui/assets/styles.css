@@ -472,6 +472,19 @@ div[data-testid="stAlert"] * {
   transform: translateY(0);
 }
 
+/* Oculta os links de âncora nativos do Streamlit nos títulos */
+.stHeading a,
+a.anchor-link,
+a[data-testid="stHeaderActionElements"],
+h1 a,
+h2 a,
+h3 a,
+h4 a,
+h5 a,
+h6 a {
+  display: none !important;
+}
+
 /* ==============================================================================
    Padronização de Todos os Ícones de Informação/Tooltip para .kyb-info-icon
    ============================================================================== */
@@ -526,10 +539,24 @@ button[data-testid="stTooltipHoverTarget"]:hover,
 [data-testid="stTooltipHoverTarget"] svg,
 button[data-testid="stTooltipHoverTarget"] svg,
 .stTooltipIcon svg {
-  fill: currentColor !important;
-  stroke: currentColor !important;
-  width: 11px !important;
-  height: 11px !important;
+  display: none !important;
+}
+
+[data-testid="stTooltipHoverTarget"]::after,
+button[data-testid="stTooltipHoverTarget"]::after,
+.stTooltipIcon::after {
+  content: "ⓘ" !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  color: var(--kyb-teal) !important;
+  line-height: 1 !important;
+  font-family: inherit !important;
+}
+
+[data-testid="stTooltipHoverTarget"]:hover::after,
+button[data-testid="stTooltipHoverTarget"]:hover::after,
+.stTooltipIcon:hover::after {
+  color: var(--kyb-card-bg) !important;
 }
 
 div[data-baseweb="popover"],

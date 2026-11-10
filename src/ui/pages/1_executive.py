@@ -65,9 +65,9 @@ def _render_abc_xyz_fragment(dto: ExecutivePageDTO, theme_mode: str) -> None:
         "Matriz 3x3 ABC/XYZ & Gestão Prescritiva de Portfólio",
         "Cruza a contribuição na margem (ABC) com a volatilidade da demanda semanal (XYZ)",
         help_text=(
-            "Classificação bidimensional de SKUs: ABC por contribuição acumulada na margem "
-            "(A=80%, B=15%, C=5%) e XYZ por estabilidade semanal da demanda "
-            "(X estável CV≤0.5, Y moderado 0.5<CV≤1.0, Z errático CV>1.0)."
+            "Classificação bidimensional de SKUs: Curva ABC por contribuição na margem "
+            "(A=80%, B=15%, C=5%) e Matriz XYZ por previsibilidade de demanda: "
+            "X estável (CV ≤ 0,5), Y moderado (CV entre 0,5 e 1,0) e Z errático (CV superior a 1,0)."
         ),
     )
 
@@ -94,7 +94,6 @@ def _render_abc_xyz_fragment(dto: ExecutivePageDTO, theme_mode: str) -> None:
             options=cell_options,
             index=cell_idx,
             key="_abc_xyz_cell_select",
-            help="Selecione uma célula específica (ex: AX para alta margem e estabilidade).",
         )
         st.session_state.selected_abc_xyz_cell = selected_cell if selected_cell != "Todas" else None
 
