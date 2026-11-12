@@ -205,3 +205,53 @@ class TemperancePageDTO(BaseModel):
     prescription_html: str
     prescription_impact_brl: float | None = None
     as_of_date_label: str = "31/12/2024"
+
+
+class FortitudeKpisDTO(BaseModel):
+    """KPIs consolidados de solvência, liquidez, ciclo financeiro e concentração (Fortaleza)."""
+
+    cash_reserve_brl: float
+    cash_runway_months: float
+    cash_reserve_target_months: float
+    fixed_costs_monthly_brl: float
+    monthly_gross_revenue_brl: float
+    monthly_net_revenue_brl: float
+    monthly_contribution_margin_brl: float
+    free_cash_generation_brl: float
+    margin_pct_of_gross: float
+    margin_pct_of_net: float
+    breakeven_revenue_brl: float
+    breakeven_day_of_month: int
+    pme_days: float
+    pmr_days: float
+    pmp_days: float
+    cash_conversion_cycle_days: float
+    ncg_brl: float
+    top5_customers_share_pct: float
+    top10_customers_share_pct: float
+    top2_families_share_pct: float
+    active_customers_count: int
+    at_risk_portfolio_brl: float
+    at_risk_portfolio_pct: float
+    at_risk_customers_count: int
+
+
+class FortitudePageDTO(BaseModel):
+    """Payload completo e tipado consumido pela Página 2 — Fortaleza."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    scenario_id: ScenarioId
+    kpis: FortitudeKpisDTO
+    headline_title: str
+    headline_text: str
+    breakeven_curve_df: pd.DataFrame
+    cycle_components_df: pd.DataFrame
+    customer_concentration_df: pd.DataFrame
+    family_concentration_df: pd.DataFrame
+    aging_buckets_df: pd.DataFrame
+    aging_customers_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    prescription_title: str
+    prescription_html: str
+    prescription_impact_brl: float | None = None
+    as_of_date_label: str = "31/12/2024"

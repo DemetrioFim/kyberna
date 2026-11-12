@@ -244,7 +244,7 @@ flowchart LR
 
 #### 🧠 Serviços & Interface de Fortaleza (`S` / `V`)
 
-- [ ] **V3-S1** *(VIRTUS-FORT-01)* — **Serviço de Fortaleza (`fortitude_service.py` + `fortitude_queries.py`): Fôlego de Caixa, Break-Even Mensal, Ciclo Financeiro (NCG), Risco de Concentração e Aging List**: Implementar o serviço puro da **Página 2 — Fortaleza**.
+- [x] **V3-S1** *(VIRTUS-FORT-01)* — **Serviço de Fortaleza (`fortitude_service.py` + `fortitude_queries.py`): Fôlego de Caixa, Break-Even Mensal, Ciclo Financeiro (NCG), Risco de Concentração e Aging List**: Implementar o serviço puro da **Página 2 — Fortaleza**.
   - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
   - *Arquivos:* `src/services/dto.py` (`FortitudeKpisDTO`, `FortitudePageDTO`), `src/services/fortitude_queries.py` (novo), `src/services/fortitude_service.py` (novo), `src/ui/cache.py` (`cached_fortitude_dashboard`), `tests/services/test_fortitude_service.py` (novo).
   - *Depende de:* `V2-D1`
@@ -262,7 +262,7 @@ flowchart LR
       - **Aging List / Saúde de Recebíveis e Carteira (`aging_buckets_df`)**: distribuição da carteira e da receita exposta nas faixas *Em Dia / No Ciclo*, *15–30 dias (Atenção)*, *31–60 dias (Risco Imediato)* e *> 60 dias (Crítico / Adormecido)*.
   - *DoD:* equações de Break-Even e Ciclo Financeiro ($\text{PME} + \text{PMR} - \text{PMP}$) validadas por testes unitários; arquivos < 400 linhas; `uv run pytest tests/services/test_fortitude_service.py -q` passa.
 
-- [ ] **V3-V1** *(VIRTUS-FORT-02 + QA)* — **Página 2 — 🛡️ Fortaleza (`4_simulator.py` + `fortitude_sections.py`), Saneamento Dark Mode Global e Blindagem `pytest`**: Construir a interface da **Página 2 — Fortaleza** e validar as **4 Páginas do Virtus** ponta a ponta.
+- [x] **V3-V1** *(VIRTUS-FORT-02 + QA)* — **Página 2 — 🛡️ Fortaleza (`4_simulator.py` + `fortitude_sections.py`), Saneamento Dark Mode Global e Blindagem `pytest`**: Construir a interface da **Página 2 — Fortaleza** e validar as **4 Páginas do Virtus** ponta a ponta.
   - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
   - *Arquivos:* `src/ui/components/fortitude_sections.py` (novo), `src/ui/pages/4_simulator.py`, `tests/ui/test_fortitude_page.py` (novo), `tests/ui/test_app.py`, `TASKS.md`, `TASKS_REFACTORY.md`.
   - *Depende de:* `V1-V2`, `V2-V1`, `V3-S1`
@@ -295,6 +295,13 @@ flowchart LR
 ---
 
 ## 📝 Registro Histórico de Mudanças (Changelog da Refatoração)
+
+- **v0.4.3-fortitude-virtus** *(Onda V3: V3-S1 e V3-V1 100% Concluídas — 4/4 Virtudes Cardeais em Cockpit 1080p)*:
+  - **[2026-11-12] Conclusão de V3-V1 (`VIRTUS-FORT-02`)**:
+    - **Página 2 — Fortaleza (`src/ui/pages/4_simulator.py`, `src/ui/components/fortitude_sections.py`, `src/ui/components/fortitude_charts.py`)**: Substituição do protótipo legado pelo Cockpit 1080p DAR sem scroll de página em 3 faixas: (1) Faixa 1 com banner financeiro, manchete dinâmica e 5 KPI Cards (*Runway de Caixa*, *Break-Even Mensal*, *Ciclo Financeiro & NCG*, *Concentração Top 5*, *Carteira em Risco >1,5x*), todos com `.kyb-info-icon`; (2) Faixa 2 em 2 colunas com `height=280` sem títulos duplicados (*Waterfall Ciclo Financeiro*, *Curva Break-Even Dias 1..30*, *Aging de Carteira*, *Pareto Top 10 Clientes*); (3) Faixa 3 com tabelas `height=210` com scroll interno (*Carteira em Atraso* e *Concentração Pareto*) e *Veredito da Fortaleza* quantificando liberação de caixa operacional.
+    - **Modularização & Blindagem Global**: Todos os módulos novos mantidos estritamente `< 400` linhas (`fortitude_queries.py`: 196, `fortitude_risk_queries.py`: 281, `fortitude_service.py`: 313, `fortitude_charts.py`: 203, `fortitude_sections.py`: 252, `4_simulator.py`: 119); `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src` (84 arquivos), `uv run pytest tests/services -q` (29 passed) e `uv run pytest tests/ui -q` (33 passed, incluindo `tests/ui/test_fortitude_page.py`) 100% aprovados.
+  - **[2026-11-12] Conclusão de V3-S1 (`VIRTUS-FORT-01`)**:
+    - **Serviço Puro de Solvência e Liquidez (`src/services/fortitude_service.py`, `fortitude_queries.py`, `fortitude_risk_queries.py`, `dto.py`, `ui/cache.py`)**: Cálculo trailing 12 meses de Break-Even diário (`days 1..30`), Runway dinâmico da reserva operacional, Ciclo Financeiro ponderado ($\text{PME} + \text{PMR} - \text{PMP}$) e NCG em R$, Pareto Top 5/10 Clientes e Top 2 Famílias, e distribuição em 4 faixas de Aging com filtragem consistente por região/UF/RCA/família e `4` testes unitários em `tests/services/test_fortitude_service.py`.
 
 - **v0.4.2-cockpit-virtus** *(Onda V2: V2-D1, V2-S1, V2-V1 e V2-V2 100% Concluídas)*:
   - **[2026-11-10] Conclusão de V2-V2 (`VIRTUS-COCKPIT-01`)**:

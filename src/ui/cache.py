@@ -5,11 +5,17 @@ import streamlit as st
 from src.core.types import ScenarioId
 from src.db.repository import DataRepository, get_repository
 from src.services.commercial_service import build_commercial_dashboard
-from src.services.dto import CommercialPageDTO, ExecutivePageDTO, TemperancePageDTO
+from src.services.dto import (
+    CommercialPageDTO,
+    ExecutivePageDTO,
+    FortitudePageDTO,
+    TemperancePageDTO,
+)
 from src.services.executive_service import (
     build_executive_dashboard,
     get_filter_options,
 )
+from src.services.fortitude_service import build_fortitude_dashboard
 from src.services.temperance_service import build_temperance_dashboard
 from src.ui.state import resolve_period_bounds
 
@@ -105,6 +111,27 @@ def cached_temperance_dashboard(
     """Consulta e agrega os dados da Tela 4 (Temperança) com cache em memória (TTL 5 min)."""
     repo = get_cached_repository()
     return build_temperance_dashboard(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+    )
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def cached_fortitude_dashboard(
+    scenario_id: ScenarioId,
+    *,
+    regiao: str = "Todas",
+    uf: str = "Todas",
+    families: tuple[str, ...] = (),
+    sales_reps: tuple[str, ...] = (),
+) -> FortitudePageDTO:
+    """Consulta e agrega os dados da Tela 2 (Fortaleza) com cache em memória (TTL 5 min)."""
+    repo = get_cached_repository()
+    return build_fortitude_dashboard(
         repo,
         scenario_id,
         regiao=regiao,

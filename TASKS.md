@@ -10,11 +10,11 @@ Plataforma B2B de **Decision Intelligence, Governança Corporativa & Prescriptiv
 
 ## 🚀 Status Geral do Desenvolvimento
 
-- **Versão Atual**: `v0.4.0-virtus` $\rightarrow$ `v0.4.2-cockpit-virtus`
-- **Marcos Concluídos**: M1 (Fundação, Ingestão, Silver SQL e Tema UI), M2 (Cenário C1 Brinquedos, Waterfall Financeiro, Auditoria Excel, ABC/XYZ calibrado e Tela 1), M3-S1..S4 (RFM, Risco de Churn, White Space e Quadrante de RCAs), Ondas Virtus V1 (Prudência e Justiça), V2 (Working Capital, Estoque, Temperança e Cockpit 1080p DAR).
+- **Versão Atual**: `v0.4.3-fortitude-virtus`
+- **Marcos Concluídos**: M1 (Fundação, Ingestão, Silver SQL e Tema UI), M2 (Cenário C1 Brinquedos, Waterfall Financeiro, Auditoria Excel, ABC/XYZ calibrado e Tela 1), M3-S1..S4 (RFM, Risco de Churn, White Space e Quadrante de RCAs), `M3-V1` (Justiça), `M4-D2` (Working Capital & Inventory Snapshot), Ondas Virtus **V1** (Prudência & Justiça), **V2** (Temperança & Cockpit 1080p DAR) e **V3** (Página 2 — Fortaleza).
 - **Próximos Focos Imediatos**:
-  - **Onda V3 ([`TASKS_REFACTORY.md`](./TASKS_REFACTORY.md))**: Página **2. Fortaleza** (`4_simulator.py` + `fortitude_service.py`: Fôlego de Caixa, Break-Even Mensal, Ciclo Financeiro PME+PMR-PMP, NCG em R$, Risco de Concentração e Aging List).
-  - **M3-V2 & M4**: Exportação em 1 clique (Excel/CSV/WhatsApp `wa.me`), Forecast 30d (`StatsForecast`) e Elasticidade (`LightGBM`).
+  - **`M3-V2` (Motor de Ação em 1 Clique)**: Exportação Excel formatado por RCA, CSV (`utf-8-sig`) e links clicáveis de WhatsApp (`wa.me`) em `src/services/export_service.py` e `src/ui/components/export_bar.py`.
+  - **`M4` (`M4-D1`, `M4-S1`..`M4-S4`, `M4-V1`, `M4-V2`)**: Injeção de eventos de preço (`elasticity_ground_truth`), Forecast 30d (`StatsForecast`), Elasticidade (`LightGBM` + Log-Log) e Simulador What-If completo.
 
 ### Estrutura dos Módulos em Cada Marco (4 Pilares Integrados)
 
@@ -549,6 +549,8 @@ flowchart LR
 
 ## 📝 Registro Histórico de Mudanças (Changelog)
 
+- **v0.4.3-fortitude-virtus** *(Onda V3 Concluída — Página 2: Fortaleza & Sistema Virtus 4/4 Telas em Cockpit 1080p)*:
+  - **[2026-11-12] Conclusão de `V3-S1` e `V3-V1` (Página 2 — Fortaleza)**: Implementação do serviço puro de solvência, Break-Even mensal, Ciclo Financeiro ($\text{PME} + \text{PMR} - \text{PMP}$), NCG em R$, Concentração Top 5/10 e Aging List em [`src/services/fortitude_service.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/services/fortitude_service.py), [`src/services/fortitude_queries.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/services/fortitude_queries.py), [`src/services/fortitude_risk_queries.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/services/fortitude_risk_queries.py) e [`src/ui/cache.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/cache.py), além da interface Cockpit 1080p DAR em [`src/ui/pages/4_simulator.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/pages/4_simulator.py), [`src/ui/components/fortitude_sections.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/components/fortitude_sections.py) e [`src/ui/components/fortitude_charts.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/components/fortitude_charts.py). Todos os módulos mantidos `< 400` linhas, `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src` (84 arquivos), `uv run pytest tests/services -q` (`29 passed`) e `uv run pytest tests/ui -q` (`33 passed`) aprovados; status de `M3-V1` e `M4-D2` sincronizado como `[x]`.
 - **v0.4.2-cockpit-virtus** *(Ondas V1 e V2 Concluídas — Remodelagem Virtus e Cockpit 1080p DAR)*:
   - **[2026-11-10] Conclusão de Cockpit 1080p DAR & Saneamento Data-Ink Ratio (`V2-V2`)**:
     - **Metodologia DAR Sem Scroll de Página**: Reestruturação das Páginas 1 (Prudência), 3 (Justiça) e 4 (Temperança) em 3 faixas estritas de altura: Faixa 1 (~18%) Topo/Status 5s, Faixa 2 (~45%) Diagnóstico visual com gráficos `height=280` em abas de revelação progressiva, Faixa 3 (~37%) Detalhamento operacional com scroll exclusivamente interno `height=210` e veredito prescritivo à direita.
