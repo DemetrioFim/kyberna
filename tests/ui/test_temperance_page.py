@@ -19,9 +19,10 @@ def test_temperance_page_full_render() -> None:
     assert "kyb-info-icon" in all_markdown
     assert "kyb-tooltip-popover" in all_markdown
 
-    # Título e Banner de Temperança
-    assert "Eficiência Operacional" in all_markdown or len(at.title) >= 1
-    assert "TEMPERANÇA & DISCIPLINA OPERACIONAL" in all_markdown
+    # Título e Cabeçalho Cockpit de Temperança
+    assert "cockpit-header" in all_markdown
+    assert "Eficiência Operacional" in all_markdown
+    assert "4. Temperança" in all_markdown
 
     # 5 KPI Cards
     assert "Erosão Comercial Total" in all_markdown

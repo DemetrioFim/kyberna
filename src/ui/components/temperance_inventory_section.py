@@ -3,8 +3,6 @@ from __future__ import annotations
 import streamlit as st
 
 from src.services.dto import TemperancePageDTO
-from src.ui.components.charts import abc_xyz_heatmap
-from src.ui.components.prescription import section_header
 from src.ui.formatting import (
     format_brl,
     format_int,
@@ -127,33 +125,3 @@ def render_stockout_risk_table(dto: TemperancePageDTO) -> None:
             hide_index=True,
             height=210,
         )
-
-
-@st.fragment
-def render_temperance_inventory_section(dto: TemperancePageDTO, theme_mode: str) -> None:
-    """Fragmento isolado para exploração de estoque imobilizado e semáforo de ruptura em caixas master."""
-    section_header(
-        "Gestão Prescritiva de Estoque & Capital de Giro",
-        "Matriz 3x3 ABC/XYZ cruzada com controle de capital travado (> 120d) e ruptura na Curva A",
-        help_text="Cruza a contribuição na margem (ABC) com a volatilidade semanal da demanda (XYZ).",
-    )
-
-    matrix_df = dto.abc_xyz_summary_df.copy()
-    if not matrix_df.empty and "recommended_policy" not in matrix_df.columns:
-        matrix_df["recommended_policy"] = matrix_df["policy"]
-
-    fig_abc = abc_xyz_heatmap(matrix_df, theme_mode=theme_mode)
-    st.plotly_chart(fig_abc, use_container_width=True)
-
-    tab_locked, tab_rupture = st.tabs(
-        [
-            f"🛑 Capital Imobilizado ({dto.kpis.locked_skus_count} SKUs com > 120 dias)",
-            f"🚨 Semáforo de Ruptura ({dto.kpis.stockout_risk_skus_count} SKUs Curva A/B)",
-        ]
-    )
-
-    with tab_locked:
-        render_locked_inventory_table(dto)
-
-    with tab_rupture:
-        render_stockout_risk_table(dto)

@@ -174,7 +174,7 @@ Para garantir consistência matemática absoluta entre os 4 pilares de cada marc
 - `Receita Liquida = Receita_Faturada - Impostos_Sobre_Venda`
 - `Margem Bruta = Receita_Liquida - CMV_Total`
 - `Margem Contribuicao Liquida (R$) = Margem_Bruta - Comissao_RCA - Frete_Empresa - Custo_Financeiro_Prazo`
-- `Margem Contribuicao Liquida (%) = (Margem_Contribuicao_Liquida / Receita_Faturada) * 100`
+- `Margem Contribuicao Liquida (%) = (Margem_Contribuicao_Liquida / Receita_Bruta_Tabelada) * 100` *(métrica primária da DRE auditada e marts analíticos, exibindo complementarmente `(Margem_Contribuicao_Liquida / Receita_Liquida) * 100` no subtítulo do KPI Card)*
 
 ### 6.2 Índice de Risco de Churn Individual (Baseado no Ciclo Próprio do Cliente)
 - Cada cliente ativo possui um intervalo médio histórico entre compras `ciclo_medio_dias` e desvio-padrão `ciclo_std_dias`.
@@ -202,6 +202,7 @@ Para garantir consistência matemática absoluta entre os 4 pilares de cada marc
 ### 6.5 Solidez de Caixa, Ciclo Financeiro e Vazamentos (`config/finance/working_capital.yaml`)
 Para sustentar os indicadores de **2. Fortaleza** e **4. Temperança** de forma 100% determinística e auditável no DuckDB:
 - **Ponto de Equilíbrio Operacional (Break-Even Mensal):**
+  - `Custo Fixo Mensal (R$) = Receita_Liquida_Media_Mensal * fixed_cost_pct_of_avg_net_revenue` (14% no C1 Brinquedos, conforme `working_capital.yaml`)
   - `Receita Break-Even (R$) = Custo_Fixo_Mensal / (Margem_Contribuicao_Pct / 100)`
   - `Dia do Break-Even no Mes = ceil(30 * (Receita_Break_Even / Receita_Bruta_Mensal))`
   - `Folego de Caixa (Runway em Meses) = Reserva_Caixa_Operacional / Custo_Fixo_Mensal`
@@ -210,7 +211,7 @@ Para sustentar os indicadores de **2. Fortaleza** e **4. Temperança** de forma 
   - `PMR (Prazo Medio de Recebimento, dias)` = Média ponderada dos prazos concedidos por porte de cliente / RCA (ex.: P=28d, M=42d, G=60d; penalidade +18d para RCAs em `high_discount_reps`).
   - `PMP (Prazo Medio de Pagamento a Fornecedores, dias)` = Parâmetro do cenário (ex.: 35 dias na Indústria C1).
   - `Ciclo Financeiro de Caixa (dias) = PME + PMR - PMP`
-  - `NCG (Necessidade de Capital de Giro em R$) = ((CMV_Diario + Despesas_Variaveis_Diarias) * max(Ciclo_Financeiro_Dias, 0))`
+  - `NCG (Necessidade de Capital de Giro em R$) = (Receita_Liquida_Media_Mensal / 30) * max(Ciclo_Financeiro_Dias, 0)`
 - **Auditoria de Excesso de Desconto e Vazamento Financeiro de Prazo (Temperança):**
   - `Desconto Excedente Fora da Politica (R$) = sum(max(0, taxa_desconto_praticada - teto_desconto_porte) * Receita_Bruta_Pedido)`
   - `Custo Financeiro do Prazo Excedente (R$) = Receita_Liquida * ((max(0, PMR_pedido - prazo_padrao_30d) / 30) * taxa_custo_capital_mensal)`

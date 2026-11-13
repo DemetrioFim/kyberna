@@ -14,13 +14,11 @@ from src.ui.components.commercial_charts import (
 from src.ui.components.justice_sections import (
     render_champions_vampires_section,
     render_critical_customers_table,
-    render_justice_banner,
-    render_justice_headline,
     render_justice_kpi_cards,
     render_sales_reps_table,
     render_white_space_deals_table,
 )
-from src.ui.components.prescription import render_prescription_box
+from src.ui.components.prescription import render_cockpit_header, render_prescription_box
 from src.ui.state import get_app_state
 
 
@@ -31,13 +29,6 @@ def render_page() -> None:
     labels = scenario_cfg.labels
     theme_mode = state.theme_mode
 
-    # 1. Faixa 1 — Topo (Status em 5s): Título + Subtítulo + Manchete + 5 KPI Cards
-    st.title("Radar Comercial, Margem & Carteira")
-    st.caption(
-        f"Equilíbrio de rentabilidade, retenção de carteira e eficiência da força de vendas: "
-        f"**{scenario_cfg.display_name}** ({scenario_cfg.company_profile})."
-    )
-
     dto = cached_commercial_dashboard(
         state.scenario_id,
         regiao=state.regiao,
@@ -47,10 +38,23 @@ def render_page() -> None:
         risk_status="Todos",
         rfm_segment="Todos",
         quadrant="Todos",
+        period_preset=state.period_preset,
+        selected_month=state.selected_month,
     )
 
-    render_justice_banner(dto)
-    render_justice_headline(dto)
+    # 1. Faixa 1 — Topo (Status em 5s): Cabeçalho Cockpit unificado + 5 KPI Cards
+    render_cockpit_header(
+        title="Radar Comercial, Margem & Carteira",
+        subtitle=f"{scenario_cfg.display_name} ({scenario_cfg.company_profile})",
+        virtue_badge="3. Justiça",
+        headline_title=dto.headline_title,
+        headline_text=dto.headline_text,
+        as_of_date_label=dto.as_of_date_label,
+        help_text=(
+            "Equilíbrio entre rentabilidade por produto/cliente, mitigação de churn pelo ciclo de recompra, "
+            "mérito da força de vendas (RCAs) e potencial de expansão White Space."
+        ),
+    )
     render_justice_kpi_cards(dto, labels.customer_plural)
 
     # 2. Faixa 2 — Meio (Diagnóstico Visual em 2 Colunas lado a lado)

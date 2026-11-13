@@ -11,13 +11,13 @@ from src.ui.components.charts import (
     waterfall_margin,
 )
 from src.ui.components.prescription import (
+    render_cockpit_header,
     render_prescription_box,
     section_header,
 )
 from src.ui.components.prudence_sections import (
     render_monthly_sales_table_section,
     render_prudence_anomalies_section,
-    render_prudence_headline,
     render_prudence_kpis,
     render_what_if_quick_fragment,
 )
@@ -121,13 +121,6 @@ def render_page() -> None:
     state = get_app_state()
     scenario = load_scenario_config(state.scenario_id)
 
-    # 1. Faixa 1 — Topo (Status em 5s): Título + Subtítulo + Manchete + 5 KPI Cards
-    st.title("Visão Executiva & Margem Real")
-    st.caption(
-        f"Previsibilidade de metas e proteção de margem: **{scenario.display_name}** "
-        f"({scenario.company_profile})."
-    )
-
     dto: ExecutivePageDTO = cached_executive_dashboard(
         state.scenario_id,
         regiao=state.regiao,
@@ -139,7 +132,20 @@ def render_page() -> None:
         selected_month=state.selected_month,
     )
 
-    render_prudence_headline(dto)
+    # 1. Faixa 1 — Topo (Status em 5s): Cabeçalho Cockpit unificado + 5 KPI Cards
+    render_cockpit_header(
+        title="Visão Executiva & Margem Real",
+        subtitle=f"{scenario.display_name} ({scenario.company_profile})",
+        virtue_badge="1. Prudência",
+        headline_title=dto.headline_title,
+        headline_text=dto.headline_text,
+        period_badge=f"{dto.period_label} · Δ {dto.comparison_label}",
+        as_of_date_label=dto.as_of_date_label,
+        help_text=(
+            "Síntese executiva calculando ritmo comercial contra metas e dispersão de margem real "
+            "na janela temporal filtrada."
+        ),
+    )
     render_prudence_kpis(dto, scenario.labels.customer_plural)
 
     # 2. Faixa 2 — Meio (Diagnóstico Visual em 2 Colunas lado a lado)

@@ -4,7 +4,7 @@ import streamlit as st
 
 from src.services.dto import ExecutivePageDTO
 from src.services.simulator import simulate_quick_what_if
-from src.ui.components.kpi_card import info_tooltip_html, render_kpi_card
+from src.ui.components.kpi_card import render_kpi_card
 from src.ui.components.prescription import section_header
 from src.ui.formatting import (
     format_brl,
@@ -12,53 +12,6 @@ from src.ui.formatting import (
     format_pct,
     get_delta_html,
 )
-
-
-def render_prudence_banner(dto: ExecutivePageDTO) -> None:
-    """Exibe barra informativa com o período de vendas filtrado, comparativo e data-âncora."""
-    pass
-
-
-def render_prudence_headline(dto: ExecutivePageDTO) -> None:
-    """Renderiza a manchete executiva dinâmica integrada com badges de período."""
-    headline_info = info_tooltip_html(
-        "Síntese executiva calculando ritmo comercial contra metas e dispersão de margem real "
-        "na janela temporal filtrada.",
-        align="left",
-    )
-    h_style = (
-        'style="background: var(--kyb-card-bg); border-left: 4px solid var(--kyb-teal); '
-        "border-top: 1px solid var(--kyb-border); border-right: 1px solid var(--kyb-border); "
-        "border-bottom: 1px solid var(--kyb-border); padding: 0.85rem 1.25rem; border-radius: 6px; "
-        'margin: 0.5rem 0 1.25rem 0;"'
-    )
-    t_style = (
-        'style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; '
-        "color: var(--kyb-teal); margin-bottom: 0.35rem; display: flex; justify-content: space-between; "
-        'align-items: center; flex-wrap: wrap; gap: 0.5rem;"'
-    )
-    chips_style = (
-        'style="font-size: 0.78rem; font-weight: 500; text-transform: none; letter-spacing: normal; '
-        'color: var(--kyb-text-muted); display: inline-flex; align-items: center; gap: 0.6rem;"'
-    )
-    manchete_html = (
-        f"<div {h_style}>"
-        f"<div {t_style}>"
-        f"<span>{dto.headline_title}{headline_info}</span>"
-        f"<span {chips_style}>"
-        f"<span><strong>Período:</strong> "
-        f'<span style="color: var(--kyb-teal); font-weight: 600;">{dto.period_label}</span></span>'
-        f"<span>•</span>"
-        f"<span><strong>Comparativo (Δ):</strong> {dto.comparison_label}</span>"
-        f"<span>•</span>"
-        f"<span><strong>Data-Âncora:</strong> {dto.as_of_date_label}</span>"
-        f"</span>"
-        f"</div>"
-        f'<div style="font-size: 0.95rem; line-height: 1.45; color: var(--kyb-text);">'
-        f"{dto.headline_text}</div>"
-        "</div>"
-    )
-    st.markdown(manchete_html, unsafe_allow_html=True)
 
 
 def render_prudence_kpis(dto: ExecutivePageDTO, customer_plural: str) -> None:
@@ -145,15 +98,15 @@ def render_what_if_quick_fragment(dto: ExecutivePageDTO) -> None:
     """Fragmento executivo de simulação rápida de sensibilidade de margem (What-If)."""
     section_header(
         "Simulador Rápido de Preço & Margem",
-        "Simule o impacto de ajustes comerciais no lucro final da operação",
+        "Simule o impacto de ajustes comerciais e de custo no lucro final da operação",
         help_text=(
-            "Simulação dinâmica considerando elasticidade de demanda (-1.2). "
-            "Calcula o impacto direto de variações na tabela de preços e na concessão de descontos "
-            "sobre o lucro líquido final no bolso e o volume necessário para breakeven."
+            "Simulação dinâmica considerando elasticidade constante de demanda (-1.2). "
+            "Calcula o impacto direto de variações na tabela de preços, na concessão de descontos "
+            "e no custo/CMV sobre o lucro líquido final no bolso e o volume necessário para breakeven."
         ),
     )
 
-    col_p, col_d = st.columns(2)
+    col_p, col_d, col_c = st.columns(3)
     with col_p:
         price_delta = st.slider(
             "Ajuste de Preço (%)",
@@ -165,18 +118,28 @@ def render_what_if_quick_fragment(dto: ExecutivePageDTO) -> None:
         )
     with col_d:
         discount_delta = st.slider(
-            "Variação no Desconto (%)",
+            "Variação no Desconto (p.p.)",
             min_value=-5.0,
             max_value=5.0,
             value=0.0,
             step=0.5,
             key="_what_if_disc",
         )
+    with col_c:
+        cost_delta = st.slider(
+            "Variação Custo/CMV (%)",
+            min_value=-15.0,
+            max_value=15.0,
+            value=0.0,
+            step=0.5,
+            key="_what_if_cost",
+        )
 
     res = simulate_quick_what_if(
         dto.kpis,
         price_change_pct=price_delta,
         discount_change_pp=discount_delta,
+        commission_or_cost_change_pct=float(cost_delta),
     )
 
     margin_sim = res["simulated_margin_brl"]

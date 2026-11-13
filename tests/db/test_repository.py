@@ -250,3 +250,36 @@ def test_get_repository_auto_success_when_azure_sql_available(tmp_path: Path) ->
     assert isinstance(repo, AzureSQLRepository)
     assert repo.backend == "azure_sql"
     assert repo.fallback_reason is None
+
+
+def test_duckdb_repository_query_memory_bootstrap_from_parquet(tmp_path: Path) -> None:
+    """DoD V4-D1: Garante que repo.query() registra views Parquet e funciona mesmo sem .duckdb no disco."""
+    fake_data = pd.DataFrame(
+        {
+            "scenario_id": ["c1_toys", "c1_toys", "c2_beverages"],
+            "order_id": ["ORD-1", "ORD-2", "ORD-3"],
+            "gross_revenue": [100.0, 250.0, 300.0],
+        }
+    )
+    gold_dir = tmp_path / "data" / "gold"
+    snapshot_c1 = gold_dir / "snapshot" / "c1_toys"
+    snapshot_c1.mkdir(parents=True, exist_ok=True)
+    fake_data.to_parquet(snapshot_c1 / "fact_sales.parquet")
+
+    non_existent_db = tmp_path / "data" / "kyberna.duckdb"
+    assert not non_existent_db.exists()
+
+    repo = DuckDBRepository(db_path=non_existent_db, gold_dir=gold_dir)
+
+    # Consulta contra o schema gold (alias padrao do c1_toys)
+    res_gold = repo.query(
+        "SELECT COUNT(*) AS n, SUM(gross_revenue) AS total FROM gold.fact_sales WHERE scenario_id = ?",
+        ["c1_toys"],
+    )
+    assert len(res_gold) == 1
+    assert res_gold.loc[0, "n"] == 2
+    assert res_gold.loc[0, "total"] == 350.0
+
+    # Consulta contra o schema do cenario c1_toys
+    res_c1 = repo.query("SELECT COUNT(*) AS n FROM c1_toys.fact_sales")
+    assert res_c1.loc[0, "n"] == 3

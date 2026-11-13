@@ -8,7 +8,7 @@ import duckdb
 import pandas as pd
 
 from src.core.logging import get_logger
-from src.core.paths import get_duckdb_path, gold_snapshot_path
+from src.core.paths import get_data_dir, get_duckdb_path, gold_snapshot_path
 from src.core.types import GoldTable, ScenarioId
 
 logger = get_logger(__name__)
@@ -88,16 +88,51 @@ class DuckDBRepository:
         db_path: Path | str | None = None,
         fallback_reason: str | None = None,
         read_only: bool = True,
+        gold_dir: Path | str | None = None,
     ) -> None:
         self.db_path = Path(db_path) if db_path else get_duckdb_path()
         self.fallback_reason = fallback_reason
         self.read_only = read_only
+        if gold_dir:
+            self.gold_dir = Path(gold_dir)
+        elif (self.db_path.parent / "gold").exists():
+            self.gold_dir = self.db_path.parent / "gold"
+        else:
+            self.gold_dir = get_data_dir() / "gold"
+
+    def _bootstrap_memory_views_from_parquet(self, con: duckdb.DuckDBPyConnection) -> None:
+        """Cria schemas e views no DuckDB em memória a partir dos snapshots Parquet da camada Gold."""
+        snapshots_dir = self.gold_dir / "snapshot"
+        if not snapshots_dir.exists():
+            return
+
+        con.execute("CREATE SCHEMA IF NOT EXISTS gold")
+
+        for scenario_dir in sorted(snapshots_dir.iterdir()):
+            if not scenario_dir.is_dir():
+                continue
+            scenario_name = scenario_dir.name
+            con.execute(f"CREATE SCHEMA IF NOT EXISTS {scenario_name}")
+            for parquet_file in sorted(scenario_dir.glob("*.parquet")):
+                table_name = parquet_file.stem
+                parquet_posix = parquet_file.as_posix()
+                view_query = (
+                    f"CREATE OR REPLACE VIEW {scenario_name}.{table_name} "
+                    f"AS SELECT * FROM read_parquet('{parquet_posix}')"
+                )
+                con.execute(view_query)
+                if scenario_name == DEFAULT_SCENARIO:
+                    gold_view_query = (
+                        f"CREATE OR REPLACE VIEW gold.{table_name} "
+                        f"AS SELECT * FROM read_parquet('{parquet_posix}')"
+                    )
+                    con.execute(gold_view_query)
 
     def ping(self) -> bool:
         """Verifica se o banco DuckDB ou o diretório de dados está acessível."""
         try:
             if not self.db_path.exists():
-                snapshots_dir = self.db_path.parent / "gold" / "snapshot"
+                snapshots_dir = self.gold_dir / "snapshot"
                 return snapshots_dir.exists()
             con = duckdb.connect(str(self.db_path), read_only=self.read_only)
             con.execute("SELECT 1")
@@ -105,7 +140,7 @@ class DuckDBRepository:
             return True
         except Exception as exc:
             logger.debug("Falha no ping do DuckDBRepository: %s", exc)
-            snapshots_dir = self.db_path.parent / "gold" / "snapshot"
+            snapshots_dir = self.gold_dir / "snapshot"
             return snapshots_dir.exists()
 
     def query(
@@ -118,6 +153,8 @@ class DuckDBRepository:
         read_only_flag = self.read_only if self.db_path.exists() else False
         con = duckdb.connect(db_target, read_only=read_only_flag)
         try:
+            if not self.db_path.exists():
+                self._bootstrap_memory_views_from_parquet(con)
             if params is not None:
                 return con.execute(sql, params).df()
             return con.execute(sql).df()

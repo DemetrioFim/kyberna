@@ -114,7 +114,7 @@ def cycle_delay_scatter(
 
     fig.update_layout(
         template=template_name,
-        title="<b>Dispersão de Recência vs. Ciclo Médio (Atraso de Recompra)</b>",
+        title=None,
         xaxis_title="Ciclo Médio Histórico (dias)",
         yaxis_title="Dias sem Comprar (Recência)",
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1},
@@ -140,10 +140,8 @@ def rfm_treemap(
     plot_df = df.copy()
     if "contribution_margin" in plot_df.columns and (plot_df["contribution_margin"] > 0).any():
         plot_df["size_val"] = np.maximum(plot_df["contribution_margin"], 1.0)
-        size_label = "Margem Líquida"
     else:
         plot_df["size_val"] = np.maximum(plot_df["gross_revenue"], 1.0)
-        size_label = "Faturamento"
 
     has_ltv = "estimated_ltv_brl" in plot_df.columns
 
@@ -169,9 +167,9 @@ def rfm_treemap(
 
     fig.update_layout(
         template=template_name,
-        title=f"<b>Segmentação RFM (Tamanho = {size_label} | Cor = Margem %)</b>",
+        title=None,
         height=280,
-        margin={"l": 10, "r": 10, "t": 35, "b": 10},
+        margin={"l": 10, "r": 10, "t": 10, "b": 10},
     )
 
     hovertemplate = (
@@ -273,12 +271,12 @@ def cycle_health_funnel_chart(
     fig.update_layout(
         template=template_name,
         barmode="stack",
-        title="<b>Saúde da Carteira · Distribuição por Estágio do Ciclo de Recompra</b>",
+        title=None,
         xaxis={"title": "Participação na Base (%)", "range": [0, 100]},
         yaxis={"showticklabels": False},
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.05, "xanchor": "center", "x": 0.5},
         height=220,
-        margin={"l": 30, "r": 30, "t": 60, "b": 30},
+        margin={"l": 30, "r": 30, "t": 38, "b": 30},
     )
     return fig
 
@@ -331,10 +329,10 @@ def white_space_heatmap(
 
     fig.update_layout(
         template=template_name,
-        title="<b>Matriz White Space: Potencial de Cross-Sell</b>",
+        title=None,
         xaxis_title="Segmento RFM do Lojista",
         yaxis_title="Família Recomendada",
         height=280,
-        margin={"l": 30, "r": 30, "t": 35, "b": 35},
+        margin={"l": 30, "r": 30, "t": 15, "b": 35},
     )
     return fig

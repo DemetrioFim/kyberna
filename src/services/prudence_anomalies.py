@@ -83,12 +83,12 @@ def query_prudence_anomalies(
         logger.debug("Falha ao calcular anomalia de RCA: %s", exc)
 
     try:
-        sql_risk = f"""
+        sql_risk = """
         SELECT COUNT(*) AS cnt, ROUND(COALESCE(SUM(annual_revenue_at_risk), 0), 2) AS at_risk_brl
         FROM gold.mart_customer_risk
-        WHERE scenario_id = '{scenario_id}' AND risk_status IN ('Em Risco Imediato', 'Adormecido / Perdido')
+        WHERE scenario_id = ? AND risk_status IN ('Em Risco Imediato', 'Adormecido / Perdido')
         """
-        df_risk = repo.query(sql_risk)
+        df_risk = repo.query(sql_risk, params=[scenario_id])
         if not df_risk.empty and int(df_risk.iloc[0]["cnt"]) > 0:
             cnt, risk_brl = int(df_risk.iloc[0]["cnt"]), float(df_risk.iloc[0]["at_risk_brl"])
             anomalies.append(

@@ -13,6 +13,13 @@ from src.services.temperance_inventory_queries import (
     query_temperance_inventory_details,
     query_temperance_inventory_kpis,
 )
+from src.services.temperance_policy_queries import (
+    build_rep_bias_cte_sql,
+    build_temperance_filter_clauses,
+    load_temperance_policy_params,
+    query_discount_policy_violations,
+    query_term_leak_by_rep,
+)
 
 logger = get_logger(__name__)
 
@@ -26,39 +33,6 @@ __all__ = [
 ]
 
 
-def build_temperance_filter_clauses(
-    scenario_id: ScenarioId,
-    *,
-    regiao: str = "Todas",
-    uf: str = "Todas",
-    sales_reps: Sequence[str] = (),
-    families: Sequence[str] = (),
-) -> tuple[str, list[Any]]:
-    """Constrói a cláusula WHERE e lista de parâmetros para tabelas de vendas faturadas."""
-    clauses: list[str] = ["f.scenario_id = ?"]
-    params: list[Any] = [scenario_id]
-
-    if regiao != "Todas":
-        clauses.append("c.region = ?")
-        params.append(regiao)
-    if uf != "Todas":
-        clauses.append("c.state = ?")
-        params.append(uf)
-    if sales_reps:
-        rep_list = list(sales_reps)
-        placeholders = ", ".join(["?"] * len(rep_list))
-        clauses.append(f"(f.sales_rep_id IN ({placeholders}) OR r.name IN ({placeholders}))")
-        params.extend(rep_list)
-        params.extend(rep_list)
-    if families:
-        fam_list = list(families)
-        placeholders = ", ".join(["?"] * len(fam_list))
-        clauses.append(f"p.family IN ({placeholders})")
-        params.extend(fam_list)
-
-    return " AND ".join(clauses), params
-
-
 def query_temperance_kpis(
     repo: DataRepository,
     scenario_id: ScenarioId,
@@ -67,14 +41,19 @@ def query_temperance_kpis(
     uf: str = "Todas",
     sales_reps: Sequence[str] = (),
     families: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> TemperanceKpisDTO:
     """Calcula os KPIs consolidados de Temperança, erosão de margem e estoque."""
+    policy = load_temperance_policy_params(scenario_id)
     where_sql, params = build_temperance_filter_clauses(
         scenario_id,
         regiao=regiao,
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
 
     sales_sql = f"""
@@ -88,32 +67,31 @@ def query_temperance_kpis(
         COALESCE(SUM(f.freight_amount), 0.0) AS freight_amount,
         COALESCE(SUM(f.contribution_margin), 0.0) AS contribution_margin,
         COALESCE(ROUND(SUM(GREATEST(0.0, f.discount_amount - f.gross_revenue * CASE c.size
-            WHEN 'P' THEN 0.030
-            WHEN 'M' THEN 0.065
-            WHEN 'G' THEN 0.105
-            ELSE 0.065 END)), 2), 0.0) AS excess_discount_brl
+            WHEN 'P' THEN ?
+            WHEN 'M' THEN ?
+            WHEN 'G' THEN ?
+            ELSE ? END)), 2), 0.0) AS excess_discount_brl
     FROM gold.fact_sales f
     JOIN gold.dim_customer c ON f.customer_id = c.customer_id
     JOIN gold.dim_product p ON f.product_id = p.product_id
     JOIN gold.dim_sales_rep r ON f.sales_rep_id = r.sales_rep_id
     WHERE {where_sql}
     """
-    df_sales = repo.query(sales_sql, params=params)
+    sales_params = [policy["cap_p"], policy["cap_m"], policy["cap_g"], policy["cap_def"], *params]
+    df_sales = repo.query(sales_sql, params=sales_params)
 
+    rep_bias_expr, rep_bias_params = build_rep_bias_cte_sql(scenario_id, policy)
     term_sql = f"""
     WITH rep_bias AS (
         SELECT
             f_rep.sales_rep_id,
-            CASE WHEN f_rep.sales_rep_id IN (
-                'RCA-003', 'RCA-007', 'RCA-012', 'RCA-015',
-                'RCA-019', 'RCA-025', 'RCA-028', 'RCA-033'
-            ) THEN 18 ELSE 0 END AS extra_pmr
+            {rep_bias_expr} AS extra_pmr
         FROM (SELECT DISTINCT sales_rep_id FROM gold.fact_sales WHERE scenario_id = ?) f_rep
     ),
     order_pmr AS (
         SELECT
             (f.gross_revenue - f.discount_amount) AS net_price_revenue,
-            (CASE c.size WHEN 'P' THEN 28 WHEN 'M' THEN 42 WHEN 'G' THEN 56 ELSE 30 END
+            (CASE c.size WHEN 'P' THEN ? WHEN 'M' THEN ? WHEN 'G' THEN ? ELSE ? END
                 + rb.extra_pmr) AS customer_pmr
         FROM gold.fact_sales f
         JOIN gold.dim_customer c ON f.customer_id = c.customer_id
@@ -123,11 +101,20 @@ def query_temperance_kpis(
         WHERE {where_sql}
     )
     SELECT
-        COALESCE(ROUND(SUM(GREATEST(0, customer_pmr - 30) * (0.0135 / 30.0) * net_price_revenue), 2), 0.0)
+        COALESCE(ROUND(SUM(GREATEST(0, customer_pmr - ?) * (? / 30.0) * net_price_revenue), 2), 0.0)
             AS term_leak_brl
     FROM order_pmr
     """
-    term_params = [scenario_id, *params]
+    term_params = [
+        *rep_bias_params,
+        policy["pmr_p"],
+        policy["pmr_m"],
+        policy["pmr_g"],
+        policy["std_term"],
+        *params,
+        policy["std_term"],
+        policy["rate_monthly"],
+    ]
     df_term = repo.query(term_sql, params=term_params)
     term_leak = float(df_term["term_leak_brl"].iloc[0]) if not df_term.empty else 0.0
 
@@ -175,6 +162,8 @@ def query_commercial_erosion_waterfall(
     uf: str = "Todas",
     sales_reps: Sequence[str] = (),
     families: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> pd.DataFrame:
     """Gera a tabela estruturada das 9 etapas do Waterfall de Margem Real."""
     where_sql, params = build_temperance_filter_clauses(
@@ -183,6 +172,8 @@ def query_commercial_erosion_waterfall(
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
 
     sql = f"""
@@ -235,126 +226,3 @@ def query_commercial_erosion_waterfall(
         s["pct_of_gross"] = round(abs(float(s["amount"])) / base * 100.0, 1)
 
     return pd.DataFrame(steps)
-
-
-def query_discount_policy_violations(
-    repo: DataRepository,
-    scenario_id: ScenarioId,
-    *,
-    regiao: str = "Todas",
-    uf: str = "Todas",
-    sales_reps: Sequence[str] = (),
-    families: Sequence[str] = (),
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Retorna tabelas de auditoria de descontos acima do teto por RCA e por Família."""
-    where_sql, params = build_temperance_filter_clauses(
-        scenario_id,
-        regiao=regiao,
-        uf=uf,
-        sales_reps=sales_reps,
-        families=families,
-    )
-
-    rep_sql = f"""
-    SELECT
-        f.sales_rep_id,
-        r.name AS rep_name,
-        r.region,
-        COUNT(DISTINCT f.order_id)::INTEGER AS total_orders,
-        ROUND(SUM(f.gross_revenue), 2) AS gross_revenue,
-        ROUND(SUM(f.discount_amount), 2) AS discount_amount,
-        ROUND(SUM(f.discount_amount) / NULLIF(SUM(f.gross_revenue), 0) * 100.0, 2) AS avg_discount_pct,
-        ROUND(SUM(GREATEST(0.0, f.discount_amount - f.gross_revenue * CASE c.size
-            WHEN 'P' THEN 0.030
-            WHEN 'M' THEN 0.065
-            WHEN 'G' THEN 0.105
-            ELSE 0.065 END)), 2) AS excess_discount_brl
-    FROM gold.fact_sales f
-    JOIN gold.dim_customer c ON f.customer_id = c.customer_id
-    JOIN gold.dim_product p ON f.product_id = p.product_id
-    JOIN gold.dim_sales_rep r ON f.sales_rep_id = r.sales_rep_id
-    WHERE {where_sql}
-    GROUP BY f.sales_rep_id, r.name, r.region
-    ORDER BY excess_discount_brl DESC
-    """
-    df_reps = repo.query(rep_sql, params=params)
-
-    fam_sql = f"""
-    SELECT
-        p.family,
-        COUNT(DISTINCT f.order_id)::INTEGER AS total_orders,
-        ROUND(SUM(f.gross_revenue), 2) AS gross_revenue,
-        ROUND(SUM(f.discount_amount), 2) AS discount_amount,
-        ROUND(SUM(f.discount_amount) / NULLIF(SUM(f.gross_revenue), 0) * 100.0, 2) AS avg_discount_pct,
-        ROUND(SUM(GREATEST(0.0, f.discount_amount - f.gross_revenue * CASE c.size
-            WHEN 'P' THEN 0.030
-            WHEN 'M' THEN 0.065
-            WHEN 'G' THEN 0.105
-            ELSE 0.065 END)), 2) AS excess_discount_brl
-    FROM gold.fact_sales f
-    JOIN gold.dim_customer c ON f.customer_id = c.customer_id
-    JOIN gold.dim_product p ON f.product_id = p.product_id
-    JOIN gold.dim_sales_rep r ON f.sales_rep_id = r.sales_rep_id
-    WHERE {where_sql}
-    GROUP BY p.family
-    ORDER BY excess_discount_brl DESC
-    """
-    df_fams = repo.query(fam_sql, params=params)
-
-    return df_reps, df_fams
-
-
-def query_term_leak_by_rep(
-    repo: DataRepository,
-    scenario_id: ScenarioId,
-    *,
-    regiao: str = "Todas",
-    uf: str = "Todas",
-    sales_reps: Sequence[str] = (),
-    families: Sequence[str] = (),
-) -> pd.DataFrame:
-    """Rankeia os RCAs pelo custo financeiro de prazos concedidos acima do padrão de 30 dias."""
-    where_sql, params = build_temperance_filter_clauses(
-        scenario_id,
-        regiao=regiao,
-        uf=uf,
-        sales_reps=sales_reps,
-        families=families,
-    )
-
-    sql = f"""
-    WITH rep_bias AS (
-        SELECT
-            f_rep.sales_rep_id,
-            CASE WHEN f_rep.sales_rep_id IN (
-                'RCA-003', 'RCA-007', 'RCA-012', 'RCA-015',
-                'RCA-019', 'RCA-025', 'RCA-028', 'RCA-033'
-            ) THEN 18 ELSE 0 END AS extra_pmr
-        FROM (SELECT DISTINCT sales_rep_id FROM gold.fact_sales WHERE scenario_id = ?) f_rep
-    ),
-    order_pmr AS (
-        SELECT
-            f.sales_rep_id,
-            r.name AS rep_name,
-            (f.gross_revenue - f.discount_amount) AS net_price_revenue,
-            (CASE c.size WHEN 'P' THEN 28 WHEN 'M' THEN 42 WHEN 'G' THEN 56 ELSE 30 END
-                + rb.extra_pmr) AS customer_pmr
-        FROM gold.fact_sales f
-        JOIN gold.dim_customer c ON f.customer_id = c.customer_id
-        JOIN rep_bias rb ON f.sales_rep_id = rb.sales_rep_id
-        JOIN gold.dim_product p ON f.product_id = p.product_id
-        JOIN gold.dim_sales_rep r ON f.sales_rep_id = r.sales_rep_id
-        WHERE {where_sql}
-    )
-    SELECT
-        sales_rep_id,
-        rep_name,
-        ROUND(AVG(customer_pmr), 1) AS avg_pmr_days,
-        ROUND(SUM(GREATEST(0, customer_pmr - 30) * (0.0135 / 30.0) * net_price_revenue), 2)
-            AS term_leak_brl
-    FROM order_pmr
-    GROUP BY sales_rep_id, rep_name
-    ORDER BY term_leak_brl DESC
-    """
-    full_params = [scenario_id, *params]
-    return repo.query(sql, params=full_params)

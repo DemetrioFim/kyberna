@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from src.services.dto import FortitudePageDTO
-from src.ui.components.kpi_card import KpiAccent, info_tooltip_html, render_kpi_card
+from src.ui.components.kpi_card import KpiAccent, render_kpi_card
 from src.ui.components.prescription import render_prescription_box
 from src.ui.formatting import format_brl
 
@@ -25,64 +25,6 @@ def _fmt_ratio(val: object) -> str:
     if isinstance(val, (int, float)) and not pd.isna(val):
         return f"{float(val):.2f}x"
     return "—"
-
-
-def render_fortitude_banner(dto: FortitudePageDTO) -> None:
-    """Exibe faixa compacta de premissas financeiras do cenário de Fortaleza."""
-    k = dto.kpis
-    rev_m = format_brl(k.monthly_gross_revenue_brl, compact=True, decimals=1)
-    cm_m = format_brl(k.monthly_contribution_margin_brl, compact=True, decimals=1)
-    fixed_m = format_brl(k.fixed_costs_monthly_brl, compact=True, decimals=1)
-    free_m = format_brl(k.free_cash_generation_brl, compact=True, decimals=1)
-    cm_pct = f"{k.margin_pct_of_gross:.1f}%"
-    active_cnt = k.active_customers_count
-    st.markdown(
-        f"""
-        <div style="
-            display:flex; flex-wrap:wrap; gap:0.75rem 1.5rem; align-items:center;
-            padding:0.55rem 0.9rem; margin:0.15rem 0 0.55rem 0;
-            border-radius:6px; border:1px solid var(--kyb-border);
-            background:var(--kyb-card-bg); font-size:0.82rem; color:var(--kyb-text-muted);
-        ">
-            <span><strong style="color:var(--kyb-text);">Faturamento Bruto/Mês:</strong> {rev_m}</span>
-            <span>
-                <strong style="color:var(--kyb-text);">Margem Contrib./Mês:</strong> {cm_m} ({cm_pct})
-            </span>
-            <span><strong style="color:var(--kyb-text);">Custo Fixo/Mês:</strong> {fixed_m}</span>
-            <span><strong style="color:var(--kyb-text);">Geração Livre/Mês:</strong> {free_m}</span>
-            <span><strong style="color:var(--kyb-text);">Clientes Ativos (12m):</strong> {active_cnt}</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_fortitude_headline(dto: FortitudePageDTO) -> None:
-    """Renderiza a manchete executiva dinâmica de solvência e capital de giro."""
-    info_html = info_tooltip_html(
-        "Síntese da saúde de caixa: compara fôlego de reserva (Runway), dia do Ponto de Equilíbrio, "
-        "Necessidade de Capital de Giro (NCG) e dependência dos maiores clientes.",
-        align="left",
-    )
-    h_box = (
-        f'<div style="background: var(--kyb-card-bg); border-left: 4px solid var(--kyb-teal); '
-        f"border: 1px solid var(--kyb-border); padding: 0.75rem 1.1rem; border-radius: 6px; "
-        f'margin: 0.15rem 0 0.85rem 0;">'
-        f'<div style="font-size: 0.80rem; font-weight: 700; text-transform: uppercase; '
-        f"letter-spacing: 0.05em; color: var(--kyb-teal); margin-bottom: 0.25rem; display: flex; "
-        f'justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">'
-        f"<span>{dto.headline_title}{info_html}</span>"
-        f'<span style="font-size: 0.76rem; font-weight: 500; text-transform: none; '
-        f'color: var(--kyb-text-muted);">'
-        f"<span>Data de Corte: <strong>{dto.as_of_date_label}</strong></span>"
-        f"</span>"
-        f"</div>"
-        f'<div style="font-size: 0.88rem; color: var(--kyb-text); line-height: 1.42;">'
-        f"{dto.headline_text}"
-        f"</div>"
-        f"</div>"
-    )
-    st.markdown(h_box, unsafe_allow_html=True)
 
 
 def render_fortitude_kpi_cards(dto: FortitudePageDTO) -> None:

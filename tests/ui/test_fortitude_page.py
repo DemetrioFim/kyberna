@@ -14,13 +14,13 @@ def test_fortitude_page_full_render() -> None:
     at.run()
 
     assert not at.exception
-    assert len(at.title) >= 1
-    assert "Fortaleza" in at.title[0].value
 
     raw_markdown = " ".join(m.value for m in at.markdown)
     all_markdown = html.unescape(raw_markdown)
 
-    # Design System Kyberna e Ícones de Informação
+    # Cabeçalho Cockpit e Design System Kyberna
+    assert "cockpit-header" in all_markdown
+    assert "Fortaleza" in all_markdown
     assert "kyb-info-icon" in all_markdown
     assert "kyb-tooltip-popover" in all_markdown
 

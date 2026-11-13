@@ -16,9 +16,10 @@ def test_app_initial_render() -> None:
     assert at.session_state.regiao == "Todas"
     assert at.session_state.uf == "Todas"
 
-    # Confere se o título da página executiva está presente
-    assert len(at.title) >= 1
-    assert "Visão Executiva" in at.title[0].value
+    # Confere se o cabeçalho Cockpit da página executiva está presente
+    all_markdown = " ".join(m.value for m in at.markdown)
+    assert "cockpit-header" in all_markdown
+    assert "Visão Executiva" in all_markdown
 
 
 def test_app_theme_toggle_interaction() -> None:
@@ -56,8 +57,9 @@ def test_app_geographic_cascade_interaction() -> None:
 
     # Confere se a página re-renderizou com o filtro de Região Sul
     assert not at.exception
-    assert len(at.title) >= 1
-    assert "Visão Executiva" in at.title[0].value
+    all_markdown = " ".join(m.value for m in at.markdown)
+    assert "cockpit-header" in all_markdown
+    assert "Visão Executiva" in all_markdown
 
 
 def test_pages_render_without_exception() -> None:
@@ -73,4 +75,6 @@ def test_pages_render_without_exception() -> None:
         at = AppTest.from_file(str(page_path), default_timeout=10)
         at.run()
         assert not at.exception, f"Erro ao renderizar a página {page_name}"
-        assert len(at.title) >= 1
+        all_markdown = " ".join(m.value for m in at.markdown)
+        assert "cockpit-header" in all_markdown, f"Faltando .cockpit-header em {page_name}"
+        assert "kyb-info-icon" in all_markdown, f"Faltando .kyb-info-icon em {page_name}"

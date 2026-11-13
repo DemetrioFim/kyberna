@@ -95,6 +95,9 @@ def build_temperance_dashboard(
     uf: str = "Todas",
     families: Sequence[str] = (),
     sales_reps: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
+    as_of_date_label: str = "31/12/2024",
 ) -> TemperancePageDTO:
     """Orquestra as consultas e consolida o payload completo consumido pela Página 4 (Temperança)."""
     logger.info("Construindo payload da Página de Temperança para cenário '%s'...", scenario_id)
@@ -107,6 +110,8 @@ def build_temperance_dashboard(
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
 
     # 2. Waterfall de Erosão Comercial
@@ -117,6 +122,8 @@ def build_temperance_dashboard(
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
 
     # 3. Violações de Política Comercial
@@ -127,6 +134,8 @@ def build_temperance_dashboard(
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
 
     # 4. Vazamento Financeiro de Prazo por RCA
@@ -137,6 +146,8 @@ def build_temperance_dashboard(
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
 
     # 5. Temperança de Estoque (Capital Travado, Ruptura e Matriz ABC/XYZ)
@@ -169,5 +180,5 @@ def build_temperance_dashboard(
         prescription_title=presc_title,
         prescription_html=presc_html,
         prescription_impact_brl=presc_impact,
-        as_of_date_label="31/12/2024",
+        as_of_date_label=as_of_date_label,
     )

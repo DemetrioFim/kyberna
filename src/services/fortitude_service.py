@@ -210,9 +210,9 @@ def build_fortitude_dashboard(
         1,
     )
     ccc_days = round(pme_days + pmr_days - pmp_days, 1)
-    ncg_brl = round((monthly_net / 30.0) * ccc_days, 2)
+    ncg_brl = round((monthly_net / 30.0) * max(ccc_days, 0.0), 2)
 
-    fixed_costs_monthly = round(monthly_gross * fixed_cost_pct, 2)
+    fixed_costs_monthly = round(monthly_net * fixed_cost_pct, 2)
     free_cash_generation = round(monthly_cm - fixed_costs_monthly, 2)
 
     if monthly_gross > 0.0:

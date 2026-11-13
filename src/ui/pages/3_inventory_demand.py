@@ -5,15 +5,13 @@ import streamlit as st
 from src.core.scenarios import load_scenario_config
 from src.ui.cache import cached_temperance_dashboard
 from src.ui.components.charts import abc_xyz_heatmap, waterfall_margin
-from src.ui.components.prescription import section_header
+from src.ui.components.prescription import render_cockpit_header, section_header
 from src.ui.components.temperance_inventory_section import (
     render_locked_inventory_table,
     render_stockout_risk_table,
 )
 from src.ui.components.temperance_sections import (
     render_policy_violations_tabs,
-    render_temperance_banner,
-    render_temperance_headline,
     render_temperance_kpi_cards,
     render_temperance_verdict_section,
     render_violations_rep_chart,
@@ -27,23 +25,29 @@ def render_page() -> None:
     scenario_cfg = load_scenario_config(state.scenario_id)
     theme_mode = state.theme_mode
 
-    # 1. Faixa 1 — Topo (Status em 5s): Título + Subtítulo + Manchete + 5 KPI Cards
-    st.title("Eficiência Operacional & Capital de Giro")
-    st.caption(
-        f"Auditoria de erosão comercial, disciplina de descontos e destravamento de capital em estoque: "
-        f"**{scenario_cfg.display_name}** ({scenario_cfg.company_profile})."
-    )
-
     dto = cached_temperance_dashboard(
         state.scenario_id,
         regiao=state.regiao,
         uf=state.uf,
         families=tuple(state.families),
         sales_reps=tuple(state.sales_reps),
+        period_preset=state.period_preset,
+        selected_month=state.selected_month,
     )
 
-    render_temperance_banner(dto)
-    render_temperance_headline(dto)
+    # 1. Faixa 1 — Topo (Status em 5s): Cabeçalho Cockpit unificado + 5 KPI Cards
+    render_cockpit_header(
+        title="Eficiência Operacional & Capital de Giro",
+        subtitle=f"{scenario_cfg.display_name} ({scenario_cfg.company_profile})",
+        virtue_badge="4. Temperança",
+        headline_title=dto.headline_title,
+        headline_text=dto.headline_text,
+        as_of_date_label=dto.as_of_date_label,
+        help_text=(
+            "Diagnóstico quantificado das perdas estancáveis: excesso de descontos acima da política "
+            "de tabela e valor imobilizado em produtos com giro superior a 120 dias."
+        ),
+    )
     render_temperance_kpi_cards(dto)
 
     # 2. Faixa 2 — Meio (Diagnóstico Visual em 2 Colunas lado a lado)
@@ -89,8 +93,8 @@ def render_page() -> None:
         )
         t_rup, t_lock, t_audit = st.tabs(
             [
-                f"🚨 Ruptura Iminente ({dto.kpis.stockout_risk_skus_count} SKUs)",
-                f"🛑 Capital Travado >120d ({dto.kpis.locked_skus_count} SKUs)",
+                f"Ruptura Iminente ({dto.kpis.stockout_risk_skus_count} SKUs)",
+                f"Capital Travado >120d ({dto.kpis.locked_skus_count} SKUs)",
                 "Auditoria de Política Comercial",
             ]
         )

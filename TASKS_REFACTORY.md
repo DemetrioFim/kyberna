@@ -23,7 +23,8 @@ Em vez de separar a gestão em silos corporativos engessados ("Comercial", "Fina
 flowchart LR
     V1["🔴 Onda V1 (P0)<br/>Branding Virtus +<br/>1. Prudência & 3. Justiça"] --> V2["🟠 Onda V2 (P0/P1)<br/>Parâmetros Working Capital,<br/>Estoque & 4. Temperança"]
     V2 --> V3["🟢 Onda V3 (P1)<br/>2. Fortaleza (Caixa/NCG/Aging)<br/>+ Blindagem QA & Dark Mode"]
-    V3 --> M3V2["➡️ Retorno ao TASKS.md<br/>M3-V2 (Exportação Excel + WhatsApp)"]
+    V3 --> V4["🟣 Onda V4 (P0/P1)<br/>Saneamento Analítico Cross-Page,<br/>Cockpit 1080p, <400L & Testes Herméticos"]
+    V4 --> M3V2["➡️ Retorno ao TASKS.md<br/>M3-V2 (Exportação Excel + WhatsApp)"]
 ```
 
 ---
@@ -42,6 +43,11 @@ flowchart LR
 | **`V2-V2`** | **Cockpit 1080p & ABC/XYZ** (UI/ML) | Redesign Cockpit sem scroll (Leitura em Z / DAR: Topo 18% / Meio 45% / Base 37%), Data-Ink Ratio, limpeza de títulos Plotly e calibração estatística ABC/XYZ (18% X / 44% Y / 38% Z) | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
 | **`V3-S1`** | **2. Fortaleza** (Backend/SQL) | `fortitude_service.py`: Fôlego de Caixa (Runway), Dia do Break-Even Mensal, Ciclo Financeiro ($\text{PME}+\text{PMR}-\text{PMP}$), NCG, Concentração Top 5/10 e Aging | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
 | **`V3-V1`** | **2. Fortaleza** (UI + QA Global) | Página **2. Fortaleza** (`4_simulator.py` + `fortitude_sections.py`) + Saneamento Dark Mode `var(--kyb-*)` e Suíte Completa `pytest` nas 4 Virtudes | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
+| **`V4-D1`** | **Fórmulas & Fallback Parquet** (Doc/DB) | Alinhamento canônico de fórmulas em `VISION.md` §6 (`MC_liq %` sobre receita bruta e custo fixo sobre receita líquida) + auto-registro de views Parquet no `DuckDBRepository.query()` quando `kyberna.duckdb` estiver ausente | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
+| **`V4-S1`** | **Sincronia Temporal & SQL** (Services) | Propagação de `period_preset`/`selected_month` para Temperança e Justiça (Waterfall 100% idêntico à Prudência), parametrização SQL sem hardcodes (`temperance_queries.py`) e correção matemática de `fortitude_service.py` e `simulator.py` | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
+| **`V4-V1`** | **Cockpit Header & Polimento** (UI) | Adoção de `render_cockpit_header` nas 4 páginas, títulos das 4 Virtudes no menu `app.py`, 3º slider (`_what_if_cost`) em Prudência, correção de classe CSS/tooltip em Justiça, `title=None` no Plotly e remoção de emojis/código morto | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
+| **`V4-I1`** | **Modularização < 400L** (Infra/ETL/ML) | Divisão cirúrgica dos 6 módulos $>400$ linhas (`audit.py`: 1.109L, `white_space.py`: 668L, `c1_toys.py`: 662L, `cli.py`: 540L, `features.py`: 532L, `rfm.py`: 408L) preservando re-exports públicos | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
+| **`V4-I2`** | **Blindagem Hermética QA** (Tests) | Fixture `conftest.py` auto-bootstrap para `get_duckdb_path()`, testes de reconciliação cross-page (`Prudência == Temperança`) e suíte unitária dedicada `tests/services/test_simulator.py` | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
 
 ---
 
@@ -285,16 +291,164 @@ flowchart LR
 
 ---
 
+### 🟣 Onda V4 — Saneamento de Consistência Analítica Cross-Page, Cockpit 1080p, Modularização Estrita (`< 400L`) & Blindagem Hermética (`v0.4.4-qa-virtus`)
+
+> **Objetivo da Onda V4**: Resolver de forma definitiva os 9 achados da Auditoria Arquitetural e de Qualidade (`v0.4.3`), garantindo: (1) alinhamento canônico de fórmulas em `VISION.md` §6 e resiliência Parquet-only no `DuckDBRepository.query()`; (2) sincronia matemática 100% ao centavo entre as 4 páginas sob qualquer filtro de período da sidebar, eliminação de constantes SQL chumbadas em `temperance_queries.py` e correção das fórmulas de Custo Fixo/NCG (`fortitude_service.py`) e Simulador What-If (`simulator.py`); (3) adoção do cabeçalho compacto `.cockpit-header` nas 4 telas, títulos das 4 Virtudes no menu, 3º slider (`_what_if_cost`), limpeza de `title=None` no Plotly e remoção de emojis/código morto; (4) modularização estrita (`< 400` linhas) dos 6 arquivos de ETL/ML/CLI; e (5) suíte de testes 100% hermética (`conftest.py` auto-bootstrap) com testes de reconciliação cross-page.
+
+#### 🗄️ Documentação Canônica & Repositório de Dados (`D`)
+
+- [x] **V4-D1** *(VIRTUS-QA-DOC)* — **Alinhamento Canônico de Fórmulas (`VISION.md` §6) e Resiliência Parquet-Only no `DuckDBRepository` (`duckdb_repo.py`)**: Sincronizar a documentação canônica de fórmulas com a DRE contábil auditada e garantir que `DuckDBRepository.query()` funcione 100% em ambientes sem `data/kyberna.duckdb` (apenas snapshots Parquet).
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P0**
+  - *Arquivos:* `VISION.md`, `src/db/duckdb_repo.py`, `tests/db/test_repository.py`.
+  - *Depende de:* `V3-V1`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. Alinhamento de `VISION.md` §6.1 e §6.5 com a DRE Auditada**:
+      - Em [`VISION.md`](./VISION.md) (linha ~177, seção `6.1 Waterfall da Margem de Contribuição`), explicitar que o indicador primário de `MC_liq (%)` na DRE executiva, nos marts (`mart_margin_monthly`, `mart_abc_xyz`, `mart_rep_performance`) e na planilha `conciliacao_<cenario>.xlsx` é calculado sobre a **Receita Bruta Tabelada (`gross_revenue`)**:
+        $$\text{MC}_{\text{líq}} (\%) = \frac{\text{MC}_{\text{líq}}}{\text{Receita Bruta}} \times 100 \quad \left(\text{exibindo complementarmente } \frac{\text{MC}_{\text{líq}}}{\text{Receita Líquida de Impostos}} \times 100 \text{ no subtítulo do KPI Card}\right)$$
+      - Em [`VISION.md`](./VISION.md) (seção `6.5 Governança de Caixa e Solvência — Fortaleza`), explicitar que `Custos_Fixos_Mensais = Receita_Liquida_Media_Mensal * fixed_cost_pct_of_avg_net_revenue` (conforme chave de `config/finance/working_capital.yaml`) e que `NCG = (Receita_Liquida_Media_Mensal / 30) * max(Ciclo_Financeiro_Dias, 0)`.
+    - **2. Auto-Registro de Views Parquet em `DuckDBRepository.query()` (`src/db/duckdb_repo.py`)**:
+      - Atualmente, em [`src/db/duckdb_repo.py`](./src/db/duckdb_repo.py) (linhas 111–125), quando `self.db_path.exists()` é `False` (ex.: container Docker `M5-I1` ou CI limpo contendo apenas `data/gold/snapshot/<scenario_id>/*.parquet`), `query()` abre `duckdb.connect(":memory:")` vazio, causando `Catalog Error: Table with name fact_sales does not exist!` em todos os serviços (`SELECT ... FROM gold.fact_sales`).
+      - **Correção**: criar um método auxiliar privado `_bootstrap_memory_views_from_parquet(self, con: duckdb.DuckDBPyConnection) -> None` chamado dentro de `query()` quando `not self.db_path.exists()`. Esse método deve:
+        1. Executar `CREATE SCHEMA IF NOT EXISTS gold;`.
+        2. Inspecionar `self.gold_dir / "snapshot"` para cada diretório `<scenario_id>` existente (com prioridade para `"c1_toys"` para o alias `gold.<tabela>`), criando `CREATE SCHEMA IF NOT EXISTS <scenario_id>;` e registrando `CREATE OR REPLACE VIEW <scenario_id>.<stem> AS SELECT * FROM read_parquet('<parquet_path_posix>')` para cada arquivo `.parquet`.
+        3. Para o cenário padrão (`c1_toys`, ou união por cenário quando aplicável), registrar `CREATE OR REPLACE VIEW gold.<stem> AS SELECT * FROM read_parquet(...)` para todas as tabelas Gold (`fact_sales`, `dim_*`, `mart_*`, `inventory_snapshot`).
+  - *DoD:* teste dedicado em `tests/db/test_repository.py` instanciando `DuckDBRepository(db_path=tmp_path / "non_existent.duckdb", gold_dir=...)` executa `repo.query("SELECT COUNT(*) AS n FROM gold.fact_sales WHERE scenario_id = ?", ["c1_toys"])` com sucesso retornando `n > 0`; `uv run pytest tests/db/test_repository.py -q` passa.
+
+---
+
+#### 🧠 Serviços Analíticos, Sincronia Temporal & Parametrização SQL (`S`)
+
+- [x] **V4-S1** *(VIRTUS-QA-SVC)* — **Sincronia do Filtro Temporal Global nas 4 Páginas, Parametrização SQL Sem Hardcodes (`temperance_queries.py`) e Correção Matemática de `fortitude_service.py` e `simulator.py`**: Garantir que o filtro global de período da sidebar governe consistentemente as páginas, eliminar literais SQL hard-coded e corrigir as equações de Custo Fixo/NCG e Simulador What-If.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P0**
+  - *Arquivos:* `src/services/temperance_queries.py`, `src/services/temperance_policy_queries.py`, `src/services/temperance_service.py`, `src/services/commercial_service.py`, `src/services/commercial_queries.py`, `src/services/prudence_anomalies.py`, `src/services/fortitude_service.py`, `src/services/simulator.py`, `src/ui/cache.py`, `src/ui/pages/2_commercial_radar.py`, `src/ui/pages/3_inventory_demand.py`.
+  - *Depende de:* `V4-D1`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. Propagação do Filtro Temporal Global (`period_preset`, `selected_month`) para Temperança (Página 4) e Justiça (Página 3)**:
+      - Em [`src/services/temperance_queries.py`](./src/services/temperance_queries.py) (`build_temperance_filter_clauses`, linhas 27–75): adicionar parâmetros opcionais `start_date_key: int | None = None` e `end_date_key: int | None = None`. Quando ambos forem fornecidos, adicionar `f"{alias}date_key BETWEEN ? AND ?"` e `[start_date_key, end_date_key]` em `sales_where` / `sales_params`.
+      - Em [`src/services/temperance_service.py`](./src/services/temperance_service.py) (`build_temperance_dashboard`, linhas 35–85): receber `period_preset: str = "all"` e `selected_month: str | None = None`, resolver `(start_key, end_key)` usando `resolve_period_bounds(bounds["min_date"], bounds["max_date"], period_preset, selected_month)` de `src.services.executive_queries` (buscando `bounds = get_dataset_date_bounds(repo, scenario_id)`), e repassar `start_date_key=start_key, end_date_key=end_key` para `build_temperance_filter_clauses`.
+      - Em [`src/ui/cache.py`](./src/ui/cache.py) (`cached_temperance_dashboard`, linhas 195–227) e [`src/ui/pages/3_inventory_demand.py`](./src/ui/pages/3_inventory_demand.py) (linhas 37–43): incluir `period_preset: str = "all"` e `selected_month: str | None = None` na assinatura do cache e passá-los a partir de `state.period_preset` e `state.selected_month`. **Resultado**: o Waterfall da Página 4 (Temperança) baterá centavo por centavo com o Waterfall da Página 1 (Prudência) para qualquer período filtrado!
+      - Em [`src/services/commercial_service.py`](./src/services/commercial_service.py) (`build_commercial_dashboard`, linhas 151–195), [`src/ui/cache.py`](./src/ui/cache.py) (`cached_commercial_dashboard`, linhas 157–189) e [`src/ui/pages/2_commercial_radar.py`](./src/ui/pages/2_commercial_radar.py) (linhas 41–50): adicionar `period_preset: str = "all"` e `selected_month: str | None = None`, resolvendo `(start_key, end_key)` via `resolve_period_bounds` e passando `start_date_key=start_key, end_date_key=end_key` para `get_top_margin_drivers(...)` (que já aceita `start_date_key` e `end_date_key` na assinatura em `executive_service.py:217-227`!).
+    - **2. Eliminação de Constantes de Negócio Chumbadas e `f-strings` SQL (`GEMINI.md` §5.1 e §5.2)**:
+      - Em [`src/services/temperance_queries.py`](./src/services/temperance_queries.py) (linhas 90–126, 267–271, 329–332): substituir os valores chumbados no SQL (`0.030`, `0.065`, `0.105`, `'RCA-005','RCA-012','RCA-019','RCA-025','RCA-028'`, `28.0`, `42.0`, `56.0`, `18.0`, `30.0`, `0.0135`) por parâmetros lidos dinamicamente de `load_discounts_config()` (`src/etl/finance/margin_waterfall.py`) e `load_working_capital_config(scenario_id)` (`src/etl/gold/inventory_snapshot.py`), passados como parâmetros `?` nas queries.
+      - Em [`src/services/commercial_queries.py`](./src/services/commercial_queries.py) (linhas 115 e 281) e [`src/services/prudence_anomalies.py`](./src/services/prudence_anomalies.py) (linha 89): substituir `WHERE scenario_id = '{scenario_id}'` por placeholder parametrizado `WHERE scenario_id = ?` adicionando `scenario_id` na lista de `params`.
+    - **3. Correção Matemática de Custos Fixos e NCG em `src/services/fortitude_service.py` (linhas 213–215)**:
+      - Na linha 215, alterar `fixed_costs_monthly = round(monthly_gross * fixed_cost_pct, 2)` para `fixed_costs_monthly = round(monthly_net * fixed_cost_pct, 2)` (respeitando `fixed_cost_pct_of_avg_net_revenue: 0.14` de `working_capital.yaml` e `VISION.md` §6.5).
+      - Na linha 213, alterar `ncg_brl = round((monthly_net / 30.0) * ccc_days, 2)` para `ncg_brl = round((monthly_net / 30.0) * max(ccc_days, 0.0), 2)`.
+    - **4. Correção da Equação de Elasticidade e Breakeven em `src/services/simulator.py` (linhas 39–63)**:
+      - Na linha 40, substituir a aproximação linear `vol_factor = max(0.0, 1.0 + (elasticity * pct_price_change))` pela função potência canônica de elasticidade constante (`VISION.md` §6.4) baseada na razão de preço líquido efetivo:
+        ```python
+        net_price_0 = max(1e-6, 1.0 - base_disc_rate)
+        net_price_1 = max(1e-6, price_factor * (1.0 - new_disc_rate))
+        vol_factor = (net_price_1 / net_price_0) ** elasticity if net_price_1 > 0 else 0.0
+        ```
+      - Nas linhas 58–63 (`breakeven_vol`), corrigir o denominador para usar a margem de contribuição por unidade física equivalente ao preço base (`unit_margin_ratio_on_base_volume = (net_1 - cogs_1 - comm_1 - freight_1) / max(gross_0 * vol_factor, 1.0)`), de modo que `required_gross_at_base_price = base_cm / unit_margin_ratio_on_base_volume` e `breakeven_vol = ((required_gross_at_base_price / base_gross) - 1.0) * 100.0`. Quando `price_change_pct == 0`, `discount_change_pp == 0` e `cost_change_pct == 0`, `breakeven_volume_pct` deve retornar `0.0` exato.
+  - *DoD:* Waterfall de `build_executive_dashboard` e `build_temperance_dashboard` retornam `gross_revenue` e `contribution_margin` idênticos (`diff < 1e-6`) para `period_preset="ytd"`, `"q4"` e `"last_month"`; zero literais numéricos de política em `temperance_queries.py`; zero f-strings com `scenario_id` em cláusulas `WHERE`; `uv run pytest tests/services -q` 100% verde.
+
+---
+
+#### 🎨 Unificação do Cabeçalho Cockpit 1080p, 3º Slider What-If & Saneamento Visual (`V`)
+
+- [x] **V4-V1** *(VIRTUS-QA-UI)* — **Unificação do Cabeçalho `.cockpit-header` (Orçamento 1080p DAR), Títulos das 4 Virtudes no Menu, 3º Slider What-If (`_what_if_cost`), Saneamento `title=None` no Plotly e Remoção de Emojis/Código Morto**: Eliminar os ~110px de altura desperdiçados no topo das 4 páginas adotando `render_cockpit_header()`, expor a 3ª alavanca do simulador na Página 1 e sanear títulos Plotly, emojis e funções mortas.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P0**
+  - *Arquivos:* `src/ui/app.py`, `src/ui/components/prescription.py`, `src/ui/components/prudence_sections.py`, `src/ui/components/justice_sections.py`, `src/ui/components/temperance_sections.py`, `src/ui/components/temperance_inventory_section.py`, `src/ui/components/fortitude_sections.py`, `src/ui/components/charts.py`, `src/ui/components/commercial_charts.py`, `src/ui/pages/1_executive.py`, `src/ui/pages/2_commercial_radar.py`, `src/ui/pages/3_inventory_demand.py`, `src/ui/pages/4_simulator.py`, `tests/ui/test_app.py`, `tests/ui/test_executive_page.py`, `tests/ui/test_commercial_page.py`, `tests/ui/test_temperance_page.py`, `tests/ui/test_fortitude_page.py`.
+  - *Depende de:* `V4-S1`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. Evolução de `render_cockpit_header()` (`src/ui/components/prescription.py`, linhas 38–64) e Adoção nas 4 Páginas**:
+      - Atualizar `render_cockpit_header(virtue_badge: str, title: str, headline_html: str, help_text: str, period_badge: str | None = None)` em `src/ui/components/prescription.py` para renderizar o bloco `.cockpit-header` com o `.cockpit-title-block` à esquerda (contendo badge da Virtude + `period_badge` opcional + `<h3>{title}</h3>`) e `.cockpit-headline-pill` à direita (permitindo tags `<b>`/`<strong>` seguras em `headline_html` + `info_tooltip_html(help_text)`).
+      - Substituir a sequência repetitiva `st.title(...)` + `st.caption(...)` + `render_*_banner(...)` + `render_*_headline(...)` nas 4 páginas (`1_executive.py`, `4_simulator.py`, `2_commercial_radar.py`, `3_inventory_demand.py`) por `render_cockpit_header(...)`, economizando ~110px verticais e cumprindo o orçamento de $\le 750\text{px}$ em 1080p.
+      - **Compatibilidade com Testes `AppTest`**: em `tests/ui/test_app.py` (linhas 21 e 60) e `tests/ui/test_executive_page.py` (linha 16), atualizar ou manter o check de título para verificar a presença do cabeçalho Cockpit / títulos Virtus (`"1. Prudência · Visão Executiva"`, `"2. Fortaleza · Caixa & Risco"`, `"3. Justiça · Radar Comercial"`, `"4. Temperança · Estoque & Margem"` em `src/ui/app.py:81-99`), preservando as substrings esperadas nos testes.
+      - Em `src/ui/components/justice_sections.py` (`render_justice_headline`, linhas 27–37): ao unificar no `render_cockpit_header`, eliminar a classe CSS inexistente `kpi-headline` e garantir que a manchete da Página 3 (Justiça) possua `.kyb-info-icon` via `info_tooltip_html`.
+    - **2. Inclusão do 3º Slider (`_what_if_cost`) em `render_what_if_quick_fragment()` (`src/ui/components/prudence_sections.py`, linhas 156–185)**:
+      - Alterar `s_col1, s_col2 = st.columns(2)` para `s_col1, s_col2, s_col3 = st.columns(3)` e adicionar o 3º slider:
+        ```python
+        with s_col3:
+            cost_chg = st.slider(
+                "Variação Custo/CMV (%)",
+                min_value=-15.0,
+                max_value=15.0,
+                value=0.0,
+                step=0.5,
+                key="_what_if_cost",
+            )
+        ```
+      - Passar `commission_or_cost_change_pct=float(cost_chg)` para `simulate_quick_what_if(...)` (cujo parâmetro já existe em `src/services/simulator.py:19`!).
+    - **3. Saneamento `title=None` no Plotly (`GEMINI.md` §5.5 — Data-Ink Ratio)**:
+      - Em [`src/ui/components/charts.py`](./src/ui/components/charts.py): definir `title=None` em `waterfall_margin` (linha 63), `dual_trend` (linha 145) e `quadrant_scatter` (linha 387), pois todas as seções já possuem `section_header(...)` logo acima do gráfico.
+      - Em [`src/ui/components/commercial_charts.py`](./src/ui/components/commercial_charts.py): definir `title=None` em `cycle_delay_scatter` (linha 117), `rfm_treemap` (linha 172), `cycle_health_funnel_chart` (linha 276) e `white_space_heatmap` (linha 334).
+    - **4. Remoção de Emojis Residuais e Funções Mortas (`GEMINI.md` §5.5)**:
+      - Remover os emojis `🚨` e `🛑` em [`src/ui/pages/3_inventory_demand.py`](./src/ui/pages/3_inventory_demand.py) (linhas 92–93) e [`src/ui/components/temperance_inventory_section.py`](./src/ui/components/temperance_inventory_section.py) (linhas 150–151).
+      - Remover as funções mortas/órfãs não referenciadas em nenhuma página ou teste: `render_prudence_context_banner` (`prudence_sections.py`), `render_justice_banner`, `render_cycle_delay_section`, `render_rfm_section`, `render_white_space_section` (`justice_sections.py`), `render_temperance_verdict` (`temperance_sections.py`) e `render_temperance_prescription_section` (`temperance_inventory_section.py`).
+  - *DoD:* todas as 4 páginas renderizam `.cockpit-header` com `.kyb-info-icon`; `render_what_if_quick_fragment` exibe os 3 sliders (`_what_if_price`, `_what_if_disc`, `_what_if_cost`); zero gráficos com `title="<b>..."` duplicado; zero emojis em `src/ui/pages/` e `src/ui/components/`; `uv run pytest tests/ui -q` 100% verde.
+
+---
+
+#### 🏗️ Modularização Estrita (`< 400 Linhas`) & Blindagem Hermética de Testes (`I`)
+
+- [ ] **V4-I1** *(VIRTUS-QA-MOD)* — **Modularização Estrita (`< 400 Linhas`) dos 6 Módulos Infratores em `src/` (`audit.py`, `white_space.py`, `c1_toys.py`, `cli.py`, `features.py`, `rfm.py`)**: Cumprir rigorosamente a regra do §3 de `GEMINI.md` / `CLAUDE.md` dividindo todos os arquivos de `src/` que ultrapassam 400 linhas, mantendo 100% dos imports públicos compatíveis via re-export.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
+  - *Arquivos:*
+    - `src/etl/audit.py` (1.109L) → dividir em `src/etl/audit.py` (< 320L), `src/etl/audit_queries.py` (< 350L) e `src/etl/audit_sheets.py` (< 380L);
+    - `src/ml/white_space.py` (668L) → dividir em `src/ml/white_space.py` (< 360L) e `src/ml/white_space_apriori.py` (< 340L);
+    - `src/etl/scenarios/c1_toys.py` (662L) → dividir em `src/etl/scenarios/c1_toys.py` (< 360L) e `src/etl/scenarios/c1_toys_templates.py` (< 340L);
+    - `src/cli.py` (540L) → dividir em `src/cli.py` (< 350L) e `src/cli_ml.py` (< 250L);
+    - `src/ml/features.py` (532L) → dividir em `src/ml/features.py` (< 330L) e `src/ml/sku_features.py` (< 250L);
+    - `src/ml/rfm.py` (408L) → enxugar/modularizar para `< 380` linhas.
+  - *Depende de:* `V4-S1`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **Preservação Estrita de Re-Exports Públicos**:
+      - `src/etl/audit.py` deve continuar exportando `generate_reconciliation_workbook` e helpers consumidos por `tests/etl/test_gold.py` e `tests/ml/test_abc_xyz.py`.
+      - `src/ml/white_space.py` deve continuar exportando `build_white_space_mart`, `mine_apriori_family_rules` e constantes consumidas por `tests/ml/test_white_space.py`.
+      - `src/etl/scenarios/c1_toys.py` deve continuar exportando `C1ToysScenarioBuilder`, `TOY_BRANDS`, `generate_ean13` e helpers consumidos por `tests/etl/test_c1_toys.py`.
+      - `src/ml/features.py` deve continuar exportando `resolve_as_of_date`, `compute_customer_features`, `compute_sku_features`, `compute_customer_family_features` e `compute_feature_store` consumidos por `tests/ml/test_features.py` e pelos demais módulos de `src/ml/`.
+      - `src/cli.py` deve continuar expondo `app` e `ml_app` (registrando `app.add_typer(ml_app, name="ml")` a partir de `src/cli_ml.py`).
+  - *DoD:* o comando PowerShell `Get-ChildItem -Path src -Recurse -Filter *.py | Where-Object { (Get-Content $_.FullName).Count -gt 400 }` retorna **vazio (0 arquivos)**; `uv run ruff check .`, `uv run mypy src` e `uv run pytest tests/etl tests/ml -q` passam com 0 erros.
+
+- [ ] **V4-I2** *(VIRTUS-QA-TEST)* — **Blindagem Hermética da Suíte de Testes (`conftest.py` Auto-Bootstrap) e Testes Unitários de Simulador & Reconciliação Cross-Page**: Garantir que toda a suíte `pytest` rode em um checkout limpo sem depender de artefatos locais pré-existentes e validar matematicamente o simulador e a igualdade entre páginas.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
+  - *Arquivos:* `tests/conftest.py`, `tests/services/test_simulator.py` (novo), `tests/services/test_temperance_service.py`.
+  - *Depende de:* `V4-D1`, `V4-S1`, `V4-V1`, `V4-I1`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. Fixture `autouse=True` de Escopo `session` em `tests/conftest.py`**:
+      - Criar em [`tests/conftest.py`](./tests/conftest.py) uma fixture `@pytest.fixture(scope="session", autouse=True)` chamada `ensure_local_duckdb_seeded()` que verifica se `get_duckdb_path().exists()` é `True` e contém `gold.fact_sales`, `gold.inventory_snapshot`, `gold.mart_abc_xyz`, `gold.mart_rfm`, `gold.mart_customer_risk`, `gold.mart_white_space` e `gold.mart_rep_performance`.
+      - Caso o arquivo `data/kyberna.duckdb` não exista (ex.: runner limpo de GitHub Actions), a fixture executa automaticamente o bootstrap rápido a partir de `tests/fixtures/iowa_sample.parquet` (Bronze → Silver → C1 Toys → Margin Waterfall → Star Schema → Inventory Snapshot → Marts ML), tornando os 9 arquivos de teste que chamam `get_duckdb_path()` 100% herméticos.
+    - **2. Nova Suíte `tests/services/test_simulator.py`**:
+      - Testar `simulate_quick_what_if` com: (a) alavancas zeradas (`0.0, 0.0, 0.0`) retornando `projected_cm_brl == base_cm`, `cm_delta_brl == 0.0` e `breakeven_volume_pct == 0.0`; (b) aumento de desconto reduzindo margem unitária e exigindo `breakeven_volume_pct > 0`; (c) variação da 3ª alavanca (`commission_or_cost_change_pct`) impactando `projected_cm_brl`; (d) destruição de margem unitária (`unit_margin_1 <= 0`) retornando `breakeven_volume_pct = 999.9` e `is_viable = False`.
+    - **3. Teste de Reconciliação Cross-Page (`Prudência == Temperança`) em `tests/services/test_temperance_service.py`**:
+      - Adicionar teste `test_prudencia_and_temperanca_waterfalls_match_across_period_presets()` que instancia `build_executive_dashboard` e `build_temperance_dashboard` para `period_preset` em `("all", "ytd", "q4", "last_month")` e valida que `exec_dto.kpis.gross_revenue == temp_dto.waterfall_df.loc[0, "value"]` e `exec_dto.kpis.contribution_margin == temp_dto.waterfall_df.iloc[-1]["value"]` com `pytest.approx(..., abs=1e-2)`.
+  - *DoD:* `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src` e `uv run pytest -q` passam 100% verdes.
+
+---
+
 ## 📌 Achados & Observações Técnicas da Remodelagem
 
 - `[2026-11-06]` (`V1-S1`) `src/services/executive_service.py` atingiu 494 linhas e `src/ui/pages/1_executive.py` atingiu 441 linhas após a inclusão do demonstrativo mensal na `M3-S3` — resolvido estruturalmente nas tarefas `V1-S1` e `V1-V1` com a extração de `src/ui/components/prudence_sections.py`.
 - `[2026-11-06]` (`V1-V2`) Identificado uso residual de `df.iterrows()` em `charts.py` e `commercial_charts.py` e títulos de eixo em inglês em `quadrant_scatter` — endereçado em `V1-V1` e `V1-V2`.
 - `[2026-11-09]` (`Virtus Architecture`) Aprovada a remodelagem estratégica das 4 páginas da aplicação para o framework de governança **Virtus** (**1. Prudência**, **2. Fortaleza**, **3. Justiça**, **4. Temperança**), mantendo os caminhos físicos dos 4 módulos em `src/ui/pages/` e reordenando a apresentação via `st.navigation` em `src/ui/app.py`.
 - `[2026-11-10]` (`Cockpit 1080p / ABC-XYZ`) Identificada perda de contexto executivo por rolagem de página vertical em monitores 1080p e distorção na Matriz ABC/XYZ (93,7% dos produtos em Z por corte teórico $CV \le 1.0$ versus mediana empírica $2,21$). Resolvido na tarefa `V2-V2`: adoção do padrão Cockpit 1080p sem scroll (DAR em 3 faixas: Topo 18%, Meio 45% com gráficos `height=280`, Base 37% com tabelas de scroll interno `height=210`), eliminação de títulos duplicados no Plotly (`title=None`) e recalibração dos cortes XYZ ($X \le 1,50$ e $Y \le 2,50$) equilibrando a matriz em 18% X / 44% Y / 38% Z.
+- `[2026-11-12]` (`Auditoria Geral v0.4.3 → Onda V4`) Auditoria completa de documentação e código identificou 9 pontos de saneamento estruturados na **Onda V4 (`V4-D1`, `V4-S1`, `V4-V1`, `V4-I1`, `V4-I2`)**: (1) reconciliação das especificações de `M4-V1` e `M4-V2` no `TASKS.md` para não sobrescreverem as páginas Virtus de Temperança e Fortaleza; (2) propagação do filtro global de período (`period_preset`, `selected_month`) para Temperança e Justiça; (3) auto-registro de views Parquet em `DuckDBRepository.query()` quando `data/kyberna.duckdb` não existir; (4) alinhamento de `VISION.md` §6 (`MC_liq %`), `fortitude_service.py` (`monthly_net * fixed_cost_pct`) e `simulator.py` + inclusão do 3º slider (`_what_if_cost`); (5) adoção de `render_cockpit_header()`, títulos das 4 Virtudes em `app.py`, `title=None` em `charts.py`/`commercial_charts.py` e remoção de emojis/funções mortas; (6) divisão dos 6 arquivos $> 400$ linhas em `src/etl/`, `src/ml/` e `src/cli.py`; (7) eliminação de literais SQL hard-coded em `temperance_queries.py`; e (8) fixture auto-bootstrap em `tests/conftest.py`.
 
 ---
 
 ## 📝 Registro Histórico de Mudanças (Changelog da Refatoração)
+
+- **v0.4.4-qa-virtus** *(Onda V4 em Andamento: V4-D1, V4-S1 e V4-V1 Concluídas)*:
+  - **[2026-11-13] Conclusão de V4-V1 (`VIRTUS-QA-UI`)**:
+    - **Cabeçalho Unificado `.cockpit-header` & Menu das 4 Virtudes**: Evolução de `render_cockpit_header()` em `src/ui/components/prescription.py` (com `virtue_badge`, `period_badge`, sanitização inline de `<b>`/`<strong>` e tooltip `.kyb-info-icon` à direita) adotada nas 4 páginas (`1_executive.py`, `4_simulator.py`, `2_commercial_radar.py`, `3_inventory_demand.py`), além dos rótulos canônicos `"1. Prudência · Visão Executiva"`, `"2. Fortaleza · Caixa & Risco"`, `"3. Justiça · Radar Comercial"` e `"4. Temperança · Estoque & Margem"` em `src/ui/app.py`.
+    - **3º Slider What-If (`_what_if_cost`)**: Exposição da alavanca `"Variação Custo/CMV (%)"` em 3 colunas dentro de `render_what_if_quick_fragment()` (`src/ui/components/prudence_sections.py`) ligada a `commission_or_cost_change_pct`.
+    - **Saneamento Data-Ink Ratio & Código Morto**: Definição de `title=None` nos gráficos de `charts.py` e `commercial_charts.py`, remoção dos emojis `🚨`/`🛑` em `3_inventory_demand.py` e `temperance_inventory_section.py`, e eliminação das funções de banner/manchete/seções órfãs nos `*_sections.py`.
+    - **Validação**: Testes `AppTest` atualizados em `tests/ui/` (`33 passed in 11.85s`), `uv run ruff check .`, `uv run ruff format --check .` (`130 files already formatted`), `uv run mypy src` (`85 source files`) e zero arquivos `> 400` linhas em `src/ui/`.
+  - **[2026-11-13] Conclusão de V4-S1 (`VIRTUS-QA-SVC`)**:
+    - **Sincronia do Filtro Temporal Global**: Propagação de `period_preset` e `selected_month` da sidebar para **Página 4 — Temperança** (`temperance_service.py`, `temperance_queries.py`, `temperance_policy_queries.py`, `cache.py`, `3_inventory_demand.py`) e **Página 3 — Justiça** (`commercial_service.py`, `cache.py`, `2_commercial_radar.py`) via `resolve_period_bounds()`, alinhando o Waterfall da Temperança centavo por centavo com Prudência.
+    - **Parametrização SQL & Modularização `< 400` linhas**: Extração de `src/services/temperance_policy_queries.py` (~225 linhas) + refatoração de `src/services/temperance_queries.py` (~215 linhas) lendo regras dinamicamente de `discounts.yaml` (`load_discounts_config()`) e `working_capital.yaml` (`load_working_capital_config()`) via placeholders `?`; eliminação de `f-strings` com `scenario_id` em `commercial_queries.py` e `prudence_anomalies.py`.
+    - **Correções Matemáticas (`fortitude_service.py` e `simulator.py`)**: Custos Fixos Mensais aplicados sobre `monthly_net * fixed_cost_pct`, NCG limitada a `max(ccc_days, 0.0)`, e `simulate_quick_what_if()` atualizado para função potência canônica de elasticidade constante (`net_price_ratio ** elasticity`) com breakeven exato (`0.0` no baseline).
+    - **Validação**: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src` (85 arquivos), `uv run pytest tests/services -q` (29 passed) e `uv run pytest tests/ui -q` (33 passed) 100% aprovados.
+  - **[2026-11-12] Conclusão de V4-D1 (`VIRTUS-QA-DOC`)**:
+    - **Alinhamento Canônico de Fórmulas (`VISION.md` §6.1 e §6.5)**: Documentação canônica do cálculo primário de $\text{MC}_{\text{líq}} (\%)$ sobre a Receita Bruta Tabelada (com exibição complementar sobre Receita Líquida no subtítulo do KPI card) e de Custos Fixos Mensais aplicados sobre a Receita Líquida Média Mensal (`fixed_cost_pct_of_avg_net_revenue: 0.14`).
+    - **Resiliência Parquet-Only no `DuckDBRepository` (`src/db/duckdb_repo.py`)**: Implementação de `_bootstrap_memory_views_from_parquet()` registrando automaticamente os schemas `gold` e os cenários sobre `data/gold/snapshot/*.parquet` ao conectar em `:memory:` quando `data/kyberna.duckdb` não existir no disco.
+    - **Blindagem Automatizada**: Suíte `tests/db/test_repository.py` com novo teste unitário `test_duckdb_repository_query_memory_bootstrap_from_parquet` aprovado com 100% de sucesso (11/11 testes verdes em 14.3s).
+  - **[2026-11-12] Inclusão da Onda V4 (`V4-D1`, `V4-S1`, `V4-V1`, `V4-I1`, `V4-I2`) e Reconciliação Normativa**:
+    - Especificação detalhada da **Onda V4** em `TASKS_REFACTORY.md` cobrindo alinhamento de fórmulas e fallback Parquet-only (`V4-D1`), sincronia temporal cross-page e parametrização SQL (`V4-S1`), cabeçalho `.cockpit-header`, 3º slider What-If e limpeza visual (`V4-V1`), modularização $< 400$ linhas dos 6 módulos de ETL/ML/CLI (`V4-I1`) e suíte de testes hermética (`V4-I2`).
+    - Atualização sincronizada de `GEMINI.md`, `CLAUDE.md` e `TASKS.md` com a **Regra de Sincronia Documental Tripla**, o **Mapa Canônico Inviolável das 4 Páginas Virtus** e a reescrita de `M4-V1` e `M4-V2` para integração nativa nas páginas de **Temperança** e **Prudência**.
 
 - **v0.4.3-fortitude-virtus** *(Onda V3: V3-S1 e V3-V1 100% Concluídas — 4/4 Virtudes Cardeais em Cockpit 1080p)*:
   - **[2026-11-12] Conclusão de V3-V1 (`VIRTUS-FORT-02`)**:

@@ -31,13 +31,22 @@ def simulate_quick_what_if(
             "estimated_volume_pct": 0.0,
         }
 
+    if price_change_pct == 0.0 and discount_change_pp == 0.0 and commission_or_cost_change_pct == 0.0:
+        return {
+            "simulated_revenue_brl": round(gross_0, 2),
+            "simulated_margin_brl": round(kpis.contribution_margin, 2),
+            "simulated_margin_pct": round(kpis.contribution_margin / gross_0 * 100.0, 2),
+            "margin_delta_brl": 0.0,
+            "breakeven_volume_pct": 0.0,
+            "estimated_volume_pct": 0.0,
+        }
+
     disc_0 = kpis.discount_amount / gross_0 if gross_0 > 0 else 0.0
     disc_1 = min(max(disc_0 + discount_change_pp / 100.0, 0.0), 0.50)
     price_factor = 1.0 + price_change_pct / 100.0
-    net_price_ratio = price_factor * (1.0 - disc_1) / max(1.0 - disc_0, 0.01)
+    net_price_ratio = max(price_factor * (1.0 - disc_1) / max(1.0 - disc_0, 0.01), 0.05)
 
-    pct_price_change = net_price_ratio - 1.0
-    vol_factor = max(1.0 + elasticity * pct_price_change, 0.10)
+    vol_factor = max(net_price_ratio**elasticity, 0.05)
     estimated_vol_pct = round((vol_factor - 1.0) * 100.0, 1)
 
     gross_1 = gross_0 * vol_factor * price_factor
@@ -55,10 +64,10 @@ def simulate_quick_what_if(
     margin_pct_1 = round(margin_1 / gross_1 * 100.0, 2) if gross_1 > 0 else 0.0
     margin_delta = round(margin_1 - kpis.contribution_margin, 2)
 
-    unit_margin_1 = margin_1 / (gross_1 or 1.0)
+    margin_at_base_vol = margin_1 / vol_factor
     breakeven_vol = (
-        round(((kpis.contribution_margin / unit_margin_1) / gross_0 - 1.0) * 100.0, 1)
-        if (unit_margin_1 > 0 and kpis.contribution_margin > 0)
+        round(((kpis.contribution_margin / margin_at_base_vol) - 1.0) * 100.0, 1)
+        if (margin_at_base_vol > 0 and kpis.contribution_margin > 0)
         else 999.0
     )
 

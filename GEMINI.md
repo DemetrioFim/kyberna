@@ -14,33 +14,42 @@ Este repositório é o **protótipo comercial**: uma aplicação Streamlit multi
 Fontes de verdade, em ordem de precedência:
 
 1. Pedido explícito do usuário na conversa.
-2. [`VISION.md`](./VISION.md) — o *porquê* e o *o quê* (produto, cenários, telas, métricas).
-3. [`TASKS.md`](./TASKS.md) — o *quando* e o *critério de pronto* de cada entrega.
-4. Este arquivo — o *como* (arquitetura, padrões, protocolo).
+2. [`VISION.md`](./VISION.md) — o *porquê* e o *o quê* (produto, cenários, telas Virtus, fórmulas canônicas).
+3. [`TASKS_REFACTORY.md`](./TASKS_REFACTORY.md) e [`TASKS.md`](./TASKS.md) — o *quando*, a especificação tática das ondas Virtus (`V1`..`V4`) e o *critério de pronto* de cada entrega do roadmap (`M1`..`M7`).
+4. Este arquivo — o *como* (arquitetura, padrões, protocolo e invariantes anti-descompasso).
 
 ---
 
-## 1. Protocolo de Execução de Tarefas (OBRIGATÓRIO)
+## 1. Protocolo de Execução de Tarefas e Sincronia Documental (OBRIGATÓRIO)
 
 Siga este protocolo em **toda** solicitação de implementação:
 
 1. **Contextualizar antes de codar.**
-   - Leia `VISION.md` (seção relevante) e `TASKS.md` antes de qualquer implementação.
-   - Identifique o Marco (`M1`..`M7`) e o ID da tarefa (`<Marco>-<Pilar><Nº>`, ex.: `M1-I2`, `M2-D4`), suas **dependências** e seu **Critério de Pronto (DoD)**.
+   - Leia `VISION.md` (seção relevante), `TASKS_REFACTORY.md` (quando executando ondas `V1`..`V4`) e `TASKS.md` antes de qualquer implementação.
+   - Identifique o Marco/Onda (`V1`..`V4` ou `M1`..`M7`) e o ID da tarefa (`<Marco>-<Pilar><Nº>`, ex.: `V4-S1`, `M3-V2`, `M4-V1`), suas **dependências** e seu **Critério de Pronto (DoD)**.
    - Se uma dependência não estiver `[x]`, avise o usuário e proponha implementá-la primeiro (ou um *stub* explícito e marcado com `# TODO(<ID>)`).
-2. **Uma tarefa (ou fatia solicitada do Marco) por vez, respeitando os 4 Pilares.**
-   - Os 4 pilares dentro de cada Marco são: 🏗️ Infraestrutura (`I`), 🗄️ Engenharia de Dados & Finanças (`D`), 🧠 Ciência de Dados & Prescrição (`S`) e 🎨 Interface & Visualização (`V`).
-   - Não "aproveite para refatorar" arquivos fora do escopo sem pedir. Se notar um problema fora do escopo, registre-o na seção *Achados* do `TASKS.md`.
-3. **Testar via terminal e validar entre pilares antes de declarar concluído.**
+2. **Uma tarefa (ou fatia solicitada do Marco/Onda) por vez, respeitando os 4 Pilares.**
+   - Os 4 pilares dentro de cada Marco/Onda são: 🏗️ Infraestrutura (`I`), 🗄️ Engenharia de Dados & Finanças (`D`), 🧠 Ciência de Dados & Prescrição (`S`) e 🎨 Interface & Visualização (`V`).
+   - Não "aproveite para refatorar" arquivos fora do escopo sem pedir. Se notar um problema fora do escopo, registre-o na seção *Achados* do `TASKS.md` / `TASKS_REFACTORY.md`.
+3. **Respeitar o Mapa Canônico Inviolável das 4 Páginas Virtus (`src/ui/pages/`).**
+   - Os caminhos físicos dos 4 arquivos de página são fixos para preservar histórico Git e testes `AppTest`, mas seu papel semântico sob as **4 Virtudes Cardeais** é **inviolável**:
+     - `1_executive.py` (`prudence_sections.py`) → **1. Prudência · Direção** (Termômetro Pacing, Waterfall DRE, Tendência Dupla + Projeção 30/60/90d, **Simulador What-If de Preço/Desconto/Custos & Elasticidade**, Radar de Anomalias SQL).
+     - `4_simulator.py` (`fortitude_sections.py`) → **2. Fortaleza · Caixa & Risco** (Runway de Caixa, Dia do Break-Even Mensal, Ciclo Financeiro $\text{PME} + \text{PMR} - \text{PMP}$, NCG em R$, Concentração Top 5/10 e Aging List). **PROIBIDO sobrescrever `4_simulator.py` com um simulador isolado em tarefas de `M4`..`M7`.**
+     - `2_commercial_radar.py` (`justice_sections.py`) → **3. Justiça · Comercial & Valor** (Matriz Campeões vs. Vampiros em 4 abas, Quadrante de RCAs, Funil de 4 Estágios do Ciclo, Treemap RFM por Margem + LTV e White Space + Pitch).
+     - `3_inventory_demand.py` (`temperance_sections.py` + `temperance_inventory_section.py`) → **4. Temperança · Eficiência** (Waterfall da Erosão Comercial, Auditoria de Descontos Fora da Política, Vazamento Financeiro de Prazo, Matriz ABC/XYZ 3x3, Capital Travado $>120\text{d}$ vs. Ruptura Curva A e Forecast 30d por SKU). **PROIBIDO remover a auditoria de erosão comercial de `3_inventory_demand.py` ao plugar o Forecast 30d de `M4-V1`.**
+4. **Testar via terminal e validar entre pilares antes de declarar concluído.**
    - Rode no mínimo: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest -q` (ou o subconjunto relevante: `uv run pytest tests/<pilar> -q`).
+   - Verifique que **nenhum** arquivo em `src/` ultrapassa **400 linhas** (`Get-ChildItem -Path src -Recurse -Filter *.py | Where-Object { (Get-Content $_.FullName).Count -gt 400 }`).
    - Para tarefas de pipeline, execute o comando CLI correspondente (ex.: `uv run kyberna silver build --sample`) e mostre evidência (contagem de linhas, schema no `kyberna.duckdb`, tempo).
-   - Para tarefas de UI, suba o app (`uv run streamlit run src/ui/app.py`) e/ou rode `uv run pytest tests/ui -q` (AppTest). Quando houver browser disponível, valide visualmente.
+   - Para tarefas de UI, suba o app (`uv run streamlit run src/ui/app.py`) e/ou rode `uv run pytest tests/ui -q` (AppTest — com `BypassSandbox: true` no Windows caso `socket.socketpair()` bloqueie no sandbox). Quando houver browser disponível, valide visualmente.
    - **Nunca** declare uma tarefa concluída com testes falhando ou não executados. Se algo não puder ser testado no ambiente, diga explicitamente o que ficou sem validação.
-4. **Atualizar o `TASKS.md` ao finalizar.**
-   - Troque `[ ]` por `[x]` na tarefa concluída (e atualize o status do Marco no topo quando todas as tarefas do Marco forem concluídas).
+5. **Regra de Sincronia Documental Tripla ao finalizar (`TASKS_REFACTORY.md` ↔ `TASKS.md` ↔ `VISION.md` ↔ `GEMINI.md`/`CLAUDE.md`).**
+   - Troque `[ ]` por `[x]` na tarefa concluída tanto no `TASKS_REFACTORY.md` (se for onda `V1`..`V4`) quanto na tarefa correspondente do `TASKS.md`, atualizando o bloco `Status Geral do Desenvolvimento` (`Versão Atual`, `Marcos Concluídos` e `Próximos Focos Imediatos`) no topo do `TASKS.md`.
    - Se concluída parcialmente, use `[~]` e descreva o que falta.
-   - Adicione um bullet no *Registro Histórico de Mudanças (Changelog)* ao final do `TASKS.md` (data, ID, resumo e validação).
-5. **Reportar de forma concisa:** o que foi feito, arquivos alterados (com links), como validar, riscos/pendências.
+   - Se a tarefa criar/dividir módulos (ex.: `gold_contracts.py`, `fortitude_queries.py`), alterar DTOs ou evoluir fórmulas, **atualize na mesma alteração** a lista de `*Arquivos:*` das tarefas dependentes no `TASKS.md`, o *Guia Rápido de Integração & Anti-Alucinação* e, quando autorizado pelo usuário, a seção correspondente do `VISION.md` (§6 Fórmulas / §8 Telas).
+   - Qualquer alteração em `GEMINI.md` **deve obrigatoriamente** ser espelhada em `CLAUDE.md` (§0–§8 idênticas) no mesmo turno.
+   - Adicione um bullet cronológico no *Registro Histórico de Mudanças (Changelog)* ao final do `TASKS_REFACTORY.md` e/ou `TASKS.md` (data, ID, resumo e validação), sempre dentro do bloco da versão correta (nunca insira entradas novas dentro de versões antigas já fechadas).
+6. **Reportar de forma concisa:** o que foi feito, arquivos alterados (com links), como validar, riscos/pendências.
 
 > [!IMPORTANT]
 > Ambiente do usuário: **Windows + PowerShell**. Use comandos compatíveis (`uv run ...`, caminhos com `/` dentro do Python via `pathlib`). Nunca proponha `cd`; use o diretório de trabalho do comando. Não dependa de `make`; use a CLI `kyberna` (Typer).
@@ -74,7 +83,7 @@ Siga este protocolo em **toda** solicitação de implementação:
 
 ```text
 Kyberna/
-├── VISION.md · GEMINI.md · CLAUDE.md · TASKS.md · README.md
+├── VISION.md · GEMINI.md · CLAUDE.md · TASKS.md · TASKS_REFACTORY.md · README.md
 ├── pyproject.toml · uv.lock · .python-version · .env.example
 ├── .pre-commit-config.yaml · .gitignore · .dockerignore · .editorconfig
 ├── .streamlit/
@@ -106,8 +115,9 @@ Kyberna/
 │   │   ├── scenarios/              # base.py, c1_toys.py, c2_beverages.py, c3_retail_chain.py, c4_single_store.py
 │   │   ├── finance/                # margin_waterfall.py (SQL), taxes.py
 │   │   ├── gold/                   # star_schema.py (SQL), marts.py (SQL), inventory_snapshot.py
-│   │   ├── audit.py                # gerador do Excel de conciliação financeira e validação pessoal
-│   │   ├── contracts.py            # Pandera schemas (Pandas) + checks SQL por camada
+│   │   ├── audit.py                # gerador do Excel de conciliação financeira (+ audit_sheets.py / audit_queries.py)
+│   │   ├── contracts.py            # Pandera schemas Bronze/Silver + re-exports Gold (< 400 linhas)
+│   │   ├── gold_contracts.py       # Pandera schemas da camada Gold (< 400 linhas)
 │   │   └── lake.py                 # gerenciador DuckDB + read/write Parquet local ↔ ADLS
 │   ├── ml/
 │   │   ├── features.py
@@ -212,6 +222,7 @@ class DataRepository(Protocol):
 
 - `get_repository()` lê `KYBERNA_DATA_BACKEND` ∈ {`auto`, `azure_sql`, `duckdb`}.
 - `auto`: tenta Azure SQL com `connect_timeout` curto (≈ 8 s). Em erro (ex.: **40613 — banco pausado/retomando**, timeout, driver ausente), cai para DuckDB e registra o motivo. O app exibe um *badge* "Fonte: Azure SQL" ou "Fonte: Snapshot local".
+- **Resiliência Parquet-Only no `DuckDBRepository.query()`:** quando o arquivo `data/kyberna.duckdb` não existir no disco (ex.: container Docker multi-stage ou checkout limpo com apenas `data/gold/snapshot/<scenario_id>/*.parquet`), `DuckDBRepository` deve abrir `:memory:`, criar `SCHEMA IF NOT EXISTS gold` (e `<scenario_id>`) e registrar automaticamente views sobre os arquivos Parquet de snapshot antes de executar `query(sql, params)`.
 - Conexões são **curtas** (abrir → consultar → fechar). Nunca manter conexão ociosa: isso impede o auto-pause e consome a cota de vCore-segundos.
 - Autenticação Azure SQL: token Entra ID via `azure-identity` (`DefaultAzureCredential`) passado ao `pyodbc` (`attrs_before={1256: token_struct}`); Managed Identity em produção, `az login` localmente. SQL auth apenas via `.env` em dev.
 
@@ -279,6 +290,7 @@ for i, row in df.iterrows(): ...
 - `@st.cache_resource` apenas para o repositório/conexão e artefatos pesados.
 - `@st.fragment` em blocos interativos isolados (simulador, filtros locais de gráfico, tabelas com seleção) para não re-executar a página inteira.
 - Estado global tipado em `src/ui/state.py` (cenário ativo, período, filtros); nada de chaves mágicas espalhadas em `st.session_state`.
+- **Sincronia Obrigatória de Filtros Globais entre as 4 Páginas:** O seletor global de período da sidebar (`period_preset`, `selected_month` → `resolve_period_bounds`) deve ser propagado para os serviços de transação/margem das páginas (**1. Prudência**, **3. Justiça** — Campeões vs. Vampiros e **4. Temperança** — Waterfall e Violações de Política), garantindo que o Waterfall DRE de Prudência e o Waterfall de Erosão de Temperança exibam **exatamente os mesmos valores ao centavo** para qualquer filtro ativo. Métricas estruturais com janela própria (ex.: Ciclo Financeiro 12m em **2. Fortaleza** ou Snapshot de Estoque 90d) devem exibir um badge explícito informando sua janela de referência.
 - Todos os rótulos de negócio vêm do `ScenarioConfig.labels` (ex.: "Lojista" no C1, "PDV" no C2, "Filial" no C3, "Cliente do Clube" no C4).
 - Todo widget interativo tem `key` única e descritiva (`key="sim_price_change_pct"`) para testes.
 - Gráficos sempre com `template="kyberna_light"` ou `template="kyberna_dark"` (conforme tema ativo registrado em `src/ui/theme.py`) e `use_container_width=True`/largura responsiva.
@@ -316,8 +328,9 @@ A interface suporta alternância dinâmica entre **Light Mode** (executivo/proje
 ### 5.7 Testes
 
 - `pytest` com fixture sintética pequena (`tests/fixtures/iowa_sample.parquet`, ≤ 20 mil linhas) — **CI nunca baixa a base real**.
+- **Testes 100% Herméticos:** Nenhum teste pode falhar caso `data/kyberna.duckdb` não exista previamente no checkout (ex.: runner limpo do GitHub Actions). A fixture de sessão em `tests/conftest.py` deve garantir o bootstrap automático de um banco/snapshot mínimo a partir de `tests/fixtures/iowa_sample.parquet` quando `get_duckdb_path()` não existir.
 - Cobertura mínima: `src/etl`, `src/ml`, `src/services` ≥ 80%; `src/ui` coberto por smoke tests `streamlit.testing.v1.AppTest` (cada página × cada cenário renderiza sem exceção).
-- Testes de propriedade de negócio: margem = soma do waterfall; ABC acumula 100%; probabilidades em [0, 1]; simulador com desconto 0% e preço 0% devolve o baseline exato.
+- Testes de propriedade de negócio: margem = soma do waterfall; Waterfall da Página 1 (Prudência) == Waterfall da Página 4 (Temperança) para qualquer filtro; ABC acumula 100%; probabilidades em [0, 1]; simulador com desconto 0% e preço 0% devolve o baseline exato.
 
 ---
 
@@ -360,6 +373,8 @@ docker build -f infra/docker/Dockerfile -t kyberna-app:dev .
 - ❌ Placeholders genéricos ("Lorem ipsum", "TODO: implementar") em entregas marcadas como `[x]`.
 - ❌ Introduzir dependências novas sem justificar no PR/resposta e adicionar ao extra correto do `pyproject.toml`.
 - ❌ Alterar `VISION.md` sem pedido explícito do usuário.
+- ❌ Descasar `VISION.md`, `TASKS.md`, `TASKS_REFACTORY.md`, `GEMINI.md` e `CLAUDE.md`: toda entrega deve atualizar os documentos impactados no mesmo turno.
+- ❌ Sobrescrever `src/ui/pages/4_simulator.py` (**2. Fortaleza**) com um simulador What-If isolado ou remover o Waterfall de Erosão Comercial de `src/ui/pages/3_inventory_demand.py` (**4. Temperança**).
 
 ---
 

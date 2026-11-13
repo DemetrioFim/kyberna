@@ -112,7 +112,7 @@ def query_commercial_kpis_data(
             SUM(ws.potential_margin_brl) AS ws_margin
         FROM gold.mart_white_space ws
         JOIN base_customers b ON ws.customer_id = b.customer_id
-        WHERE ws.scenario_id = '{scenario_id}'
+        WHERE ws.scenario_id = ?
         GROUP BY ws.customer_id
     )
     SELECT
@@ -147,7 +147,7 @@ def query_commercial_kpis_data(
     FROM base_customers b
     LEFT JOIN ws_scoped w ON b.customer_id = w.customer_id
     """
-    df = repo.query(sql, params)
+    df = repo.query(sql, [*params, scenario_id])
     if df.empty:
         return {
             "total_customers": 0,
@@ -278,7 +278,7 @@ def query_priority_risk_customers(
             potential_revenue_brl AS top_opportunity_brl,
             action_pitch AS top_opportunity_pitch
         FROM gold.mart_white_space
-        WHERE scenario_id = '{scenario_id}' AND rank_order = 1
+        WHERE scenario_id = ? AND rank_order = 1
     )
     SELECT
         c.customer_id,
@@ -305,7 +305,7 @@ def query_priority_risk_customers(
     ORDER BY cr.annual_revenue_at_risk DESC, cr.delay_ratio DESC
     LIMIT {limit}
     """
-    return repo.query(sql, params)
+    return repo.query(sql, [scenario_id, *params])
 
 
 def query_rfm_summary_data(

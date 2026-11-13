@@ -5,15 +5,8 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.services.dto import TemperancePageDTO
-from src.ui.components.charts import waterfall_margin
-from src.ui.components.kpi_card import (
-    info_tooltip_html,
-    render_kpi_card,
-)
-from src.ui.components.prescription import (
-    render_prescription_box,
-    section_header,
-)
+from src.ui.components.kpi_card import render_kpi_card
+from src.ui.components.prescription import render_prescription_box
 from src.ui.formatting import (
     format_brl,
     format_int,
@@ -47,53 +40,6 @@ def _fmt_days_int(x: object) -> str:
 
 def _fmt_boxes(x: object) -> str:
     return f"{float(str(x)):.1f}"
-
-
-def render_temperance_banner(dto: TemperancePageDTO) -> None:
-    """Exibe barra informativa discreta sobre o escopo de Temperança e disciplina de margem."""
-    st.markdown(
-        """
-        <div style="background-color: var(--kyb-card-bg); border-left: 4px solid var(--kyb-teal);
-                    padding: 8px 14px; border-radius: 6px; margin-bottom: 0.85rem;
-                    border: 1px solid var(--kyb-border);">
-            <span style="font-weight: 600; font-size: 0.82rem; color: var(--kyb-text);">
-                4. TEMPERANÇA & DISCIPLINA OPERACIONAL
-            </span>
-            <span style="color: var(--kyb-text-muted); font-size: 0.82rem;">
-                — Auditoria de erosão comercial, descontos fora de tabela e destravamento de capital.
-            </span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_temperance_headline(dto: TemperancePageDTO) -> None:
-    """Renderiza a manchete executiva dinâmica e contextualizada da Temperança."""
-    info_html = info_tooltip_html(
-        "Diagnóstico quantificado das perdas estancáveis: excesso de descontos acima da política de tabela "
-        "e valor imobilizado em produtos com giro superior a 120 dias.",
-        align="left",
-    )
-    h_box = (
-        f'<div style="background: var(--kyb-card-bg); border-left: 4px solid var(--kyb-teal); '
-        f"border: 1px solid var(--kyb-border); padding: 0.85rem 1.25rem; border-radius: 6px; "
-        f'margin: 0.25rem 0 1.25rem 0;">'
-        f'<div style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; '
-        f"letter-spacing: 0.05em; color: var(--kyb-teal); margin-bottom: 0.35rem; display: flex; "
-        f'justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">'
-        f"<span>{dto.headline_title}{info_html}</span>"
-        f'<span style="font-size: 0.78rem; font-weight: 500; text-transform: none; '
-        f'color: var(--kyb-text-muted);">'
-        f"<span>Data de Corte: <strong>{dto.as_of_date_label}</strong></span>"
-        f"</span>"
-        f"</div>"
-        f'<div style="font-size: 0.90rem; color: var(--kyb-text); line-height: 1.45;">'
-        f"{dto.headline_text}"
-        f"</div>"
-        f"</div>"
-    )
-    st.markdown(h_box, unsafe_allow_html=True)
 
 
 def render_temperance_kpi_cards(dto: TemperancePageDTO) -> None:
@@ -273,31 +219,6 @@ def render_policy_violations_tabs(dto: TemperancePageDTO) -> None:
                 hide_index=True,
                 height=210,
             )
-
-
-def render_commercial_erosion_and_policy_section(dto: TemperancePageDTO, theme_mode: str) -> None:
-    """Renderiza a Seção 1 em 2 colunas: Waterfall da Margem Real e Auditoria de Descontos e Prazos."""
-    col_wat, col_audit = st.columns([1, 1])
-
-    with col_wat:
-        section_header(
-            "Decomposição da Margem Real",
-            "Do faturamento bruto até o lucro líquido no bolso com % de perda em cada degrau",
-            help_text="Deduções da receita bruta. As barras exibem o valor e a % do faturamento bruto.",
-        )
-        fig_wat = waterfall_margin(dto.waterfall_df, theme_mode=theme_mode)
-        st.plotly_chart(fig_wat, use_container_width=True)
-
-    with col_audit:
-        section_header(
-            "Auditoria de Política Comercial & Prazos",
-            "Identificação de descontos fora de tabela e custos ocultos de prazo esticado",
-            help_text="Auditoria com as regras de discounts.yaml e working_capital.yaml.",
-        )
-        if not dto.policy_violations_by_rep_df.empty:
-            fig_rep = render_violations_rep_chart(dto.policy_violations_by_rep_df, theme_mode=theme_mode)
-            st.plotly_chart(fig_rep, use_container_width=True)
-        render_policy_violations_tabs(dto)
 
 
 def render_temperance_verdict_section(dto: TemperancePageDTO) -> None:

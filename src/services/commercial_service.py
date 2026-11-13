@@ -101,6 +101,8 @@ def build_commercial_dashboard(
     risk_status: str = "Todos",
     rfm_segment: str = "Todos",
     quadrant: str = "Todos",
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
     as_of_date_label: str = "31/12/2024",
 ) -> CommercialPageDTO:
     """Orquestra as consultas analíticas e consolida o payload consumido pela Página 3 — Justiça."""
@@ -190,6 +192,8 @@ def build_commercial_dashboard(
             uf=uf,
             families=families,
             sales_reps=sales_reps,
+            start_date_key=start_date_key,
+            end_date_key=end_date_key,
             limit=10,
         )
         for d in dims

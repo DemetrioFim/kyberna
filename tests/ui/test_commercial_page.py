@@ -13,8 +13,10 @@ def test_commercial_page_full_render() -> None:
 
     assert not at.exception
 
-    # Confere presença de tooltips e design system Kyberna
+    # Confere presença de tooltips, cabeçalho Cockpit e design system Kyberna
     all_markdown = " ".join(m.value for m in at.markdown)
+    assert "cockpit-header" in all_markdown
+    assert "3. Justiça" in all_markdown
     assert "kyb-info-icon" in all_markdown
     assert "kyb-tooltip-popover" in all_markdown
     assert "Radar Comercial" in all_markdown

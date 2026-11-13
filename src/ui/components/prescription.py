@@ -35,30 +35,46 @@ def section_header(
     st.markdown(content, unsafe_allow_html=True)
 
 
+def _sanitize_inline_bold_html(raw_text: str) -> str:
+    """Escapa HTML preservando apenas marcações simples de ênfase (<b> e <strong>)."""
+    escaped = html.escape(raw_text)
+    for tag in ("b", "strong"):
+        escaped = escaped.replace(f"&lt;{tag}&gt;", f"<{tag}>").replace(f"&lt;/{tag}&gt;", f"</{tag}>")
+    return escaped
+
+
 def render_cockpit_header(
     title: str,
     subtitle: str,
     *,
     headline_title: str,
     headline_text: str,
+    virtue_badge: str | None = None,
+    period_badge: str | None = None,
     as_of_date_label: str = "31/12/2024",
     help_text: str | None = None,
 ) -> None:
     """Renderiza o cabeçalho executivo compacto de cockpit (Faixa 1 — Topo em 2 linhas)."""
-    info_html = f" {info_tooltip_html(help_text, align='left')}" if help_text else ""
+    info_html = f" {info_tooltip_html(help_text, align='right')}" if help_text else ""
+    virtue_html = (
+        f'<span class="badge badge-source">{html.escape(virtue_badge)}</span>' if virtue_badge else ""
+    )
+    period_html = f'<span class="cockpit-date-tag">{html.escape(period_badge)}</span>' if period_badge else ""
     header_html = (
         f'<div class="cockpit-header">'
         f'<div class="cockpit-header-top">'
         f'<div class="cockpit-title-group">'
+        f"{virtue_html}"
         f'<h2 class="cockpit-title">{html.escape(title)}</h2>'
         f'<span class="cockpit-subtitle">{html.escape(subtitle)}</span>'
         f"</div>"
         f'<div class="cockpit-meta-group">'
         f'<span class="cockpit-headline-pill">{html.escape(headline_title)}{info_html}</span>'
+        f"{period_html}"
         f'<span class="cockpit-date-tag">Corte: <strong>{html.escape(as_of_date_label)}</strong></span>'
         f"</div>"
         f"</div>"
-        f'<div class="cockpit-header-bottom">{html.escape(headline_text)}</div>'
+        f'<div class="cockpit-header-bottom">{_sanitize_inline_bold_html(headline_text)}</div>'
         f"</div>"
     )
     st.markdown(header_html, unsafe_allow_html=True)

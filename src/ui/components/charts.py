@@ -60,10 +60,10 @@ def waterfall_margin(
 
     fig.update_layout(
         template=template_name,
-        title="<b>Onde a Margem é Drenada? (Faturamento Bruto → Lucro Líquido)</b>",
+        title=None,
         showlegend=False,
         height=280,
-        margin={"l": 25, "r": 20, "t": 35, "b": 25},
+        margin={"l": 25, "r": 20, "t": 15, "b": 25},
         yaxis={"showgrid": False, "showticklabels": False, "title": ""},
         waterfallgap=0.25,
     )
@@ -142,7 +142,7 @@ def dual_trend(
 
     fig.update_layout(
         template=template_name,
-        title="<b>Ritmo Mensal: A Margem Acompanha o Faturamento?</b>",
+        title=None,
         yaxis={"title": "Faturamento (R$)", "side": "left", "showgrid": True},
         yaxis2={
             "title": "Margem (%)",
@@ -384,12 +384,12 @@ def quadrant_scatter(
 
     fig.update_layout(
         template=template_name,
-        title="<b>Quem Vende com Margem vs. Quem Compra Volume com Desconto?</b>",
+        title=None,
         xaxis_title=final_x_title,
         yaxis_title=final_y_title,
         annotations=annotations,
         showlegend=False,
         height=280,
-        margin={"l": 30, "r": 30, "t": 35, "b": 35},
+        margin={"l": 30, "r": 30, "t": 15, "b": 35},
     )
     return fig

@@ -81,10 +81,12 @@ def cached_commercial_dashboard(
     risk_status: str = "Todos",
     rfm_segment: str = "Todos",
     quadrant: str = "Todos",
-    as_of_date_label: str = "31/12/2024",
+    period_preset: str = "all",
+    selected_month: str | None = None,
 ) -> CommercialPageDTO:
     """Consulta e agrega os dados do Radar de Justiça Comercial com cache em memória (TTL 5 min)."""
     repo = get_cached_repository()
+    bounds = resolve_period_bounds(period_preset, selected_month)
     return build_commercial_dashboard(
         repo,
         scenario_id,
@@ -95,7 +97,9 @@ def cached_commercial_dashboard(
         risk_status=risk_status,
         rfm_segment=rfm_segment,
         quadrant=quadrant,
-        as_of_date_label=as_of_date_label,
+        start_date_key=bounds.start_date_key,
+        end_date_key=bounds.end_date_key,
+        as_of_date_label=bounds.as_of_date_label,
     )
 
 
@@ -107,9 +111,12 @@ def cached_temperance_dashboard(
     uf: str = "Todas",
     families: tuple[str, ...] = (),
     sales_reps: tuple[str, ...] = (),
+    period_preset: str = "all",
+    selected_month: str | None = None,
 ) -> TemperancePageDTO:
     """Consulta e agrega os dados da Tela 4 (Temperança) com cache em memória (TTL 5 min)."""
     repo = get_cached_repository()
+    bounds = resolve_period_bounds(period_preset, selected_month)
     return build_temperance_dashboard(
         repo,
         scenario_id,
@@ -117,6 +124,9 @@ def cached_temperance_dashboard(
         uf=uf,
         families=families,
         sales_reps=sales_reps,
+        start_date_key=bounds.start_date_key,
+        end_date_key=bounds.end_date_key,
+        as_of_date_label=bounds.as_of_date_label,
     )
 
 

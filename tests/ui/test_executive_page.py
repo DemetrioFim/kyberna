@@ -12,14 +12,18 @@ def test_executive_page_full_render() -> None:
     at.run()
 
     assert not at.exception
-    assert len(at.title) == 1
-    assert "Visão Executiva & Margem Real" in at.title[0].value
 
-    # Confere presença das abas de Produtos e Clientes
+    # Confere presença das abas de Produtos e Clientes e dos 3 sliders What-If
     assert len(at.tabs) >= 2
+    slider_keys = {s.key for s in at.slider}
+    assert {"_what_if_price", "_what_if_disc", "_what_if_cost"}.issubset(slider_keys)
 
-    # Confere presença dos ícones azuis de ajuda em cards e seções
+    # Confere cabeçalho Cockpit e ícones azuis de ajuda em cards e seções
     all_markdown = " ".join(m.value for m in at.markdown)
+    assert "cockpit-header" in all_markdown
+    assert (
+        "Visão Executiva &amp; Margem Real" in all_markdown or "Visão Executiva & Margem Real" in all_markdown
+    )
     assert "kyb-info-icon" in all_markdown
     assert "kyb-tooltip-popover" in all_markdown
     assert "Faturamento Bruto" in all_markdown
