@@ -5,6 +5,7 @@ from pathlib import Path
 import duckdb
 import typer
 
+from src.cli_ml import ml_app
 from src.core.logging import setup_logging, timed_step
 from src.core.paths import get_duckdb_path, get_project_root
 from src.core.scenarios import list_scenario_configs, load_scenario_config
@@ -19,11 +20,8 @@ from src.etl.scenarios.c1_toys import C1ToysScenarioBuilder
 from src.etl.silver.clean import build_silver_sales
 from src.etl.silver.enrich import enrich_silver_dimensions
 from src.etl.silver.time_anchor import apply_time_anchor
-from src.ml.abc_xyz import build_abc_xyz_mart, compute_abc_xyz_matrix_summary
-from src.ml.churn import build_customer_risk_mart, compute_customer_risk_summary
-from src.ml.rep_performance import build_rep_performance_mart, compute_rep_performance_summary
-from src.ml.rfm import build_rfm_mart, compute_rfm_segment_summary
-from src.ml.white_space import build_white_space_mart
+
+__all__ = ["app", "ml_app"]
 
 app = typer.Typer(
     name="kyberna",
@@ -32,9 +30,6 @@ app = typer.Typer(
     add_completion=False,
 )
 
-# ------------------------------------------------------------------------------
-# Sub-aplicações (Grupos de Comandos)
-# ------------------------------------------------------------------------------
 ingest_app = typer.Typer(
     name="ingest",
     help="Ingestão de dados brutos da API pública Socrata (Iowa Liquor Sales)",
@@ -58,11 +53,6 @@ silver_app = typer.Typer(
 gold_app = typer.Typer(
     name="gold",
     help="Geração de star schemas e marts analíticos por cenário",
-    no_args_is_help=True,
-)
-ml_app = typer.Typer(
-    name="ml",
-    help="Treinamento e inferência dos modelos de ML e inteligência prescritiva",
     no_args_is_help=True,
 )
 audit_app = typer.Typer(
@@ -92,9 +82,6 @@ app.add_typer(load_app)
 app.add_typer(pipeline_app)
 
 
-# ------------------------------------------------------------------------------
-# Ingest
-# ------------------------------------------------------------------------------
 @ingest_app.command("run")
 def ingest_run(
     start: str = typer.Option("2023-01-01", "--start", help="Data inicial no formato YYYY-MM-DD"),
@@ -136,9 +123,6 @@ def ingest_callback(
         ingest_run(start=start, end=end, sample_frac=sample_frac, force=force, app_token=app_token)
 
 
-# ------------------------------------------------------------------------------
-# Fixture
-# ------------------------------------------------------------------------------
 @fixture_app.command("generate")
 def fixture_generate(
     rows: int = typer.Option(20000, "--rows", "-r", help="Quantidade de linhas sintéticas a gerar"),
@@ -152,9 +136,6 @@ def fixture_generate(
     typer.echo(f"Fixture gerada com sucesso: {len(df):,} linhas.")
 
 
-# ------------------------------------------------------------------------------
-# Bronze
-# ------------------------------------------------------------------------------
 @bronze_app.command("build")
 def bronze_build(
     sample: bool = typer.Option(False, "--sample", help="Construir Bronze a partir da amostra fixture"),
@@ -175,9 +156,6 @@ def bronze_build(
             typer.echo(f"Bronze construída a partir de {len(files)} arquivos raw.")
 
 
-# ------------------------------------------------------------------------------
-# Silver
-# ------------------------------------------------------------------------------
 @silver_app.command("build")
 def silver_build(
     sample: bool = typer.Option(False, "--sample", help="Construir Silver a partir da Bronze sample"),
@@ -240,9 +218,6 @@ def silver_enrich(
         )
 
 
-# ------------------------------------------------------------------------------
-# Gold
-# ------------------------------------------------------------------------------
 @gold_app.command("build")
 def gold_build(
     scenario: str = typer.Option(
@@ -257,24 +232,16 @@ def gold_build(
         list_scenario_configs()
 
     for scn in target_scenarios:
-        # Valida cenário existente
         load_scenario_config(scn)
 
         if scn in ("c1_toys", "c1"):
             with timed_step("build_cenario_c1_toys"):
                 con = duckdb.connect(str(get_duckdb_path()))
                 try:
-                    # 1. Builder semântico do cenário
                     builder = C1ToysScenarioBuilder()
                     builder.build(con)
-
-                    # 2. Star Schema Gold
                     star_counts = build_gold_star_schema(con, scenario_id="c1_toys")
-
-                    # 3. Marts analíticos Gold
                     mart_counts = build_gold_marts(con, scenario_id="c1_toys")
-
-                    # 4. Snapshot de estoque Gold
                     inv_df = build_inventory_snapshot(con, scenario_id="c1_toys")
 
                     typer.echo(
@@ -327,212 +294,6 @@ def gold_inventory_snapshot(
         con.close()
 
 
-# ------------------------------------------------------------------------------
-# ML
-# ------------------------------------------------------------------------------
-@ml_app.command("abc-xyz")
-def ml_abc_xyz(
-    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
-    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
-    metric: str = typer.Option(
-        "contribution_margin",
-        "--metric",
-        help="Métrica do corte ABC ('contribution_margin' ou 'gross_revenue')",
-    ),
-) -> None:
-    """Classifica produtos na Matriz ABC/XYZ e salva mart_abc_xyz."""
-    con = duckdb.connect(str(get_duckdb_path()))
-    try:
-        with timed_step("ml_abc_xyz"):
-            df = build_abc_xyz_mart(
-                con,
-                as_of_date=as_of,
-                scenario_id=scenario,  # type: ignore[arg-type]
-                metric=metric,  # type: ignore[arg-type]
-            )
-            summary = compute_abc_xyz_matrix_summary(df)
-
-        typer.echo(f"\nMatriz 3x3 ABC/XYZ gerada com sucesso para '{scenario}' ({len(df):,} SKUs):")
-        typer.echo(
-            summary[
-                [
-                    "cell",
-                    "sku_count",
-                    "sku_pct",
-                    "gross_revenue",
-                    "revenue_pct",
-                    "contribution_margin",
-                    "margin_pct",
-                ]
-            ].to_string(index=False)
-        )
-    finally:
-        con.close()
-
-
-@ml_app.command("rfm")
-def ml_rfm(
-    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
-    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
-) -> None:
-    """Calcula a segmentação RFM baseada em Margem de Contribuição e salva mart_rfm."""
-    con = duckdb.connect(str(get_duckdb_path()))
-    try:
-        with timed_step("ml_rfm"):
-            df = build_rfm_mart(
-                con,
-                as_of_date=as_of,
-                scenario_id=scenario,  # type: ignore[arg-type]
-            )
-            summary = compute_rfm_segment_summary(df)
-
-        typer.echo(f"\nSegmentação RFM B2B concluída para '{scenario}' ({len(df):,} clientes):")
-        typer.echo(
-            summary[
-                [
-                    "rfm_segment",
-                    "customer_count",
-                    "customer_share_pct",
-                    "gross_revenue",
-                    "contribution_margin",
-                    "margin_share_pct",
-                    "avg_ticket",
-                ]
-            ].to_string(index=False)
-        )
-    finally:
-        con.close()
-
-
-@ml_app.command("churn")
-def ml_churn(
-    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
-    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
-) -> None:
-    """Calcula ciclo de recompra e risco heurístico de Churn e salva mart_customer_risk."""
-    con = duckdb.connect(str(get_duckdb_path()))
-    try:
-        with timed_step("ml_churn"):
-            df = build_customer_risk_mart(
-                con,
-                as_of_date=as_of,
-                scenario_id=scenario,  # type: ignore[arg-type]
-            )
-            summary = compute_customer_risk_summary(df)
-
-        typer.echo(f"\nAnálise de Risco de Churn concluída para '{scenario}' ({len(df):,} clientes):")
-        typer.echo(
-            summary[
-                [
-                    "risk_status",
-                    "customer_count",
-                    "customer_share_pct",
-                    "annual_revenue_at_risk",
-                    "annual_margin_at_risk",
-                    "revenue_share_pct",
-                    "margin_share_pct",
-                    "avg_delay_ratio",
-                    "avg_churn_prob",
-                ]
-            ].to_string(index=False)
-        )
-    finally:
-        con.close()
-
-
-@ml_app.command("white-space")
-def ml_white_space(
-    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
-    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
-) -> None:
-    """Calcula matriz White Space e recomendações de Cross-Sell via Apriori e Lookalike."""
-    con = duckdb.connect(str(get_duckdb_path()))
-    try:
-        with timed_step("ml_white_space"):
-            df = build_white_space_mart(
-                con,
-                as_of_date=as_of,
-                scenario_id=scenario,  # type: ignore[arg-type]
-            )
-
-        typer.echo(f"\nMatriz White Space construída para '{scenario}' ({len(df):,} recomendações geradas):")
-        top_sample = df.head(10)[
-            [
-                "customer_id",
-                "recommended_family",
-                "rank_order",
-                "opportunity_score",
-                "item_affinity_score",
-                "lookalike_score",
-                "potential_revenue_brl",
-                "potential_margin_brl",
-            ]
-        ]
-        typer.echo(top_sample.to_string(index=False))
-    finally:
-        con.close()
-
-
-@ml_app.command("rep-performance")
-def ml_rep_performance(
-    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
-    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
-) -> None:
-    """Analisa a eficiência comercial de RCAs e classifica no Quadrante de Performance."""
-    con = duckdb.connect(str(get_duckdb_path()))
-    try:
-        with timed_step("ml_rep_performance"):
-            df = build_rep_performance_mart(
-                con,
-                as_of_date=as_of,
-                scenario_id=scenario,  # type: ignore[arg-type]
-            )
-            summary = compute_rep_performance_summary(df)
-
-        typer.echo(
-            f"\nQuadrante de Representantes (RCAs) construído para '{scenario}' ({len(df):,} representantes):"
-        )
-        typer.echo(
-            summary[
-                [
-                    "quadrant",
-                    "reps_count",
-                    "reps_pct",
-                    "gross_revenue",
-                    "revenue_pct",
-                    "contribution_margin",
-                    "margin_pct",
-                    "avg_discount_pct",
-                    "revenue_at_risk_brl",
-                    "white_space_potential_brl",
-                ]
-            ].to_string(index=False)
-        )
-    finally:
-        con.close()
-
-
-@ml_app.command("train")
-def ml_train(
-    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
-) -> None:
-    """Treina modelos preditivos e algoritmos prescritivos."""
-    # TODO(M3-S1): Implementar algoritmos RFM, Churn e White Space
-    raise NotImplementedError("Comando ainda não implementado. Tarefa responsável: M3-S1")
-
-
-@ml_app.command("infer")
-def ml_infer(
-    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
-) -> None:
-    """Executa inferência em lote e salva predições na camada Gold."""
-    # TODO(M3-S1): Implementar inferência em lote
-    raise NotImplementedError("Comando ainda não implementado. Tarefa responsável: M3-S1")
-
-
-# ------------------------------------------------------------------------------
-# Audit
-# ------------------------------------------------------------------------------
 @audit_app.callback(invoke_without_command=True)
 def audit_main(
     ctx: typer.Context,
@@ -554,9 +315,6 @@ def audit_report(
         typer.echo(f"Planilha de conciliação gerada com sucesso: {output_path}")
 
 
-# ------------------------------------------------------------------------------
-# Load
-# ------------------------------------------------------------------------------
 @load_app.command("sync")
 def load_sync(
     scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
@@ -566,9 +324,6 @@ def load_sync(
     raise NotImplementedError("Comando ainda não implementado. Tarefa responsável: M7-D1")
 
 
-# ------------------------------------------------------------------------------
-# Pipeline
-# ------------------------------------------------------------------------------
 @pipeline_app.command("run")
 def pipeline_run(
     scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
@@ -579,10 +334,8 @@ def pipeline_run(
     raise NotImplementedError("Comando ainda não implementado. Tarefa responsável: M5-D1")
 
 
-# ------------------------------------------------------------------------------
-# Root Callback & Versão
-# ------------------------------------------------------------------------------
 def version_callback(value: bool) -> None:
+    """Exibe a versão atual da CLI Kyberna."""
     if value:
         typer.echo("Kyberna CLI v0.1.0")
         raise typer.Exit()

@@ -23,19 +23,11 @@ def simulate_quick_what_if(
         price_change_pct == 0.0 and discount_change_pp == 0.0 and commission_or_cost_change_pct == 0.0
     ):
         return {
-            "simulated_revenue_brl": gross_0,
-            "simulated_margin_brl": kpis.contribution_margin,
-            "simulated_margin_pct": kpis.contribution_margin_pct,
-            "margin_delta_brl": 0.0,
-            "breakeven_volume_pct": 0.0,
-            "estimated_volume_pct": 0.0,
-        }
-
-    if price_change_pct == 0.0 and discount_change_pp == 0.0 and commission_or_cost_change_pct == 0.0:
-        return {
             "simulated_revenue_brl": round(gross_0, 2),
             "simulated_margin_brl": round(kpis.contribution_margin, 2),
-            "simulated_margin_pct": round(kpis.contribution_margin / gross_0 * 100.0, 2),
+            "simulated_margin_pct": round(kpis.contribution_margin / gross_0 * 100.0, 2)
+            if gross_0 > 0
+            else 0.0,
             "margin_delta_brl": 0.0,
             "breakeven_volume_pct": 0.0,
             "estimated_volume_pct": 0.0,

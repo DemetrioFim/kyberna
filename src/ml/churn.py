@@ -2,196 +2,40 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import date, datetime
-from typing import Any, Final
+from typing import Any
 
 import duckdb
 import numpy as np
 import pandas as pd
-import yaml
 from scipy.stats import norm
 
 from src.core.logging import get_logger
-from src.core.paths import config_path, gold_snapshot_path
+from src.core.paths import gold_snapshot_path
 from src.core.types import ScenarioId
 from src.etl.contracts import GoldCustomerRiskSchema, validate_contract
+from src.ml.churn_cycle import (
+    DEFAULT_CUTOFFS,
+    DEFAULT_SCENARIO,
+    DEFAULT_STATUS_DEFINITIONS,
+    classify_churn_risk_status,
+    compute_individual_cycle,
+    load_churn_config,
+)
 from src.ml.features import compute_customer_features, resolve_as_of_date
 
 logger = get_logger(__name__)
 
-DEFAULT_SCENARIO: Final[ScenarioId] = "c1_toys"
-DEFAULT_CUTOFFS: Final[tuple[float, float, float]] = (1.1, 1.5, 2.5)
-
-DEFAULT_STATUS_DEFINITIONS: Final[dict[str, dict[str, str]]] = {
-    "No Ciclo": {
-        "severity": "low",
-        "badge_color": "green",
-        "description": "Cliente comprando no ritmo histórico normal; carteira saudável e ativa.",
-        "action": (
-            "Manutenção do plano de visitas, acompanhamento de satisfação e ofertas "
-            "de cross-sell (White Space)."
-        ),
-    },
-    "Atenção": {
-        "severity": "medium",
-        "badge_color": "yellow",
-        "description": (
-            "Janela ideal de abordagem: cliente atingiu ou excedeu levemente seu ciclo médio "
-            "(10% a 50% de atraso)."
-        ),
-        "action": (
-            "Contato proativo de lembrete pelo RCA responsável antes que o cliente "
-            "esfrie ou migre para concorrência."
-        ),
-    },
-    "Em Risco Imediato": {
-        "severity": "high",
-        "badge_color": "orange",
-        "description": (
-            "Atraso crítico de recompra (50% a 150% além do ciclo normal); anomalia grave de engajamento."
-        ),
-        "action": (
-            "Prioridade máxima de reativação: contato imediato da gerência/RCA com ofertas especiais "
-            "e apuração de motivos."
-        ),
-    },
-    "Adormecido / Perdido": {
-        "severity": "critical",
-        "badge_color": "red",
-        "description": (
-            "Cliente excedeu em mais de 150% seu ciclo normal (> 2.5x); provável interrupção "
-            "definitiva ou abandono."
-        ),
-        "action": (
-            "Campanha de recuperação com condições agressivas de frete/prazo, visita presencial "
-            "ou contato via WhatsApp da diretoria."
-        ),
-    },
-}
-
-
-def load_churn_config() -> dict[str, Any]:
-    """Carrega parâmetros e definições de status de risco de Churn de `config/pipeline.yaml`."""
-    pipeline_file = config_path("pipeline.yaml")
-    if pipeline_file.exists():
-        try:
-            with open(pipeline_file, encoding="utf-8") as f:
-                cfg = yaml.safe_load(f)
-            return dict(cfg.get("thresholds", {}).get("churn", {}))
-        except Exception as exc:
-            logger.warning("Falha ao ler bloco churn de pipeline.yaml: %s. Usando defaults.", exc)
-    return {}
-
-
-def classify_churn_risk_status(
-    delay_ratio: float,
-    cutoffs: tuple[float, float, float] = DEFAULT_CUTOFFS,
-) -> str:
-    """Classifica o cliente em um dos 4 status prescritivos de risco de churn baseado no delay_ratio.
-
-    Args:
-        delay_ratio: Razão entre recência atual e ciclo médio esperado (recency_days / expected_cycle_days).
-        cutoffs: Tupla com os cortes (healthy, attention, at_risk). Default: (1.1, 1.5, 2.5).
-
-    Returns:
-        Status do cliente: 'No Ciclo', 'Atenção', 'Em Risco Imediato' ou 'Adormecido / Perdido'.
-    """
-    if delay_ratio <= cutoffs[0]:
-        return "No Ciclo"
-    if delay_ratio <= cutoffs[1]:
-        return "Atenção"
-    if delay_ratio <= cutoffs[2]:
-        return "Em Risco Imediato"
-    return "Adormecido / Perdido"
-
-
-def compute_individual_cycle(
-    df_features: pd.DataFrame,
-    *,
-    prior_shrinkage_k: int = 3,
-    min_cycle_days: float = 7.0,
-    min_std_days: float = 5.0,
-    segment_col: str = "customer_segment",
-) -> pd.DataFrame:
-    """Calcula o ciclo individual esperado com regularização empírica bayesiana em direção ao segmento.
-
-    Fórmula:
-        w_i = N_i / (N_i + k), onde N_i = frequency - 1
-        mu_shrunk = w_i * median_cycle_i + (1 - w_i) * mu_seg (com piso min_cycle_days)
-        sigma_shrunk = w_i * std_cycle_i + (1 - w_i) * sigma_seg (com piso min_std_days)
-
-    Args:
-        df_features: DataFrame com métricas de clientes (frequency, median_cycle_days, std_cycle_days).
-        prior_shrinkage_k: Constante de amortecimento k (default: 3).
-        min_cycle_days: Piso inferior para o ciclo em dias (default: 7.0).
-        min_std_days: Piso inferior para o desvio-padrão em dias (default: 5.0).
-        segment_col: Coluna de agrupamento para a prior do segmento.
-
-    Returns:
-        DataFrame com colunas `expected_cycle_days` e `cycle_std_days` calculadas.
-    """
-    df = df_features.copy()
-
-    # Resolve colunas de ciclo individual com suporte a sinônimos (interval_days / cycle_days)
-    if "median_interval_days" in df.columns:
-        raw_cycle = df["median_interval_days"]
-    elif "median_cycle_days" in df.columns:
-        raw_cycle = df["median_cycle_days"]
-    elif "avg_interval_days" in df.columns:
-        raw_cycle = df["avg_interval_days"]
-    else:
-        raw_cycle = pd.Series(np.nan, index=df.index, dtype="float64")
-
-    if "std_interval_days" in df.columns:
-        raw_std = df["std_interval_days"]
-    elif "std_cycle_days" in df.columns:
-        raw_std = df["std_cycle_days"]
-    else:
-        raw_std = pd.Series(np.nan, index=df.index, dtype="float64")
-
-    # Determina a prior do segmento (ou global caso a coluna não exista)
-    has_segment = segment_col in df.columns and df[segment_col].notna().any()
-    if has_segment:
-        df["_temp_raw_cycle"] = raw_cycle
-        df["_temp_raw_std"] = raw_std
-        seg_median_cycle = df.groupby(segment_col)["_temp_raw_cycle"].transform("median")
-        seg_median_std = df.groupby(segment_col)["_temp_raw_std"].transform("median")
-        df.drop(columns=["_temp_raw_cycle", "_temp_raw_std"], inplace=True)
-    else:
-        seg_median_cycle = pd.Series(raw_cycle.median(), index=df.index)
-        seg_median_std = pd.Series(raw_std.median(), index=df.index)
-
-    # Defaults de segurança se todos forem NaN (ex: clientes de compra única)
-    fallback_cycle = 45.0
-    fallback_std = 15.0
-    seg_median_cycle = (
-        pd.Series(seg_median_cycle, index=df.index).fillna(raw_cycle.median()).fillna(fallback_cycle)
-    )
-    seg_median_std = pd.Series(seg_median_std, index=df.index).fillna(raw_std.median()).fillna(fallback_std)
-
-    # N de intervalos entre pedidos: frequency - 1 (mínimo 0)
-    if "n_intervals" in df.columns:
-        n_intervals = df["n_intervals"].fillna(0).astype(int)
-    else:
-        n_intervals = pd.Series(
-            np.maximum(df["frequency"].fillna(1).astype(int) - 1, 0),
-            index=df.index,
-            dtype="int64",
-        )
-    shrinkage_w = n_intervals / (n_intervals + prior_shrinkage_k)
-
-    # Valores individuais (preenche NaN de compra única com a prior do segmento)
-    indiv_cycle = raw_cycle.fillna(seg_median_cycle)
-    indiv_std = raw_std.fillna(seg_median_std)
-
-    # Regularização empírica
-    shrunk_cycle = shrinkage_w * indiv_cycle + (1.0 - shrinkage_w) * seg_median_cycle
-    shrunk_std = shrinkage_w * indiv_std + (1.0 - shrinkage_w) * seg_median_std
-
-    # Aplicação de pisos mínimos
-    df["expected_cycle_days"] = np.maximum(shrunk_cycle, min_cycle_days).round(2)
-    df["cycle_std_days"] = np.maximum(shrunk_std, min_std_days).round(2)
-
-    return df
+__all__ = [
+    "DEFAULT_CUTOFFS",
+    "DEFAULT_SCENARIO",
+    "DEFAULT_STATUS_DEFINITIONS",
+    "build_customer_risk_mart",
+    "classify_churn_risk_status",
+    "compute_churn_risk",
+    "compute_customer_risk_summary",
+    "compute_individual_cycle",
+    "load_churn_config",
+]
 
 
 def compute_churn_risk(
@@ -244,7 +88,6 @@ def compute_churn_risk(
     df["risk_status"] = [classify_churn_risk_status(r, cutoffs) for r in df["delay_ratio"]]
 
     # 4. Cálculo financeiro de exposição a risco (R$)
-    # Prioriza valores acumulados em 12 meses; fallback para totais da carteira
     if "revenue_12m" in df.columns:
         base_rev_series = pd.Series(
             np.where(df["revenue_12m"] > 0, df["revenue_12m"], df["gross_revenue"]),
@@ -348,38 +191,17 @@ def build_customer_risk_mart(
     as_of_date: date | datetime | str | None = None,
     scenario_id: ScenarioId = DEFAULT_SCENARIO,
 ) -> pd.DataFrame:
-    """Constrói o mart analítico `mart_customer_risk` no DuckDB e Parquet para o cenário especificado.
-
-    Fluxo de execução:
-        1. Resolve a data de corte temporal (`as_of_date`).
-        2. Extrai features pontuais por cliente com zero vazamento temporal.
-        3. Enriquece com atributos cadastrais de `dim_customer` (nome, segmento, UF, RCA).
-        4. Calcula ciclos bayesianos e probabilidades de churn com base em regras heurísticas.
-        5. Valida contrato de dados Pandera (`GoldCustomerRiskSchema`).
-        6. Persiste tabelas `{scenario_id}.mart_customer_risk` e `gold.mart_customer_risk` no DuckDB.
-        7. Exporta snapshot Parquet compactado em Zstandard.
-
-    Args:
-        con: Conexão ativa com o DuckDB.
-        as_of_date: Data de corte temporal (se None, resolve para max(date)).
-        scenario_id: Identificador do cenário (default: "c1_toys").
-
-    Returns:
-        DataFrame classificado, enriquecido e validado.
-    """
+    """Constrói o mart analítico `mart_customer_risk` no DuckDB e Parquet para o cenário especificado."""
     logger.info("Iniciando construção de `mart_customer_risk` para o cenário '%s'...", scenario_id)
 
-    # 1. Resolução da data de corte
     resolved_date = resolve_as_of_date(con, as_of_date, scenario_id=scenario_id)
 
-    # 2. Features de cliente
     cust_features = compute_customer_features(
         con,
         as_of_date=resolved_date,
         scenario_id=scenario_id,
     )
 
-    # 3. Enriquecimento com atributos de dim_customer
     dim_query = """
     SELECT
         customer_id,
@@ -397,17 +219,14 @@ def build_customer_risk_mart(
     dim_df = con.execute(dim_query).df()
     merged_features = cust_features.merge(dim_df, on="customer_id", how="left")
 
-    # 4. Cálculo do risco de Churn
     churn_df = compute_churn_risk(
         merged_features,
         scenario_id=scenario_id,
         as_of_date=resolved_date,
     )
 
-    # 5. Validação com Pandera
     validated_df = validate_contract(churn_df, GoldCustomerRiskSchema, layer="Gold (mart_customer_risk)")
 
-    # 6. Registro no DuckDB local
     con.execute("CREATE SCHEMA IF NOT EXISTS gold")
     con.execute(f"CREATE SCHEMA IF NOT EXISTS {scenario_id}")
 
@@ -418,7 +237,6 @@ def build_customer_risk_mart(
     con.execute("CREATE OR REPLACE TABLE gold.mart_customer_risk AS SELECT * FROM v_customer_risk_mart")
     con.unregister("v_customer_risk_mart")
 
-    # 7. Snapshot Parquet
     out_parquet = gold_snapshot_path(scenario=scenario_id, table="mart_customer_risk")
     out_parquet.parent.mkdir(parents=True, exist_ok=True)
     con.execute(

@@ -384,15 +384,17 @@ flowchart LR
 
 #### 🏗️ Modularização Estrita (`< 400 Linhas`) & Blindagem Hermética de Testes (`I`)
 
-- [ ] **V4-I1** *(VIRTUS-QA-MOD)* — **Modularização Estrita (`< 400 Linhas`) dos 6 Módulos Infratores em `src/` (`audit.py`, `white_space.py`, `c1_toys.py`, `cli.py`, `features.py`, `rfm.py`)**: Cumprir rigorosamente a regra do §3 de `GEMINI.md` / `CLAUDE.md` dividindo todos os arquivos de `src/` que ultrapassam 400 linhas, mantendo 100% dos imports públicos compatíveis via re-export.
+- [x] **V4-I1** *(VIRTUS-QA-MOD)* — **Modularização Estrita (`< 400 Linhas`) dos Módulos Infratores em `src/` (`audit.py`, `white_space.py`, `c1_toys.py`, `cli.py`, `features.py`, `enrich.py`, `rfm.py`, `churn.py`)**: Cumprir rigorosamente a regra do §3 de `GEMINI.md` / `CLAUDE.md` dividindo todos os arquivos de `src/` que ultrapassavam 400 linhas, mantendo 100% dos imports públicos compatíveis via re-export (`__all__`).
   - *Avaliação:* 🎯 ⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
   - *Arquivos:*
-    - `src/etl/audit.py` (1.109L) → dividir em `src/etl/audit.py` (< 320L), `src/etl/audit_queries.py` (< 350L) e `src/etl/audit_sheets.py` (< 380L);
-    - `src/ml/white_space.py` (668L) → dividir em `src/ml/white_space.py` (< 360L) e `src/ml/white_space_apriori.py` (< 340L);
-    - `src/etl/scenarios/c1_toys.py` (662L) → dividir em `src/etl/scenarios/c1_toys.py` (< 360L) e `src/etl/scenarios/c1_toys_templates.py` (< 340L);
-    - `src/cli.py` (540L) → dividir em `src/cli.py` (< 350L) e `src/cli_ml.py` (< 250L);
-    - `src/ml/features.py` (532L) → dividir em `src/ml/features.py` (< 330L) e `src/ml/sku_features.py` (< 250L);
-    - `src/ml/rfm.py` (408L) → enxugar/modularizar para `< 380` linhas.
+    - `src/etl/audit.py` (116L) + `src/etl/audit_formats.py` (210L) + `src/etl/audit_queries.py` (224L) + `src/etl/audit_sheets_dre.py` (273L) + `src/etl/audit_sheets_ops.py` (335L);
+    - `src/ml/white_space.py` (363L) + `src/ml/white_space_apriori.py` (286L) + `src/ml/white_space_backtest.py` (77L);
+    - `src/etl/scenarios/c1_toys.py` (244L) + `src/etl/scenarios/c1_toys_product.py` (184L) + `src/etl/scenarios/c1_toys_templates.py` (341L);
+    - `src/cli.py` (360L) + `src/cli_ml.py` (218L);
+    - `src/ml/features.py` (214L) + `src/ml/sku_features.py` (265L);
+    - `src/etl/silver/enrich.py` (317L) + `src/etl/silver/cnpj.py` (133L);
+    - `src/ml/rfm.py` (253L) + `src/ml/rfm_rules.py` (178L);
+    - `src/ml/churn.py` (252L) + `src/ml/churn_cycle.py` (188L).
   - *Depende de:* `V4-S1`
   - *Especificação Técnica Mastigada (Anti-Alucinação):*
     - **Preservação Estrita de Re-Exports Públicos**:
@@ -431,7 +433,10 @@ flowchart LR
 
 ## 📝 Registro Histórico de Mudanças (Changelog da Refatoração)
 
-- **v0.4.4-qa-virtus** *(Onda V4 em Andamento: V4-D1, V4-S1 e V4-V1 Concluídas)*:
+- **v0.4.4-qa-virtus** *(Onda V4 em Andamento: V4-D1, V4-S1, V4-V1 e V4-I1 Concluídas)*:
+  - **[2026-11-13] Conclusão de V4-I1 (`VIRTUS-QA-MOD`)**:
+    - **Modularização `< 400` Linhas em 100% de `src/`**: Divisão cirúrgica dos **8 módulos** que ultrapassavam o teto normativo do §3 em 21 arquivos coesos (máximo de 363 linhas), preservando compatibilidade total de imports via `__all__`: `audit.py` (116L) + `audit_formats.py` (210L) + `audit_queries.py` (224L) + `audit_sheets_dre.py` (273L) + `audit_sheets_ops.py` (335L); `white_space.py` (363L) + `white_space_apriori.py` (286L) + `white_space_backtest.py` (77L); `c1_toys.py` (244L) + `c1_toys_product.py` (184L) + `c1_toys_templates.py` (341L); `cli.py` (360L) + `cli_ml.py` (218L); `features.py` (214L) + `sku_features.py` (265L); `enrich.py` (317L) + `cnpj.py` (133L); `rfm.py` (253L) + `rfm_rules.py` (178L); e `churn.py` (252L) + `churn_cycle.py` (188L).
+    - **Validação**: Verificação PowerShell em `src/**/*.py` confirmou **0 arquivos `> 400` linhas**; `uv run ruff check .`, `uv run ruff format --check .` (`143 files already formatted`), `uv run mypy src` (`98 source files`) e `uv run pytest tests/etl tests/ml tests/infra tests/test_smoke.py -q` (`150 passed in 76.09s`) 100% aprovados.
   - **[2026-11-13] Conclusão de V4-V1 (`VIRTUS-QA-UI`)**:
     - **Cabeçalho Unificado `.cockpit-header` & Menu das 4 Virtudes**: Evolução de `render_cockpit_header()` em `src/ui/components/prescription.py` (com `virtue_badge`, `period_badge`, sanitização inline de `<b>`/`<strong>` e tooltip `.kyb-info-icon` à direita) adotada nas 4 páginas (`1_executive.py`, `4_simulator.py`, `2_commercial_radar.py`, `3_inventory_demand.py`), além dos rótulos canônicos `"1. Prudência · Visão Executiva"`, `"2. Fortaleza · Caixa & Risco"`, `"3. Justiça · Radar Comercial"` e `"4. Temperança · Estoque & Margem"` em `src/ui/app.py`.
     - **3º Slider What-If (`_what_if_cost`)**: Exposição da alavanca `"Variação Custo/CMV (%)"` em 3 colunas dentro de `render_what_if_quick_fragment()` (`src/ui/components/prudence_sections.py`) ligada a `commission_or_cost_change_pct`.

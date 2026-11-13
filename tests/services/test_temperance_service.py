@@ -5,6 +5,7 @@ import pytest
 from src.core.paths import get_duckdb_path
 from src.db.duckdb_repo import DuckDBRepository
 from src.services.dto import TemperancePageDTO
+from src.services.executive_service import build_executive_dashboard
 from src.services.temperance_queries import (
     query_commercial_erosion_waterfall,
     query_discount_policy_violations,
@@ -13,6 +14,7 @@ from src.services.temperance_queries import (
     query_term_leak_by_rep,
 )
 from src.services.temperance_service import build_temperance_dashboard
+from src.ui.state import resolve_period_bounds
 
 
 @pytest.fixture
@@ -162,3 +164,46 @@ def test_temperance_filtering_consistency(repo: DuckDBRepository) -> None:
     assert 0 < dto_rep.kpis.gross_revenue < dto_all.kpis.gross_revenue
     assert len(dto_rep.policy_violations_by_rep_df) == 1
     assert dto_rep.policy_violations_by_rep_df.iloc[0]["sales_rep_id"] == "RCA-025"
+
+
+@pytest.mark.parametrize("preset", ["all", "ytd", "s2", "q4", "last_month", "custom_month"])
+def test_prudencia_and_temperanca_waterfalls_match_across_period_presets(
+    repo: DuckDBRepository,
+    preset: str,
+) -> None:
+    """Valida reconciliação exata do Waterfall entre Prudência e Temperança em todos os presets."""
+    bounds = resolve_period_bounds(preset, selected_month="2024-11")
+
+    exec_dto = build_executive_dashboard(
+        repo,
+        scenario_id="c1_toys",
+        start_date_key=bounds.start_date_key,
+        end_date_key=bounds.end_date_key,
+        comp_start_date_key=bounds.comparison_start_date_key,
+        comp_end_date_key=bounds.comparison_end_date_key,
+        period_label=bounds.period_label,
+        comparison_label=bounds.comparison_label,
+    )
+    temp_dto = build_temperance_dashboard(
+        repo,
+        scenario_id="c1_toys",
+        start_date_key=bounds.start_date_key,
+        end_date_key=bounds.end_date_key,
+    )
+
+    assert len(exec_dto.waterfall_df) == 9
+    assert len(temp_dto.waterfall_df) == 9
+
+    assert exec_dto.kpis.gross_revenue == pytest.approx(
+        float(temp_dto.waterfall_df.iloc[0]["amount"]),
+        abs=1e-2,
+    )
+    assert exec_dto.kpis.contribution_margin == pytest.approx(
+        float(temp_dto.waterfall_df.iloc[-1]["amount"]),
+        abs=1e-2,
+    )
+
+    for idx in range(9):
+        exec_amt = float(exec_dto.waterfall_df.iloc[idx]["amount"])
+        temp_amt = float(temp_dto.waterfall_df.iloc[idx]["amount"])
+        assert exec_amt == pytest.approx(temp_amt, abs=1e-2)
