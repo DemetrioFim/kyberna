@@ -3,11 +3,13 @@ from __future__ import annotations
 import streamlit as st
 
 from src.core.scenarios import load_scenario_config
-from src.ui.cache import cached_temperance_dashboard
+from src.ui.cache import cached_inventory_dashboard, cached_temperance_dashboard
 from src.ui.components.charts import abc_xyz_heatmap, waterfall_margin
 from src.ui.components.prescription import render_cockpit_header, section_header
 from src.ui.components.temperance_inventory_section import (
+    render_locked_capital_treemap_tab,
     render_locked_inventory_table,
+    render_sku_forecast_fragment,
     render_stockout_risk_table,
 )
 from src.ui.components.temperance_sections import (
@@ -33,6 +35,10 @@ def render_page() -> None:
         sales_reps=tuple(state.sales_reps),
         period_preset=state.period_preset,
         selected_month=state.selected_month,
+    )
+    inv_dto = cached_inventory_dashboard(
+        state.scenario_id,
+        families=tuple(state.families),
     )
 
     # 1. Faixa 1 — Topo (Status em 5s): Cabeçalho Cockpit unificado + 5 KPI Cards
@@ -73,14 +79,25 @@ def render_page() -> None:
     with col_diag_right:
         section_header(
             "Gestão Prescritiva de Estoque",
-            "Matriz 3x3 ABC/XYZ cruzada com controle de capital imobilizado",
-            help_text="Cruza contribuição na margem (ABC) com a regularidade semanal da demanda (XYZ).",
+            "Matriz ABC/XYZ, Forecast 30d por SKU e Treemap de Capital Travado",
+            help_text=(
+                "Cruza contribuição na margem com regularidade da demanda, exibe previsão 30d "
+                "com intervalos conformais (80%/95%) e detalha o capital travado (> 120d)."
+            ),
         )
-        matrix_df = dto.abc_xyz_summary_df.copy()
-        if not matrix_df.empty and "recommended_policy" not in matrix_df.columns:
-            matrix_df["recommended_policy"] = matrix_df["policy"]
-        fig_abc = abc_xyz_heatmap(matrix_df, theme_mode=theme_mode)
-        st.plotly_chart(fig_abc, use_container_width=True)
+        t_abc, t_fc, t_tree = st.tabs(
+            ["Matriz ABC/XYZ 3x3", "Forecast 30d por SKU", "Treemap Capital Travado"]
+        )
+        with t_abc:
+            matrix_df = dto.abc_xyz_summary_df.copy()
+            if not matrix_df.empty and "recommended_policy" not in matrix_df.columns:
+                matrix_df["recommended_policy"] = matrix_df["policy"]
+            fig_abc = abc_xyz_heatmap(matrix_df, theme_mode=theme_mode)
+            st.plotly_chart(fig_abc, use_container_width=True)
+        with t_fc:
+            render_sku_forecast_fragment(state.scenario_id, inv_dto, theme_mode=theme_mode)
+        with t_tree:
+            render_locked_capital_treemap_tab(inv_dto, theme_mode=theme_mode)
 
     # 3. Faixa 3 — Base (Detalhamento & Ação em 2 Colunas lado a lado)
     col_act_left, col_act_right = st.columns([1.35, 1.0])
@@ -99,7 +116,7 @@ def render_page() -> None:
             ]
         )
         with t_rup:
-            render_stockout_risk_table(dto)
+            render_stockout_risk_table(dto, inv_dto=inv_dto)
         with t_lock:
             render_locked_inventory_table(dto)
         with t_audit:

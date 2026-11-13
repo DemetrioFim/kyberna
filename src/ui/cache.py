@@ -16,6 +16,14 @@ from src.services.executive_service import (
     get_filter_options,
 )
 from src.services.fortitude_service import build_fortitude_dashboard
+from src.services.inventory_dto import (
+    InventoryPageDTO,
+    SkuForecastSeriesDTO,
+)
+from src.services.inventory_service import (
+    build_inventory_dashboard,
+    get_sku_forecast_series,
+)
 from src.services.temperance_service import build_temperance_dashboard
 from src.ui.state import resolve_period_bounds
 
@@ -148,4 +156,33 @@ def cached_fortitude_dashboard(
         uf=uf,
         families=families,
         sales_reps=sales_reps,
+    )
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def cached_inventory_dashboard(
+    scenario_id: ScenarioId,
+    *,
+    families: tuple[str, ...] = (),
+) -> InventoryPageDTO:
+    """Consulta e agrega posição prescritiva de estoque e opções de forecast (TTL 5 min)."""
+    repo = get_cached_repository()
+    return build_inventory_dashboard(
+        repo,
+        scenario_id,
+        families=families,
+    )
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def cached_sku_forecast(
+    scenario_id: ScenarioId,
+    product_id: str,
+) -> SkuForecastSeriesDTO:
+    """Carrega a série histórica 90d + previsão 30d de um SKU com cache (TTL 5 min)."""
+    repo = get_cached_repository()
+    return get_sku_forecast_series(
+        repo,
+        scenario_id,
+        product_id=product_id,
     )

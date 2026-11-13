@@ -37,5 +37,16 @@ def test_temperance_page_full_render() -> None:
     assert "Gestão Prescritiva de Estoque" in all_markdown
     assert "Veredito de Temperança" in all_markdown
 
-    # Tabelas operacionais
+    # Integração M4-V1: Reconciliação de Capital Travado, seletor de SKU no fragmento e gráficos
+    all_captions = " ".join(c.value for c in at.caption)
+    assert "Capital Travado Excedente (>120d)" in all_captions
+    assert "Modelo:" in all_captions
     assert len(at.dataframe) >= 2
+    assert len(at.get("plotly_chart")) >= 4
+
+    sku_selectors = [sb for sb in at.selectbox if sb.key == "temperance_forecast_sku"]
+    assert len(sku_selectors) == 1
+    options = list(sku_selectors[0].options)
+    if len(options) > 1:
+        sku_selectors[0].set_value(options[1]).run()
+        assert not at.exception
