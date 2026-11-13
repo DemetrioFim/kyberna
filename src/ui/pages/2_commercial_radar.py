@@ -11,6 +11,7 @@ from src.ui.components.commercial_charts import (
     rfm_treemap,
     white_space_heatmap,
 )
+from src.ui.components.export_bar import render_commercial_export_bar
 from src.ui.components.justice_sections import (
     render_champions_vampires_section,
     render_critical_customers_table,
@@ -135,6 +136,12 @@ def render_page() -> None:
             help_text=(
                 "Diretrizes táticas consolidadas com base no valor em risco e oportunidades de cross-sell."
             ),
+        )
+        render_commercial_export_bar(
+            dto.priority_risk_df,
+            dto.top_white_space_deals_df,
+            scenario_id=state.scenario_id,
+            scenario_name=scenario_cfg.display_name,
         )
 
 

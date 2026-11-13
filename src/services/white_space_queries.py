@@ -111,7 +111,8 @@ def query_top_white_space_deals(
         ROUND(COALESCE(ws.item_affinity_score * 1.5, 1.2), 2) AS affinity_lift,
         ROUND(ws.potential_revenue_brl, 2) AS potential_revenue_brl,
         ROUND(ws.potential_margin_brl, 2) AS potential_margin_brl,
-        ws.action_pitch
+        ws.action_pitch,
+        COALESCE(c.whatsapp, '') AS whatsapp
     FROM gold.mart_white_space ws
     JOIN gold.dim_customer c ON ws.customer_id = c.customer_id
     LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id

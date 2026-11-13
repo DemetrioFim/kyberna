@@ -6,6 +6,7 @@ import streamlit as st
 
 from src.core.scenarios import ScenarioLabels
 from src.services.dto import CommercialPageDTO
+from src.services.export_service import attach_whatsapp_links
 from src.ui.components.kpi_card import render_kpi_card
 from src.ui.components.prescription import section_header
 from src.ui.components.tables import render_margin_drivers_table
@@ -159,11 +160,15 @@ def render_sales_reps_table(dto: CommercialPageDTO, rep_label: str) -> None:
 
 
 def render_critical_customers_table(dto: CommercialPageDTO, customer_label: str) -> None:
-    """Renderiza a tabela de clientes críticos com scroll interno."""
+    """Renderiza a tabela de clientes críticos com link direto WhatsApp e scroll interno."""
     if dto.priority_risk_df.empty:
         st.info("Nenhum cliente em risco encontrado para o filtro selecionado.")
         return
-    df = dto.priority_risk_df
+    df = attach_whatsapp_links(
+        dto.priority_risk_df,
+        pitch_col="top_opportunity_pitch",
+        fallback_pitch="Condição especial de reativação de pedido",
+    )
     target_cols = [
         "customer_name",
         "state",
@@ -173,6 +178,7 @@ def render_critical_customers_table(dto: CommercialPageDTO, customer_label: str)
         "annual_revenue_at_risk",
         "top_opportunity_family",
         "top_opportunity_brl",
+        "whatsapp_link",
     ]
     cols = [c for c in target_cols if c in df.columns]
     display_df = df[cols].copy()
@@ -186,6 +192,11 @@ def render_critical_customers_table(dto: CommercialPageDTO, customer_label: str)
         "annual_revenue_at_risk": st.column_config.NumberColumn("R$ em Risco", format="R$ %,.2f"),
         "top_opportunity_family": st.column_config.TextColumn("Oportunidade Mix"),
         "top_opportunity_brl": st.column_config.NumberColumn("Potencial R$", format="R$ %,.2f"),
+        "whatsapp_link": st.column_config.LinkColumn(
+            "Ação WhatsApp",
+            display_text="Abordar no WhatsApp",
+            help="Abre conversa pré-preenchida no WhatsApp Web/App.",
+        ),
     }
     st.dataframe(
         display_df,
@@ -197,11 +208,15 @@ def render_critical_customers_table(dto: CommercialPageDTO, customer_label: str)
 
 
 def render_white_space_deals_table(dto: CommercialPageDTO, customer_label: str) -> None:
-    """Renderiza a tabela de oportunidades White Space com scroll interno."""
+    """Renderiza a tabela de oportunidades White Space com link direto WhatsApp e scroll interno."""
     if dto.top_white_space_deals_df.empty:
         st.info("Nenhuma oportunidade White Space mapeada no recorte selecionado.")
         return
-    df = dto.top_white_space_deals_df
+    df = attach_whatsapp_links(
+        dto.top_white_space_deals_df,
+        pitch_col="action_pitch",
+        fallback_pitch="Sugestão de ampliação de mix",
+    )
     target_cols = [
         "customer_name",
         "recommended_family",
@@ -210,6 +225,7 @@ def render_white_space_deals_table(dto: CommercialPageDTO, customer_label: str) 
         "potential_revenue_brl",
         "affinity_lift",
         "action_pitch",
+        "whatsapp_link",
     ]
     cols = [c for c in target_cols if c in df.columns]
     deals_df = df[cols].copy()
@@ -222,6 +238,11 @@ def render_white_space_deals_table(dto: CommercialPageDTO, customer_label: str) 
         "potential_revenue_brl": st.column_config.NumberColumn("Potencial", format="R$ %,.2f"),
         "affinity_lift": st.column_config.NumberColumn("Lift Afinidade", format="%.2fx"),
         "action_pitch": st.column_config.TextColumn("Argumento Comercial (Pitch)", width="large"),
+        "whatsapp_link": st.column_config.LinkColumn(
+            "Ação WhatsApp",
+            display_text="Abordar no WhatsApp",
+            help="Abre conversa pré-preenchida no WhatsApp Web/App.",
+        ),
     }
     st.dataframe(
         deals_df,

@@ -120,4 +120,3 @@ def test_what_if_zero_gross_revenue_returns_safe_zeros() -> None:
     assert res["margin_delta_brl"] == 0.0
     assert res["breakeven_volume_pct"] == 0.0
     assert res["estimated_volume_pct"] == 0.0
-

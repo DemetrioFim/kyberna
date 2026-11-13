@@ -27,3 +27,7 @@ def test_commercial_page_full_render() -> None:
 
     # Confere presença das seções analíticas e dataframes
     assert len(at.dataframe) >= 1
+
+    # Confere presença dos botões de ação em 1 clique (Excel por RCA e CSV)
+    all_buttons = at.get("download_button")
+    assert len(all_buttons) >= 2
