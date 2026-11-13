@@ -230,3 +230,103 @@ class GoldInventorySnapshotSchema(pa.DataFrameModel):
     class Config:
         strict = False
         coerce = True
+
+
+class GoldForecast30dSchema(pa.DataFrameModel):
+    """Contrato do mart analítico de previsão de demanda 30d (histórico 90d + projeção 30d)."""
+
+    scenario_id: str = Field(isin=VALID_SCENARIO_IDS, nullable=False)
+    product_id: str = Field(nullable=False, str_length=13, description="Código de barras EAN-13")
+    family: str = Field(nullable=False)
+    date: pd.Timestamp = Field(nullable=False)
+    record_type: str = Field(isin=["historical", "forecast"], nullable=False)
+    actual_units: float | None = Field(ge=0.0, nullable=True)
+    forecast_units: float | None = Field(ge=0.0, nullable=True)
+    lo_80: float | None = Field(ge=0.0, nullable=True)
+    hi_80: float | None = Field(ge=0.0, nullable=True)
+    lo_95: float | None = Field(ge=0.0, nullable=True)
+    hi_95: float | None = Field(ge=0.0, nullable=True)
+    selected_model: str = Field(
+        isin=["AutoETS", "CrostonOptimized", "SeasonalNaive", "MovingAverage28d"],
+        nullable=False,
+    )
+    family_wape_pct: float = Field(ge=0.0, nullable=False)
+    sku_mae: float = Field(ge=0.0, nullable=False)
+    snapshot_date: str = Field(nullable=False)
+
+    @pa.dataframe_check
+    @classmethod
+    def check_forecast_intervals_and_non_negative(cls, df: pd.DataFrame) -> pd.Series:
+        """Valida que previsões e intervalos são não-negativos e monotonicamente aninhados."""
+        is_fc = df["record_type"] == "forecast"
+        tol = 1e-5
+        fc_ok = (
+            df["forecast_units"].notna()
+            & df["lo_80"].notna()
+            & df["hi_80"].notna()
+            & df["lo_95"].notna()
+            & df["hi_95"].notna()
+            & (df["lo_95"] >= -tol)
+            & (df["lo_95"] <= df["lo_80"] + tol)
+            & (df["lo_80"] <= df["forecast_units"] + tol)
+            & (df["forecast_units"] <= df["hi_80"] + tol)
+            & (df["hi_80"] <= df["hi_95"] + tol)
+        )
+        return (~is_fc) | fc_ok
+
+    class Config:
+        strict = False
+        coerce = True
+
+
+class GoldInventoryPositionSchema(pa.DataFrameModel):
+    """Contrato do mart prescritivo de posição de estoque (cobertura, SS, ROP e capital travado)."""
+
+    scenario_id: str = Field(isin=VALID_SCENARIO_IDS, nullable=False)
+    branch_id: str = Field(nullable=False)
+    product_id: str = Field(nullable=False)
+    product_name: str = Field(nullable=False)
+    family: str = Field(nullable=False)
+    abc_class: str = Field(isin=["A", "B", "C"], nullable=False)
+    xyz_class: str = Field(isin=["X", "Y", "Z"], nullable=False)
+    abc_xyz_class: str = Field(
+        isin=["AX", "AY", "AZ", "BX", "BY", "BZ", "CX", "CY", "CZ"],
+        nullable=False,
+    )
+    pack: int = Field(ge=1, nullable=False)
+    unit_cost: float = Field(gt=0.0, nullable=False)
+    unit_list_price: float = Field(gt=0.0, nullable=False)
+    stock_units: int = Field(ge=0, nullable=False)
+    stock_boxes: float = Field(ge=0.0, nullable=False)
+    stock_value_brl: float = Field(ge=0.0, nullable=False)
+    forecast_daily_demand: float = Field(ge=0.0, nullable=False)
+    daily_demand_std: float = Field(ge=0.0, nullable=False)
+    lead_time_days: int = Field(ge=1, nullable=False)
+    safety_stock_units: int = Field(ge=0, nullable=False)
+    reorder_point_units: int = Field(ge=0, nullable=False)
+    coverage_days: float = Field(ge=0.0, nullable=False)
+    days_to_stockout: float = Field(ge=0.0, nullable=False)
+    stock_status: str = Field(
+        isin=["Ruptura Iminente", "Saudável", "Atenção (Excesso Moderado)", "Capital Travado"],
+        nullable=False,
+    )
+    suggested_order_boxes: int = Field(ge=0, nullable=False)
+    protected_revenue_brl: float = Field(ge=0.0, nullable=False)
+    locked_capital_brl: float = Field(ge=0.0, nullable=False)
+    action_prescription: str = Field(nullable=False)
+    snapshot_date: str = Field(nullable=False)
+
+    @pa.dataframe_check
+    @classmethod
+    def check_inventory_position_consistency(cls, df: pd.DataFrame) -> pd.Series:
+        """Garante invariantes operacionais entre ROP, SS, capital travado e ordem sugerida."""
+        return (
+            (df["reorder_point_units"] >= df["safety_stock_units"])
+            & (df["days_to_stockout"] >= 0.0)
+            & ((df["coverage_days"] > 120.0) | (df["locked_capital_brl"] == 0.0))
+            & ((df["stock_units"] < df["reorder_point_units"]) | (df["suggested_order_boxes"] == 0))
+        )
+
+    class Config:
+        strict = False
+        coerce = True

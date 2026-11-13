@@ -9,6 +9,8 @@ from src.core.paths import get_data_dir
 from src.core.types import ScenarioId
 from src.ml.abc_xyz import build_abc_xyz_mart
 from src.ml.churn import build_customer_risk_mart
+from src.ml.forecast import build_forecast_30d_mart
+from src.ml.inventory import build_inventory_position_mart
 from src.ml.rep_performance import build_rep_performance_mart
 from src.ml.rfm import build_rfm_mart
 from src.ml.white_space import build_white_space_mart
@@ -154,5 +156,13 @@ def build_gold_marts(
     # Mart analítico de Eficiência Comercial de Representantes (RCAs)
     rep_perf_df = build_rep_performance_mart(con, scenario_id=scenario_id)
     counts["mart_rep_performance"] = len(rep_perf_df)
+
+    # Mart analítico de Previsão de Demanda 30 dias (StatsForecast)
+    forecast_df = build_forecast_30d_mart(con, scenario_id=scenario_id)
+    counts["mart_forecast_30d"] = len(forecast_df)
+
+    # Mart prescritivo de Posição de Estoque (cobertura, SS, ROP e capital travado)
+    inventory_pos_df = build_inventory_position_mart(con, scenario_id=scenario_id)
+    counts["mart_inventory_position"] = len(inventory_pos_df)
 
     return counts

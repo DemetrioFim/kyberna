@@ -167,3 +167,32 @@ thresholds:
 
   # Janela de Previsão de Demanda
   forecast_horizon_days: 30     # Horizonte padrão de previsão estatística
+
+  # Elasticidade-verdade por família (M4-D1 / M4-S3 — Cenário 1)
+  elasticity_ground_truth:
+    Linha Escolar: -1.8
+    Jogos Educativos: -1.2
+    Quebra-Cabeças: -1.4
+    Primeira Infância: -1.0
+    Jogos de Tabuleiro: -1.1
+    Pelúcias: -1.5
+    Brinquedos de Madeira: -0.6
+    Outros: -1.0
+
+  # Parâmetros de injeção determinística de eventos de preço na Silver (M4-D1)
+  price_events:
+    promo_fraction_target: 0.12
+    markup_fraction_target: 0.06
+    promo_delta_range: [-0.20, -0.05]
+    markup_delta_range: [0.03, 0.08]
+    noise_std: 0.04
+    min_cost_floor_ratio: 0.55
+
+  # Parâmetros do Forecast de Demanda 30 dias (M4-S1)
+  forecast:
+    lookback_days: 180
+    history_output_days: 90
+    holdout_days: 28
+    adi_threshold: 1.32
+    min_nonzero_days: 5
+    min_history_days: 60

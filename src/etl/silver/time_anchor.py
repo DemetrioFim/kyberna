@@ -117,6 +117,19 @@ def apply_time_anchor(
             )
 
         # 5. Aplica a transformação SQL no DuckDB de forma atômica
+        # Preserva metadados de eventos de preço (M4-D1) se já tiverem sido aplicados
+        cols_rows = con.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = 'silver' AND table_name = 'sales';
+        """).fetchall()
+        existing_cols = {str(r[0]) for r in cols_rows}
+        optional_price_cols = [
+            col
+            for col in ("promo_flag", "price_event_id", "original_unit_price", "original_units")
+            if col in existing_cols
+        ]
+        extra_select = "".join(f",\n            {col}" for col in optional_price_cols)
+
         sql_shift = f"""
         CREATE OR REPLACE TABLE silver.sales AS
         SELECT
@@ -140,7 +153,7 @@ def apply_time_anchor(
             unit_cost,
             unit_price,
             units,
-            sale_amount
+            sale_amount{extra_select}
         FROM silver.sales;
         """
         con.execute(sql_shift)

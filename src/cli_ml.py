@@ -7,6 +7,8 @@ from src.core.logging import timed_step
 from src.core.paths import get_duckdb_path
 from src.ml.abc_xyz import build_abc_xyz_mart, compute_abc_xyz_matrix_summary
 from src.ml.churn import build_customer_risk_mart, compute_customer_risk_summary
+from src.ml.forecast import build_forecast_30d_mart, compute_forecast_summary
+from src.ml.inventory import build_inventory_position_mart, compute_inventory_position_summary
 from src.ml.rep_performance import build_rep_performance_mart, compute_rep_performance_summary
 from src.ml.rfm import build_rfm_mart, compute_rfm_segment_summary
 from src.ml.white_space import build_white_space_mart
@@ -157,6 +159,59 @@ def ml_white_space(
             ]
         ]
         typer.echo(top_sample.to_string(index=False))
+    finally:
+        con.close()
+
+
+@ml_app.command("forecast")
+def ml_forecast(
+    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
+    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
+    horizon: int = typer.Option(30, "--horizon", help="Horizonte de previsão em dias"),
+) -> None:
+    """Executa previsão de demanda 30d por SKU via StatsForecast e salva mart_forecast_30d."""
+    con = duckdb.connect(str(get_duckdb_path()))
+    try:
+        with timed_step("ml_forecast"):
+            df = build_forecast_30d_mart(
+                con,
+                as_of_date=as_of,
+                scenario_id=scenario,  # type: ignore[arg-type]
+                horizon_days=horizon,
+            )
+            summary = compute_forecast_summary(df)
+
+        typer.echo(f"\nPrevisão de demanda {horizon}d concluída para '{scenario}' ({len(df):,} linhas):")
+        if not summary.empty:
+            typer.echo(summary.to_string(index=False))
+    finally:
+        con.close()
+
+
+@ml_app.command("inventory")
+def ml_inventory(
+    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
+    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
+) -> None:
+    """Consolida posição prescritiva de estoque (SS, ROP, ruptura e capital travado)."""
+    con = duckdb.connect(str(get_duckdb_path()))
+    try:
+        with timed_step("ml_inventory"):
+            df = build_inventory_position_mart(
+                con,
+                as_of_date=as_of,
+                scenario_id=scenario,  # type: ignore[arg-type]
+            )
+            summary = compute_inventory_position_summary(df)
+
+        locked_total = float(df["locked_capital_brl"].sum())
+        protected_total = float(df["protected_revenue_brl"].sum())
+        typer.echo(
+            f"\nPosição Prescritiva de Estoque gerada para '{scenario}' ({len(df):,} SKUs | "
+            f"Capital Travado >120d: R$ {locked_total:,.2f} | Receita Protegida: R$ {protected_total:,.2f}):"
+        )
+        if not summary.empty:
+            typer.echo(summary.to_string(index=False))
     finally:
         con.close()
 

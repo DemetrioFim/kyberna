@@ -11,6 +11,8 @@ from src.etl.gold_contracts import (
     GoldAbcXyzSchema,
     GoldCustomerRiskSchema,
     GoldFactSalesSchema,
+    GoldForecast30dSchema,
+    GoldInventoryPositionSchema,
     GoldInventorySnapshotSchema,
     GoldRepPerformanceSchema,
     GoldRfmSchema,
@@ -25,11 +27,14 @@ __all__ = [
     "GoldCustomerRiskSchema",
     "GoldDimProductSchema",
     "GoldFactSalesSchema",
+    "GoldForecast30dSchema",
+    "GoldInventoryPositionSchema",
     "GoldInventorySnapshotSchema",
     "GoldRepPerformanceSchema",
     "GoldRfmSchema",
     "GoldWhiteSpaceSchema",
     "SilverCustomerSchema",
+    "SilverElasticityGroundTruthSchema",
     "SilverGeographySchema",
     "SilverSalesRepSchema",
     "SilverSalesSchema",
@@ -117,6 +122,22 @@ class SilverSalesSchema(pa.DataFrameModel):
     unit_price: float = Field(gt=0, nullable=False)
     units: int = Field(gt=0, nullable=False, description="Quantidade de unidades vendidas")
     sale_amount: float = Field(gt=0, nullable=False, description="Valor monetário da venda")
+    promo_flag: bool | None = Field(
+        default=None, nullable=True, required=False, description="Indica evento promocional de preço"
+    )
+    price_event_id: str | None = Field(
+        default=None, nullable=True, required=False, description="ID determinístico do evento de preço"
+    )
+    original_unit_price: float | None = Field(
+        default=None,
+        gt=0,
+        nullable=True,
+        required=False,
+        description="Preço unitário pré-evento (idempotência)",
+    )
+    original_units: int | None = Field(
+        default=None, gt=0, nullable=True, required=False, description="Quantidade pré-evento (idempotência)"
+    )
 
     @pa.dataframe_check
     @classmethod
@@ -158,6 +179,19 @@ class SilverSalesRepSchema(pa.DataFrameModel):
     name: str = Field(nullable=False)
     region: str = Field(isin=["Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte"], nullable=False)
     commission_rate: float = Field(ge=0.01, le=0.15, nullable=False)
+
+    class Config:
+        strict = True
+        coerce = True
+
+
+class SilverElasticityGroundTruthSchema(pa.DataFrameModel):
+    """Contrato da tabela de referência de elasticidade-verdade na camada Silver."""
+
+    scenario_id: str = Field(isin=VALID_SCENARIO_IDS, nullable=False)
+    family: str = Field(nullable=False)
+    beta_true: float = Field(lt=0.0, nullable=False)
+    promo_fraction_target: float = Field(ge=0.0, le=1.0, nullable=False)
 
     class Config:
         strict = True

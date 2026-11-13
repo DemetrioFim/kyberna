@@ -19,6 +19,7 @@ from src.etl.ingest.socrata_client import SocrataClient
 from src.etl.scenarios.c1_toys import C1ToysScenarioBuilder
 from src.etl.silver.clean import build_silver_sales
 from src.etl.silver.enrich import enrich_silver_dimensions
+from src.etl.silver.price_events import apply_price_events
 from src.etl.silver.time_anchor import apply_time_anchor
 
 __all__ = ["app", "ml_app"]
@@ -178,6 +179,11 @@ def silver_build(
             f"Âncora temporal aplicada: shift={anchor_meta['time_shift_days']} dias "
             f"({anchor_meta['min_shifted_date']} a {anchor_meta['max_shifted_date']})."
         )
+        _, pe_meta = apply_price_events()
+        typer.echo(
+            f"Eventos de preço aplicados: {pe_meta['affected_rows']:,}/{pe_meta['total_rows']:,} linhas "
+            f"({pe_meta['affected_fraction']:.1%})."
+        )
         counts = enrich_silver_dimensions()
         typer.echo(
             f"Dimensões Silver enriquecidas: {counts['customers']:,} clientes, "
@@ -218,6 +224,20 @@ def silver_enrich(
         )
 
 
+@silver_app.command("price-events")
+def silver_price_events(
+    seed: int = typer.Option(42, "--seed", "-s", help="Semente pseudo-aleatória determinística"),
+) -> None:
+    """Injeta eventos determinísticos de variação de preço com elasticidade-verdade na Silver."""
+    with timed_step("eventos_preco_silver"):
+        parquet_p, pe_meta = apply_price_events(seed=seed)
+        typer.echo(
+            f"Eventos de preço aplicados em {parquet_p}: "
+            f"{pe_meta['affected_rows']:,}/{pe_meta['total_rows']:,} linhas "
+            f"({pe_meta['affected_fraction']:.1%} | volume={pe_meta['volume_change_pct']:+.2f}%)."
+        )
+
+
 @gold_app.command("build")
 def gold_build(
     scenario: str = typer.Option(
@@ -241,8 +261,8 @@ def gold_build(
                     builder = C1ToysScenarioBuilder()
                     builder.build(con)
                     star_counts = build_gold_star_schema(con, scenario_id="c1_toys")
-                    mart_counts = build_gold_marts(con, scenario_id="c1_toys")
                     inv_df = build_inventory_snapshot(con, scenario_id="c1_toys")
+                    mart_counts = build_gold_marts(con, scenario_id="c1_toys")
 
                     typer.echo(
                         f"Cenário C1 (Brinquedos) construído com sucesso:\n"

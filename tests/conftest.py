@@ -72,8 +72,8 @@ def _bootstrap_local_duckdb(db_path: Path) -> None:
     try:
         C1ToysScenarioBuilder(duckdb_path=db_path).build(con)
         build_gold_star_schema(con, scenario_id="c1_toys")
-        build_gold_marts(con, scenario_id="c1_toys")
         build_inventory_snapshot(con, scenario_id="c1_toys")
+        build_gold_marts(con, scenario_id="c1_toys")
     finally:
         con.close()
 
