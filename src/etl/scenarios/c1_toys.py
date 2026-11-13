@@ -183,6 +183,16 @@ class C1ToysScenarioBuilder(ScenarioBuilder):
         case_sql = build_category_case_when_sql(rules, "s.category_name")
         self._ensure_silver_customers(con)
 
+        silver_cols = {str(r[1]) for r in con.execute("PRAGMA table_info('silver.sales')").fetchall()}
+        has_price_events = "original_unit_price" in silver_cols and "promo_flag" in silver_cols
+        unit_price_expr = (
+            "ROUND(p.base_unit_price * (CASE WHEN COALESCE(s.original_unit_price, 0.0) > 0.0 "
+            "THEN s.unit_price / s.original_unit_price ELSE 1.0 END), 2)"
+            if has_price_events
+            else "p.base_unit_price"
+        )
+        promo_expr = "COALESCE(s.promo_flag, FALSE)" if has_price_events else "FALSE"
+
         remapped_query = f"""
         CREATE OR REPLACE TABLE c1_toys.sales_remapped AS
         SELECT
@@ -201,10 +211,11 @@ class C1ToysScenarioBuilder(ScenarioBuilder):
             s.pack,
             s.units,
             ROUND(CAST(s.units AS DOUBLE) / CAST(s.pack AS DOUBLE), 2) AS boxes,
-            p.base_unit_price AS unit_list_price,
+            {unit_price_expr} AS unit_list_price,
             p.base_unit_cost AS unit_cost,
-            ROUND(s.units * p.base_unit_price, 2) AS gross_revenue,
-            ROUND(s.units * p.base_unit_cost, 2) AS cogs
+            ROUND(s.units * ({unit_price_expr}), 2) AS gross_revenue,
+            ROUND(s.units * p.base_unit_cost, 2) AS cogs,
+            {promo_expr} AS promo_flag
         FROM silver.sales s
         JOIN c1_toys.dim_product p ON s.item_number = p.item_number
         LEFT JOIN silver.dim_customer c ON s.store_number = c.store_number

@@ -118,6 +118,12 @@ def build_c1_dim_product(
     """
     rules = compile_category_rules(category_map_df)
 
+    price_source_col = (
+        "original_unit_price"
+        if "original_unit_price" in silver_sales_df.columns
+        and silver_sales_df["original_unit_price"].notna().any()
+        else "unit_price"
+    )
     distinct_items = (
         silver_sales_df.groupby("item_number")
         .agg(
@@ -125,7 +131,7 @@ def build_c1_dim_product(
             vendor_name=("vendor_name", "first"),
             pack=("pack", "first"),
             raw_unit_cost=("unit_cost", "median"),
-            raw_unit_price=("unit_price", "median"),
+            raw_unit_price=(price_source_col, "median"),
         )
         .reset_index()
         .sort_values("item_number")

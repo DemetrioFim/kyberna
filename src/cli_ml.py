@@ -7,6 +7,7 @@ from src.core.logging import timed_step
 from src.core.paths import get_duckdb_path
 from src.ml.abc_xyz import build_abc_xyz_mart, compute_abc_xyz_matrix_summary
 from src.ml.churn import build_customer_risk_mart, compute_customer_risk_summary
+from src.ml.elasticity import build_price_elasticity_mart
 from src.ml.forecast import build_forecast_30d_mart, compute_forecast_summary
 from src.ml.inventory import build_inventory_position_mart, compute_inventory_position_summary
 from src.ml.rep_performance import build_rep_performance_mart, compute_rep_performance_summary
@@ -212,6 +213,41 @@ def ml_inventory(
         )
         if not summary.empty:
             typer.echo(summary.to_string(index=False))
+    finally:
+        con.close()
+
+
+@ml_app.command("elasticity")
+def ml_elasticity(
+    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
+    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
+    bootstrap_samples: int = typer.Option(
+        200, "--bootstrap-samples", "-b", help="Número de reamostragens bootstrap (IC 95%)"
+    ),
+) -> None:
+    """Estima elasticidade-preço por família (Log-Log Bootstrap + LGBM monotônico)."""
+    con = duckdb.connect(str(get_duckdb_path()))
+    try:
+        with timed_step("ml_elasticity"):
+            df = build_price_elasticity_mart(
+                con,
+                as_of_date=as_of,
+                scenario_id=scenario,  # type: ignore[arg-type]
+                bootstrap_samples=bootstrap_samples,
+            )
+
+        typer.echo(f"\nElasticidade-Preço estimada para '{scenario}' ({len(df):,} famílias):")
+        display_cols = [
+            "family",
+            "beta_hat",
+            "beta_true",
+            "abs_error",
+            "ci_95_low",
+            "ci_95_high",
+            "optimal_price_change_pct",
+            "elasticity_classification",
+        ]
+        typer.echo(df[display_cols].to_string(index=False))
     finally:
         con.close()
 

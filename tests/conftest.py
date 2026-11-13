@@ -56,6 +56,7 @@ def _bootstrap_local_duckdb(db_path: Path) -> None:
     from src.etl.scenarios.c1_toys import C1ToysScenarioBuilder
     from src.etl.silver.clean import build_silver_sales
     from src.etl.silver.enrich import enrich_silver_dimensions
+    from src.etl.silver.price_events import apply_price_events
     from src.etl.silver.time_anchor import apply_time_anchor
 
     fixture_path = get_project_root() / "tests" / "fixtures" / "iowa_sample.parquet"
@@ -66,6 +67,7 @@ def _bootstrap_local_duckdb(db_path: Path) -> None:
     populate_bronze_from_sample_fixture(fixture_path)
     build_silver_sales(sample=True)
     apply_time_anchor(no_shift=True)
+    apply_price_events()
     enrich_silver_dimensions()
 
     con = duckdb.connect(str(db_path))

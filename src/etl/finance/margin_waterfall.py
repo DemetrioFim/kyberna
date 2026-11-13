@@ -184,6 +184,7 @@ def build_margin_waterfall_sql(
     tax_config: TaxRulesConfig | None = None,
     freight_config: FreightConfig | None = None,
     discounts_config: DiscountsConfig | None = None,
+    has_promo_flag: bool = False,
 ) -> str:
     """Gera a consulta SQL completa do Waterfall canônico da Margem de Contribuição.
 
@@ -207,6 +208,10 @@ def build_margin_waterfall_sql(
         config=discounts_config,
     )
 
+    promo_select = (
+        "COALESCE(s.promo_flag, FALSE) AS promo_flag," if has_promo_flag else "FALSE AS promo_flag,"
+    )
+
     return f"""
     WITH pre_calc AS (
         SELECT
@@ -221,6 +226,7 @@ def build_margin_waterfall_sql(
             s.boxes,
             s.unit_list_price,
             s.unit_cost,
+            {promo_select}
             ROUND(s.units * s.unit_list_price, 2) AS gross_revenue,
             ROUND({discount_rate_sql}, 4) AS discount_rate,
             ROUND({total_tax_sql}, 4) AS tax_rate,
@@ -242,6 +248,7 @@ def build_margin_waterfall_sql(
             units,
             boxes,
             unit_list_price,
+            promo_flag,
             gross_revenue,
             ROUND(gross_revenue * discount_rate, 2) AS discount_amount,
             ROUND(gross_revenue - ROUND(gross_revenue * discount_rate, 2), 2) AS net_price_revenue,
@@ -263,6 +270,7 @@ def build_margin_waterfall_sql(
             units,
             boxes,
             unit_list_price,
+            promo_flag,
             ROUND(net_price_revenue / units, 4) AS unit_net_price,
             gross_revenue,
             discount_amount,
@@ -293,7 +301,8 @@ def build_margin_waterfall_sql(
         commission_amount,
         freight_amount,
         -- Identidade canônica: contribution_margin = net_revenue - cogs - commission - freight
-        ROUND(net_revenue - cogs - commission_amount - freight_amount, 2) AS contribution_margin
+        ROUND(net_revenue - cogs - commission_amount - freight_amount, 2) AS contribution_margin,
+        promo_flag
     FROM waterfall_stage2
     """
 
@@ -324,7 +333,13 @@ def compute_margin_waterfall(
     con.execute(f"CREATE SCHEMA IF NOT EXISTS {scenario_id}")
 
     # 2. Executa a query SQL do waterfall e materializa
-    waterfall_sql = build_margin_waterfall_sql(scenario_id=scenario_id)
+    remapped_cols = {
+        str(r[1]) for r in con.execute(f"PRAGMA table_info('{scenario_id}.sales_remapped')").fetchall()
+    }
+    waterfall_sql = build_margin_waterfall_sql(
+        scenario_id=scenario_id,
+        has_promo_flag=("promo_flag" in remapped_cols),
+    )
     con.execute(f"CREATE OR REPLACE TABLE {output_table} AS {waterfall_sql}")
     con.execute(f"CREATE OR REPLACE TABLE gold.fact_sales AS SELECT * FROM {output_table}")
 

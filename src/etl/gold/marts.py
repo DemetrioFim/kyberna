@@ -9,6 +9,7 @@ from src.core.paths import get_data_dir
 from src.core.types import ScenarioId
 from src.ml.abc_xyz import build_abc_xyz_mart
 from src.ml.churn import build_customer_risk_mart
+from src.ml.elasticity import build_price_elasticity_mart
 from src.ml.forecast import build_forecast_30d_mart
 from src.ml.inventory import build_inventory_position_mart
 from src.ml.rep_performance import build_rep_performance_mart
@@ -164,5 +165,9 @@ def build_gold_marts(
     # Mart prescritivo de Posição de Estoque (cobertura, SS, ROP e capital travado)
     inventory_pos_df = build_inventory_position_mart(con, scenario_id=scenario_id)
     counts["mart_inventory_position"] = len(inventory_pos_df)
+
+    # Mart analítico de Elasticidade-Preço por Família (Log-Log Bootstrap + LGBM Monotônico)
+    elasticity_df = build_price_elasticity_mart(con, scenario_id=scenario_id)
+    counts["mart_price_elasticity"] = len(elasticity_df)
 
     return counts

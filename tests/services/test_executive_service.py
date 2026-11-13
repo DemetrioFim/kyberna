@@ -32,17 +32,17 @@ def test_executive_kpis_exact_accounting_reconciliation(repo: DuckDBRepository) 
     """Valida reconciliação de 100% dos KPIs com c1_toys.fact_sales e aba DRE do Excel audit."""
     kpis = compute_executive_kpis(repo, scenario_id="c1_toys")
 
-    # Valores canônicos exatos de c1_toys.fact_sales e conciliacao_c1_toys.xlsx
-    assert kpis.gross_revenue == pytest.approx(19703059.08, abs=0.02)
-    assert kpis.discount_amount == pytest.approx(1493170.89, abs=0.02)
-    assert kpis.net_price_revenue == pytest.approx(18209888.19, abs=0.02)
-    assert kpis.tax_amount == pytest.approx(3176081.32, abs=0.02)
-    assert kpis.net_revenue == pytest.approx(15033806.87, abs=0.02)
-    assert kpis.cogs == pytest.approx(8537828.64, abs=0.02)
-    assert kpis.commission_amount == pytest.approx(953518.01, abs=0.02)
-    assert kpis.freight_amount == pytest.approx(216967.80, abs=0.02)
-    assert kpis.contribution_margin == pytest.approx(5325492.42, abs=0.02)
-    assert kpis.contribution_margin_pct == pytest.approx(27.03, abs=0.02)
+    # Valores canônicos exatos de c1_toys.fact_sales e conciliacao_c1_toys.xlsx (pós M4-D1/M4-S3)
+    assert kpis.gross_revenue == pytest.approx(19793467.67, abs=0.02)
+    assert kpis.discount_amount == pytest.approx(1500579.75, abs=0.02)
+    assert kpis.net_price_revenue == pytest.approx(18292887.92, abs=0.02)
+    assert kpis.tax_amount == pytest.approx(3190634.38, abs=0.02)
+    assert kpis.net_revenue == pytest.approx(15102253.54, abs=0.02)
+    assert kpis.cogs == pytest.approx(8703802.60, abs=0.02)
+    assert kpis.commission_amount == pytest.approx(957845.71, abs=0.02)
+    assert kpis.freight_amount == pytest.approx(221031.10, abs=0.02)
+    assert kpis.contribution_margin == pytest.approx(5219574.13, abs=0.02)
+    assert kpis.contribution_margin_pct == pytest.approx(26.37, abs=0.02)
     assert kpis.total_orders == 19578
     assert kpis.active_customers == 300
 
@@ -84,8 +84,8 @@ def test_monthly_margin_trend_conservation(repo: DuckDBRepository) -> None:
     total_gross = float(monthly_df["gross_revenue"].sum())
     total_cm = float(monthly_df["contribution_margin"].sum())
 
-    assert total_gross == pytest.approx(19703059.08, abs=0.05)
-    assert total_cm == pytest.approx(5325492.42, abs=0.05)
+    assert total_gross == pytest.approx(19793467.67, abs=0.05)
+    assert total_cm == pytest.approx(5219574.13, abs=0.05)
 
 
 def test_abc_xyz_matrix_summary_and_filtering(repo: DuckDBRepository) -> None:
@@ -176,7 +176,7 @@ def test_executive_dashboard_temporal_presets_and_monthly_table(repo: DuckDBRepo
         comparison_label=bounds_ytd.comparison_label,
     )
     assert "2024" in dto_ytd.period_label
-    assert dto_ytd.kpis.gross_revenue < 19703059.08  # Subconjunto do faturamento total de 24m
+    assert dto_ytd.kpis.gross_revenue < 19793467.67  # Subconjunto do faturamento total de 24m
     assert dto_ytd.kpis.gross_revenue_delta_pct is not None
     assert dto_ytd.kpis.contribution_margin_delta_pct is not None
     assert len(dto_ytd.monthly_sales_table_df) == 12

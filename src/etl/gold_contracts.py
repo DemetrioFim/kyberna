@@ -34,6 +34,12 @@ class GoldFactSalesSchema(pa.DataFrameModel):
     commission_amount: float = Field(ge=0, nullable=False)
     freight_amount: float = Field(ge=0, nullable=False)
     contribution_margin: float = Field(nullable=False)
+    promo_flag: bool | None = Field(
+        default=None,
+        nullable=True,
+        required=False,
+        description="Flag de evento promocional propagada da Silver (M4-D1 / M4-S3)",
+    )
 
     @pa.dataframe_check
     @classmethod
@@ -326,6 +332,38 @@ class GoldInventoryPositionSchema(pa.DataFrameModel):
             & ((df["coverage_days"] > 120.0) | (df["locked_capital_brl"] == 0.0))
             & ((df["stock_units"] < df["reorder_point_units"]) | (df["suggested_order_boxes"] == 0))
         )
+
+    class Config:
+        strict = False
+        coerce = True
+
+
+class GoldPriceElasticitySchema(pa.DataFrameModel):
+    """Contrato do mart analítico de elasticidade-preço por família (`mart_price_elasticity`)."""
+
+    scenario_id: str = Field(isin=VALID_SCENARIO_IDS, nullable=False)
+    family: str = Field(nullable=False)
+    beta_hat: float = Field(nullable=False)
+    beta_true: float | None = Field(default=None, nullable=True)
+    abs_error: float | None = Field(default=None, ge=0.0, nullable=True)
+    ci_95_low: float = Field(nullable=False)
+    ci_95_high: float = Field(nullable=False)
+    r2_score: float = Field(nullable=False)
+    optimal_price_change_pct: float = Field(ge=-0.30, le=0.30, nullable=False)
+    elasticity_classification: str = Field(isin=["Elástica", "Inelástica"], nullable=False)
+    prescription_text: str = Field(nullable=False)
+    snapshot_date: str = Field(nullable=False)
+
+    @pa.dataframe_check
+    @classmethod
+    def check_elasticity_consistency(cls, df: pd.DataFrame) -> pd.Series:
+        """Valida ordenação do intervalo de confiança, classificação e erro absoluto."""
+        ci_ok = df["ci_95_low"] <= df["ci_95_high"]
+        cls_expected = df["beta_hat"].map(lambda b: "Elástica" if float(b) < -1.0 else "Inelástica")
+        cls_ok = df["elasticity_classification"] == cls_expected
+        has_gt = df["beta_true"].notna() & df["abs_error"].notna()
+        err_ok = (~has_gt) | ((df["abs_error"] - (df["beta_hat"] - df["beta_true"]).abs()).abs() < 1e-4)
+        return ci_ok & cls_ok & err_ok
 
     class Config:
         strict = False
