@@ -5,12 +5,17 @@ from typing import Final
 import numpy as np
 import pandas as pd
 
+from src.core.logging import get_logger
+from src.core.types import ScenarioId
+from src.db.repository import DataRepository
 from src.services.dto import (
     ExecutiveKpisDTO,
     SimulationBaseline,
     SimulationLevers,
     SimulationResult,
 )
+
+logger = get_logger(__name__)
 
 PROFIT_CURVE_DELTAS: Final[np.ndarray] = np.round(np.linspace(-0.25, 0.25, 41), 4)
 
@@ -341,3 +346,25 @@ def simulate_quick_what_if(
         "breakeven_volume_pct": breakeven_vol,
         "estimated_volume_pct": estimated_vol_pct,
     }
+
+
+def query_family_elasticity(repo: DataRepository, scenario_id: ScenarioId) -> pd.DataFrame:
+    """Consulta elasticidade-preço real por família em `gold.mart_price_elasticity`."""
+    sql = """
+    SELECT
+        family,
+        beta_hat,
+        ci_95_low,
+        ci_95_high,
+        optimal_price_change_pct,
+        elasticity_classification,
+        prescription_text
+    FROM gold.mart_price_elasticity
+    WHERE scenario_id = ?
+    ORDER BY family ASC
+    """
+    try:
+        return repo.query(sql, params=[scenario_id])
+    except Exception as exc:
+        logger.warning("mart_price_elasticity indisponível para %s: %s", scenario_id, exc)
+        return pd.DataFrame()

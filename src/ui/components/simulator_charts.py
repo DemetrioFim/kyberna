@@ -1,0 +1,155 @@
+from __future__ import annotations
+
+import pandas as pd
+import plotly.graph_objects as go
+
+from src.services.dto import SimulationResult
+from src.ui.formatting import format_brl
+from src.ui.theme import get_theme_tokens
+
+__all__ = [
+    "profit_curve_chart",
+    "tornado_sensitivity_chart",
+]
+
+
+def profit_curve_chart(
+    sim_result: SimulationResult,
+    current_price_pct: float,
+    *,
+    theme_mode: str = "light",
+) -> go.Figure:
+    """Curva Lucro x Preço com marcadores Atual (0%), Simulado e Ótimo."""
+    tokens = get_theme_tokens(theme_mode)
+    template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
+
+    df = sim_result.profit_curve_df.copy()
+    if df.empty:
+        fig = go.Figure()
+        fig.update_layout(template=template_name, title=None, height=260)
+        return fig
+
+    x_pct = df["delta_price_pct"] * 100.0
+    y_margin = df["contribution_margin"]
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=x_pct,
+            y=y_margin,
+            mode="lines",
+            name="Lucro Projetado",
+            line={"color": tokens["teal_500"], "width": 2.6},
+            hovertemplate="Δ Preço: %{x:+.1f}%<br>Margem: R$ %{y:,.0f}<extra></extra>",
+        )
+    )
+
+    # Ponto Atual (0%)
+    fig.add_trace(
+        go.Scatter(
+            x=[0.0],
+            y=[sim_result.contribution_margin_0],
+            mode="markers",
+            name="Atual (0%)",
+            marker={"color": tokens["text_muted"], "size": 9, "symbol": "circle"},
+            hovertemplate=(
+                f"<b>Atual (0%)</b><br>Margem: {format_brl(sim_result.contribution_margin_0)}<extra></extra>"
+            ),
+        )
+    )
+
+    # Ponto Simulado
+    fig.add_trace(
+        go.Scatter(
+            x=[current_price_pct],
+            y=[sim_result.contribution_margin_1],
+            mode="markers",
+            name="Simulado",
+            marker={"color": tokens["brass_500"], "size": 11, "symbol": "diamond"},
+            hovertemplate=(
+                f"<b>Simulado ({current_price_pct:+.1f}%)</b><br>"
+                f"Margem: {format_brl(sim_result.contribution_margin_1)}<extra></extra>"
+            ),
+        )
+    )
+
+    # Ponto Ótimo
+    opt_pct = sim_result.optimal_price_change_pct * 100.0
+    fig.add_trace(
+        go.Scatter(
+            x=[opt_pct],
+            y=[sim_result.optimal_margin_brl],
+            mode="markers",
+            name="Ótimo",
+            marker={"color": tokens["positive"], "size": 11, "symbol": "star"},
+            hovertemplate=(
+                f"<b>Ótimo ({opt_pct:+.1f}%)</b><br>"
+                f"Margem: {format_brl(sim_result.optimal_margin_brl)}<extra></extra>"
+            ),
+        )
+    )
+
+    fig.update_layout(
+        template=template_name,
+        title=None,
+        height=260,
+        margin={"l": 12, "r": 12, "t": 16, "b": 12},
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1.0},
+        xaxis_title="Variação de Preço de Tabela (%)",
+        yaxis_title="Margem de Contribuição (R$)",
+    )
+    return fig
+
+
+def tornado_sensitivity_chart(
+    tornado_df: pd.DataFrame,
+    *,
+    theme_mode: str = "light",
+) -> go.Figure:
+    """Gráfico Tornado de sensibilidade individual (impacto R$ na margem)."""
+    tokens = get_theme_tokens(theme_mode)
+    template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
+
+    if tornado_df.empty:
+        fig = go.Figure()
+        fig.update_layout(template=template_name, title=None, height=260)
+        return fig
+
+    # Inverter ordem para que o driver de maior swing fique no topo do gráfico horizontal
+    df = tornado_df.sort_values("swing_brl", ascending=True).reset_index(drop=True)
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            y=df["driver"],
+            x=df["low_delta_brl"],
+            orientation="h",
+            name="Cenário Adverso",
+            marker_color=tokens["negative"],
+            hovertemplate="<b>%{y}</b><br>Adverso: %{x:+,.0f} R$<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            y=df["driver"],
+            x=df["high_delta_brl"],
+            orientation="h",
+            name="Cenário Favorável",
+            marker_color=tokens["positive"],
+            hovertemplate="<b>%{y}</b><br>Favorável: %{x:+,.0f} R$<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        template=template_name,
+        title=None,
+        height=260,
+        barmode="relative",
+        margin={"l": 12, "r": 12, "t": 16, "b": 12},
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1.0},
+        xaxis_title="Impacto na Margem (R$)",
+        yaxis_title=None,
+    )
+    fig.add_vline(x=0.0, line_width=1.2, line_dash="solid", line_color=tokens["chart_zero_line"])
+    return fig
+

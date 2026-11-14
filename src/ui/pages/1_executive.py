@@ -19,8 +19,8 @@ from src.ui.components.prudence_sections import (
     render_monthly_sales_table_section,
     render_prudence_anomalies_section,
     render_prudence_kpis,
-    render_what_if_quick_fragment,
 )
+from src.ui.components.simulator_section import render_what_if_quick_fragment
 from src.ui.state import get_app_state
 
 
@@ -212,7 +212,7 @@ def render_page() -> None:
                 ),
             )
         with t_whatif:
-            render_what_if_quick_fragment(dto)
+            render_what_if_quick_fragment(dto, theme_mode=state.theme_mode)
 
 
 render_page()

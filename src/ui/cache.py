@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pandas as pd
 import streamlit as st
 
 from src.core.types import ScenarioId
@@ -7,8 +8,10 @@ from src.db.repository import DataRepository, get_repository
 from src.services.commercial_service import build_commercial_dashboard
 from src.services.dto import (
     CommercialPageDTO,
+    ExecutiveKpisDTO,
     ExecutivePageDTO,
     FortitudePageDTO,
+    SimulationBaseline,
     TemperancePageDTO,
 )
 from src.services.executive_service import (
@@ -24,6 +27,7 @@ from src.services.inventory_service import (
     build_inventory_dashboard,
     get_sku_forecast_series,
 )
+from src.services.simulator import query_family_elasticity
 from src.services.temperance_service import build_temperance_dashboard
 from src.ui.state import resolve_period_bounds
 
@@ -186,3 +190,19 @@ def cached_sku_forecast(
         scenario_id,
         product_id=product_id,
     )
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def cached_family_elasticity(scenario_id: ScenarioId) -> pd.DataFrame:
+    """Carrega elasticidades-preço estimadas por família em `mart_price_elasticity`."""
+    repo = get_cached_repository()
+    return query_family_elasticity(repo, scenario_id)
+
+
+def cached_simulation_baseline(
+    kpis: ExecutiveKpisDTO,
+    *,
+    beta_elasticity: float = -1.2,
+) -> SimulationBaseline:
+    """Constrói o `SimulationBaseline` tipado a partir dos KPIs executivos e elasticidade."""
+    return SimulationBaseline.from_executive_kpis(kpis, beta_elasticity=beta_elasticity)

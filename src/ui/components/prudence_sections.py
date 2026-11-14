@@ -3,7 +3,6 @@ from __future__ import annotations
 import streamlit as st
 
 from src.services.dto import ExecutivePageDTO
-from src.services.simulator import simulate_quick_what_if
 from src.ui.components.kpi_card import render_kpi_card
 from src.ui.components.prescription import section_header
 from src.ui.formatting import (
@@ -91,123 +90,6 @@ def render_prudence_kpis(dto: ExecutivePageDTO, customer_plural: str) -> None:
                 f"{format_brl(dto.kpis.projected_quarter_revenue_brl, compact=True)}."
             ),
         )
-
-
-@st.fragment
-def render_what_if_quick_fragment(dto: ExecutivePageDTO) -> None:
-    """Fragmento executivo de simulação rápida de sensibilidade de margem (What-If)."""
-    section_header(
-        "Simulador Rápido de Preço & Margem",
-        "Simule o impacto de ajustes comerciais e de custo no lucro final da operação",
-        help_text=(
-            "Simulação dinâmica considerando elasticidade constante de demanda (-1.2). "
-            "Calcula o impacto direto de variações na tabela de preços, na concessão de descontos "
-            "e no custo/CMV sobre o lucro líquido final no bolso e o volume necessário para breakeven."
-        ),
-    )
-
-    col_p, col_d, col_c = st.columns(3)
-    with col_p:
-        price_delta = st.slider(
-            "Ajuste de Preço (%)",
-            min_value=-10.0,
-            max_value=10.0,
-            value=0.0,
-            step=0.5,
-            key="_what_if_price",
-        )
-    with col_d:
-        discount_delta = st.slider(
-            "Variação no Desconto (p.p.)",
-            min_value=-5.0,
-            max_value=5.0,
-            value=0.0,
-            step=0.5,
-            key="_what_if_disc",
-        )
-    with col_c:
-        cost_delta = st.slider(
-            "Variação Custo/CMV (%)",
-            min_value=-15.0,
-            max_value=15.0,
-            value=0.0,
-            step=0.5,
-            key="_what_if_cost",
-        )
-
-    res = simulate_quick_what_if(
-        dto.kpis,
-        price_change_pct=price_delta,
-        discount_change_pp=discount_delta,
-        commission_or_cost_change_pct=float(cost_delta),
-    )
-
-    margin_sim = res["simulated_margin_brl"]
-    margin_delta = res["margin_delta_brl"]
-    margin_pct = res["simulated_margin_pct"]
-    rev_sim = res["simulated_revenue_brl"]
-    be_vol = res["breakeven_volume_pct"]
-
-    delta_color = (
-        "var(--kyb-pos)"
-        if margin_delta > 0
-        else "var(--kyb-neg)"
-        if margin_delta < 0
-        else "var(--kyb-text-muted)"
-    )
-    delta_sign = "+" if margin_delta > 0 else ""
-
-    if margin_delta > 0:
-        conclusion_html = (
-            "<strong>Potencial de Ganho:</strong> Esta calibragem gera "
-            f'<strong style="color: var(--kyb-pos);">'
-            f"{format_brl(margin_delta, compact=True)} adicionais</strong> "
-            "de margem líquida direta no caixa."
-        )
-    elif margin_delta < 0:
-        vol_str = f"{be_vol:+.1f}%" if be_vol < 500 else "inviável"
-        conclusion_html = (
-            "<strong>Ponto de Atenção:</strong> Concessão de margem; a equipe comercial precisa vender "
-            f'<strong style="color: var(--kyb-neg);">{vol_str} mais unidades</strong> '
-            "para manter o lucro original."
-        )
-    else:
-        conclusion_html = (
-            "<strong>Cenário Base:</strong> Parâmetros comerciais atuais mantidos sem variações simuladas."
-        )
-
-    sub_status = "no bolso da empresa" if margin_delta != 0 else "estável"
-    lbl_style = (
-        'style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; '
-        'letter-spacing: 0.05em; color: var(--kyb-text-muted); margin-bottom: 0.2rem;"'
-    )
-    card_sim_html = (
-        '<div style="background: var(--kyb-card-bg); border: 1px solid var(--kyb-border); '
-        'border-radius: 8px; padding: 0.9rem 1.15rem; margin-top: 0.4rem; box-shadow: var(--kyb-shadow);">'
-        '<div style="display: flex; justify-content: space-between; align-items: flex-start; '
-        'gap: 1rem; margin-bottom: 0.65rem;">'
-        "<div>"
-        f"<div {lbl_style}>Margem Líquida Projetada</div>"
-        '<div style="font-size: 1.5rem; font-weight: 700; color: var(--kyb-text); line-height: 1.15;">'
-        f"{format_brl(margin_sim, compact=True)}</div>"
-        f'<div style="font-size: 0.8rem; color: var(--kyb-text-muted); margin-top: 0.25rem;">'
-        f"Receita: {format_brl(rev_sim, compact=True)} • Margem: {margin_pct:.1f}%</div>"
-        "</div>"
-        '<div style="text-align: right;">'
-        f"<div {lbl_style}>Impacto no Lucro</div>"
-        f'<div style="font-size: 1.5rem; font-weight: 700; color: {delta_color}; line-height: 1.15;">'
-        f"{delta_sign}{format_brl(margin_delta, compact=True)}</div>"
-        f'<div style="font-size: 0.8rem; color: {delta_color}; margin-top: 0.25rem; font-weight: 600;">'
-        f"{sub_status}</div>"
-        "</div>"
-        "</div>"
-        '<div style="font-size: 0.84rem; line-height: 1.4; color: var(--kyb-text); '
-        'border-top: 1px dashed var(--kyb-border); padding-top: 0.55rem;">'
-        f"{conclusion_html}"
-        "</div>"
-        "</div>"
-    )
-    st.markdown(card_sim_html, unsafe_allow_html=True)
 
 
 def render_prudence_anomalies_section(dto: ExecutivePageDTO) -> None:
