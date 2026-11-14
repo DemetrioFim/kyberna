@@ -6,6 +6,7 @@ import streamlit as st
 
 from src.db.repository import DataRepository
 from src.ui.cache import get_cached_repository
+from src.ui.components.auth_gate import require_authentication
 from src.ui.components.sidebar import render_sidebar
 from src.ui.state import init_app_state
 from src.ui.theme import get_theme_tokens
@@ -59,6 +60,9 @@ def inject_custom_css(theme_mode: str) -> None:
 
 
 inject_custom_css(state.theme_mode)
+
+if not require_authentication():
+    st.stop()
 
 # ==============================================================================
 # Branding Global no Topo da Sidebar (Acima do Menu de Navegação)

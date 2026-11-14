@@ -16,6 +16,7 @@ from src.etl.gold.star_schema import build_gold_star_schema
 from src.etl.ingest.fixture import generate_fixture
 from src.etl.ingest.raw_to_bronze import convert_all_raw_to_bronze, populate_bronze_from_sample_fixture
 from src.etl.ingest.socrata_client import SocrataClient
+from src.etl.pipeline import PIPELINE_STEPS, run_pipeline
 from src.etl.scenarios.c1_toys import C1ToysScenarioBuilder
 from src.etl.silver.clean import build_silver_sales
 from src.etl.silver.enrich import enrich_silver_dimensions
@@ -62,14 +63,10 @@ audit_app = typer.Typer(
     no_args_is_help=True,
 )
 load_app = typer.Typer(
-    name="load",
-    help="Carga atômica da camada Gold para o Azure SQL Database",
-    no_args_is_help=True,
+    name="load", help="Carga atômica da camada Gold para o Azure SQL Database", no_args_is_help=True
 )
 pipeline_app = typer.Typer(
-    name="pipeline",
-    help="Execução orquestrada ponta a ponta do pipeline de dados Kyberna",
-    no_args_is_help=True,
+    name="pipeline", help="Execução orquestrada ponta a ponta do pipeline Kyberna", no_args_is_help=True
 )
 
 app.add_typer(ingest_app)
@@ -346,12 +343,32 @@ def load_sync(
 
 @pipeline_app.command("run")
 def pipeline_run(
-    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
-    sample: bool = typer.Option(False, "--sample", help="Executar pipeline em modo amostra"),
+    *,
+    scenario: str = typer.Option("c1_toys", "--scenario", help="Cenário ('c1_toys' ou 'all')"),
+    sample: bool = typer.Option(False, "--sample", help="Executar em modo amostra (fixture)"),
+    lake: str = typer.Option("local", "--lake", help="Destino ('local' ou 'remote')"),
+    skip_ingest: bool = typer.Option(False, "--skip-ingest", help="Pular ingestão Socrata"),
+    from_step: str | None = typer.Option(
+        None, "--from-step", help=f"Retomar de: {', '.join(PIPELINE_STEPS)}"
+    ),
+    reference_date: str | None = typer.Option(None, "--reference-date", help="Data âncora (YYYY-MM-DD)"),
 ) -> None:
-    """Executa o pipeline completo ponta a ponta."""
-    # TODO(M5-D1): Implementar orquestração ponta a ponta
-    raise NotImplementedError("Comando ainda não implementado. Tarefa responsável: M5-D1")
+    """Executa o pipeline completo ponta a ponta com relatório de qualidade."""
+    try:
+        res = run_pipeline(
+            scenario=scenario,
+            sample=sample,
+            lake=lake,  # type: ignore[arg-type]
+            skip_ingest=skip_ingest,
+            from_step=from_step,
+            reference_date=reference_date,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    typer.echo(
+        f"Pipeline concluído em {res['total_duration_s']:.2f}s ({len(res['executed_steps'])} etapas). "
+        f"Relatórios: {res['quality_json_path']} | {res['quality_md_path']}"
+    )
 
 
 def version_callback(value: bool) -> None:

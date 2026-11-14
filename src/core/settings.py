@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -44,6 +45,10 @@ class Settings(BaseSettings):
     # Regras de Negócio e Demonstração
     reference_date: date | None = Field(
         default=None, description="Data âncora da demonstração (padrão: ontem)"
+    )
+    auth_mode: Literal["none", "demo_password", "entra_id"] = Field(
+        default="none",
+        description="Modo de controle de acesso: none, demo_password ou entra_id",
     )
     app_password: str = Field(default="kyberna2026", description="Senha de acesso ao App comercial")
 
