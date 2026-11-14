@@ -79,8 +79,10 @@ def render_page() -> None:
             "Gestão Prescritiva de Estoque",
             "Matriz ABC/XYZ, Forecast 30d por SKU e Treemap de Capital Travado",
             help_text=(
-                "Cruza contribuição na margem com regularidade da demanda, exibe previsão 30d "
-                "com intervalos conformais (80%/95%) e detalha o capital travado (> 120d)."
+                "Matriz ABC/XYZ: ABC classifica os SKUs pela relevância na Margem de Contribuição "
+                "(A=80%, B=15%, C=5%) e XYZ pela previsibilidade da demanda "
+                "(X=regular, Y=sazonal, Z=intermitente). Também exibe previsão 30d (80%/95%) "
+                "e o treemap de capital travado (> 120d)."
             ),
         )
         t_abc, t_fc, t_tree = st.tabs(
@@ -92,6 +94,20 @@ def render_page() -> None:
                 matrix_df["recommended_policy"] = matrix_df["policy"]
             fig_abc = abc_xyz_heatmap(matrix_df, theme_mode=theme_mode)
             st.plotly_chart(fig_abc, use_container_width=True)
+            st.markdown(
+                "<div style='font-size:0.72rem; color:var(--kyb-text-muted); line-height:1.35; "
+                "margin-top:-0.35rem; padding:0.2rem 0.45rem; background:var(--kyb-card-bg); "
+                "border-radius:4px; border:1px solid var(--kyb-border);'>"
+                "<strong>Legenda:</strong> "
+                "<strong>ABC (Importância no Lucro/MC):</strong> "
+                "<b>A</b> = 80% da margem · <b>B</b> = 15% · <b>C</b> = 5% "
+                "&nbsp;|&nbsp; "
+                "<strong>XYZ (Regularidade de Venda):</strong> "
+                "<b>X</b> = giro constante · <b>Y</b> = sazonal/oscilante · "
+                "<b>Z</b> = intermitente/imprevisível"
+                "</div>",
+                unsafe_allow_html=True,
+            )
         with t_fc:
             render_sku_forecast_fragment(state.scenario_id, inv_dto, theme_mode=theme_mode)
         with t_tree:

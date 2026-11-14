@@ -209,7 +209,12 @@ def abc_xyz_heatmap(
                 m_share = float(match["margin_share_pct"].iloc[0])
                 policy = str(match["recommended_policy"].iloc[0])
                 sel_marker = " ★" if selected_cell == cell_code else ""
-                cell_html = f"<b>{cell_code}{sel_marker}</b><br>{sku_cnt} SKUs · {m_share:.1f}%"
+                short_policy = policy.split("/", maxsplit=1)[0].strip()
+                cell_html = (
+                    f"<b>{cell_code}{sel_marker}</b><br>"
+                    f"{sku_cnt} SKUs · {m_share:.1f}% MC<br>"
+                    f"<span style='font-size:10px'>{short_policy}</span>"
+                )
                 hover_row.append(
                     f"<b>Célula {cell_code}</b><br>SKUs: {sku_cnt} ({m_share:.1f}% MC)<br>Política: {policy}"
                 )
@@ -226,7 +231,7 @@ def abc_xyz_heatmap(
                     "y": abc,
                     "text": cell_html,
                     "showarrow": False,
-                    "font": {"size": 12, "color": font_color},
+                    "font": {"size": 11, "color": font_color},
                 }
             )
         z_values.append(z_row)
@@ -252,17 +257,25 @@ def abc_xyz_heatmap(
         xaxis={
             "tickmode": "array",
             "tickvals": ["X", "Y", "Z"],
-            "ticktext": ["X · Regular", "Y · Sazonal", "Z · Intermitente"],
-            "title": None,
+            "ticktext": ["X · Demanda Regular", "Y · Demanda Sazonal", "Z · Demanda Errática"],
+            "title": {
+                "text": "Eixo XYZ — Previsibilidade de Giro (Demanda)",
+                "font": {"size": 11},
+                "standoff": 6,
+            },
         },
         yaxis={
             "tickmode": "array",
             "tickvals": ["A", "B", "C"],
-            "ticktext": ["Classe A (80%)", "Classe B (15%)", "Classe C (5%)"],
-            "title": None,
+            "ticktext": ["Curva A (80% MC)", "Curva B (15% MC)", "Curva C (5% MC)"],
+            "title": {
+                "text": "Curva ABC — Relevância na Margem",
+                "font": {"size": 11},
+                "standoff": 6,
+            },
         },
-        height=245,
-        margin={"l": 16, "r": 16, "t": 10, "b": 18},
+        height=225,
+        margin={"l": 16, "r": 12, "t": 6, "b": 32},
     )
     return fig
 

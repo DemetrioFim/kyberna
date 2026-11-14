@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import plotly.graph_objects as go
 import streamlit as st
 
 from src.core.scenarios import load_scenario_config
@@ -61,7 +62,33 @@ def _render_sku_list_table(dto: ExecutivePageDTO) -> None:
     )
 
 
-def _render_elasticity_overview_section(dto: ExecutivePageDTO, scenario_id: str, theme_mode: str) -> None:
+def _get_static_diagnostic_figures(
+    dto: ExecutivePageDTO,
+    cache_key: tuple[object, ...],
+    scenario_id: str,
+    theme_mode: str,
+) -> tuple[go.Figure, go.Figure, go.Figure, go.Figure]:
+    """Memoiza os 4 gráficos estáticos da Tela 1 em sessão para manter interações < 300 ms."""
+    cached = st.session_state.get("_exec_static_figs")
+    if isinstance(cached, tuple) and len(cached) == 2 and cached[0] == cache_key:
+        figs: tuple[go.Figure, go.Figure, go.Figure, go.Figure] = cached[1]
+        return figs
+
+    fig_trend = dual_trend(
+        dto.monthly_trend_df,
+        theme_mode=theme_mode,
+        target_margin_pct=dto.kpis.margin_target_pct,
+    )
+    fig_wat = waterfall_margin(dto.waterfall_df, theme_mode=theme_mode)
+    fig_fam = family_margin_chart(dto.abc_xyz_skus_df, theme_mode=theme_mode)
+    elasticity_df = cached_family_elasticity(scenario_id)  # type: ignore[arg-type]
+    fig_el = elasticity_family_chart(elasticity_df, theme_mode=theme_mode)
+    figs = (fig_trend, fig_wat, fig_fam, fig_el)
+    st.session_state["_exec_static_figs"] = (cache_key, figs)
+    return figs
+
+
+def _render_elasticity_overview_section(fig_fam: go.Figure, fig_el: go.Figure) -> None:
     """Renderiza a visão executiva de Margem por Família e Elasticidade-Preço na Tela 1."""
     section_header(
         "Rentabilidade & Elasticidade-Preço por Família",
@@ -73,11 +100,8 @@ def _render_elasticity_overview_section(dto: ExecutivePageDTO, scenario_id: str,
     )
     t_fam, t_el = st.tabs(["Margem por Família", "Elasticidade-Preço (β)"])
     with t_fam:
-        fig_fam = family_margin_chart(dto.abc_xyz_skus_df, theme_mode=theme_mode)
         st.plotly_chart(fig_fam, use_container_width=True)
     with t_el:
-        elasticity_df = cached_family_elasticity(scenario_id)  # type: ignore[arg-type]
-        fig_el = elasticity_family_chart(elasticity_df, theme_mode=theme_mode)
         st.plotly_chart(fig_el, use_container_width=True)
 
 
@@ -95,6 +119,23 @@ def render_page() -> None:
         selected_cell=state.selected_abc_xyz_cell,
         period_preset=state.period_preset,
         selected_month=state.selected_month,
+    )
+    fig_cache_key: tuple[object, ...] = (
+        state.scenario_id,
+        state.regiao,
+        state.uf,
+        tuple(state.families) if state.families else None,
+        tuple(state.sales_reps) if state.sales_reps else None,
+        state.selected_abc_xyz_cell,
+        state.period_preset,
+        state.selected_month,
+        state.theme_mode,
+    )
+    fig_trend, fig_wat, fig_fam, fig_el = _get_static_diagnostic_figures(
+        dto,
+        fig_cache_key,
+        state.scenario_id,
+        state.theme_mode,
     )
 
     # 1. Faixa 1 — Topo (Status em 5s): Cabeçalho Cockpit unificado + 5 KPI Cards
@@ -130,18 +171,12 @@ def render_page() -> None:
             ]
         )
         with t_evol:
-            fig_trend = dual_trend(
-                dto.monthly_trend_df,
-                theme_mode=state.theme_mode,
-                target_margin_pct=dto.kpis.margin_target_pct,
-            )
             st.plotly_chart(fig_trend, use_container_width=True)
         with t_wat:
-            fig_wat = waterfall_margin(dto.waterfall_df, theme_mode=state.theme_mode)
             st.plotly_chart(fig_wat, use_container_width=True)
 
     with col_diag_right:
-        _render_elasticity_overview_section(dto, state.scenario_id, theme_mode=state.theme_mode)
+        _render_elasticity_overview_section(fig_fam, fig_el)
 
     # 3. Faixa 3 — Base (Detalhamento & Plano de Ação em 2 Colunas lado a lado)
     col_act_left, col_act_right = st.columns([1.2, 1.0])
