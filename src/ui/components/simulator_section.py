@@ -6,7 +6,6 @@ import streamlit as st
 from src.services.dto import ExecutivePageDTO, SimulationLevers, SimulationResult
 from src.services.simulator import simulate
 from src.ui.cache import cached_family_elasticity, cached_simulation_baseline
-from src.ui.components.prescription import section_header
 from src.ui.components.simulator_charts import (
     profit_curve_chart,
     tornado_sensitivity_chart,
@@ -129,15 +128,6 @@ def _render_scenario_comparator(
 @st.fragment
 def render_what_if_quick_fragment(dto: ExecutivePageDTO, *, theme_mode: str = "light") -> None:
     """Fragmento prescritivo What-If com elasticidade real, Curva Lucro x Preço e Tornado."""
-    section_header(
-        "Simulador Prescritivo What-If",
-        "Elasticidade real por família, Breakeven, Curva Lucro x Preço e Tornado",
-        help_text=(
-            "Simulação vetorizada de sensibilidade financeira. Utiliza a elasticidade estimada em "
-            "mart_price_elasticity para projetar variação de volume e calcular o Volume de Equilíbrio."
-        ),
-    )
-
     elasticity_df = cached_family_elasticity(dto.scenario_id)
     family_opts = [_ALL_FAMILIES_OPT]
     if not elasticity_df.empty:

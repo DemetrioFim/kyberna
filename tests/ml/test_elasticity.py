@@ -168,4 +168,3 @@ def test_build_price_elasticity_mart_c1_dod_and_cli(
     cli_res = runner.invoke(app, ["ml", "elasticity", "--scenario", "c1_toys", "-b", "50"])
     assert cli_res.exit_code == 0, cli_res.output
     assert "Elasticidade-Preço estimada para 'c1_toys'" in cli_res.output
-

@@ -32,7 +32,7 @@ def test_temperance_page_full_render() -> None:
     assert "Ruptura Iminente (Curva A)" in all_markdown
 
     # Seções Estruturais e Veredito
-    assert "Decomposição da Margem Real" in all_markdown
+    assert "Decomposição da Erosão Comercial" in all_markdown
     assert "Auditoria de Política Comercial" in all_markdown
     assert "Gestão Prescritiva de Estoque" in all_markdown
     assert "Veredito de Temperança" in all_markdown

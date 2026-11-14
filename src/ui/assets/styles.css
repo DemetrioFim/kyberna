@@ -34,19 +34,64 @@
 
 .main .block-container,
 [data-testid="stMainBlockContainer"] {
-  padding-top: 1rem !important;
-  padding-bottom: 0.75rem !important;
-  padding-left: 1.5rem !important;
-  padding-right: 1.5rem !important;
+  padding-top: 0.55rem !important;
+  padding-bottom: 0.35rem !important;
+  padding-left: 1.35rem !important;
+  padding-right: 1.35rem !important;
   max-width: 100% !important;
 }
 
 [data-testid="stVerticalBlock"] {
-  gap: 0.55rem !important;
+  gap: 0.38rem !important;
 }
 
 header[data-testid="stHeader"] {
   background-color: transparent !important;
+  height: 2rem !important;
+  min-height: 2rem !important;
+  pointer-events: none !important;
+}
+
+header[data-testid="stHeader"] button,
+[data-testid="stSidebarCollapsedControl"] button,
+[data-testid="collapsedControl"] button {
+  pointer-events: auto !important;
+}
+
+/* Impede sobreposição da logo duplicada e do botão Deploy no topo do cockpit-header */
+header[data-testid="stHeader"] [data-testid="stLogo"],
+header[data-testid="stHeader"] img,
+[data-testid="stSidebarCollapsedControl"] [data-testid="stLogo"],
+[data-testid="stSidebarCollapsedControl"] img,
+[data-testid="collapsedControl"] [data-testid="stLogo"],
+[data-testid="collapsedControl"] img,
+[data-testid="stHeaderLogo"],
+[data-testid="stAppDeployButton"],
+.stDeployButton,
+[data-testid="stDecoration"] {
+  display: none !important;
+}
+
+/* Dimensionamento executivo da logo no topo da Sidebar (acima do menu) */
+[data-testid="stSidebarHeader"] {
+  min-height: 3.4rem !important;
+  padding: 0.6rem 0.9rem 0.35rem 0.9rem !important;
+  align-items: center !important;
+}
+
+section[data-testid="stSidebar"] [data-testid="stLogo"],
+[data-testid="stSidebarHeader"] img {
+  height: 2.55rem !important;
+  max-height: 2.55rem !important;
+  width: auto !important;
+  max-width: 205px !important;
+}
+
+/* Quando a sidebar está recolhida, abre recuo à esquerda para o botão >> não sobrepor o header */
+[data-testid="stAppViewContainer"]:has(section[data-testid="stSidebar"][aria-expanded="false"]) .cockpit-header,
+[data-testid="stAppViewContainer"]:has([data-testid="stSidebarCollapsedControl"]) .cockpit-header,
+[data-testid="stAppViewContainer"]:has([data-testid="stExpandSidebarButton"]) .cockpit-header {
+  margin-left: 2.35rem !important;
 }
 
 /* ==============================================================================
@@ -240,8 +285,8 @@ div[data-testid="stAlert"] * {
   border: 1px solid var(--kyb-border);
   border-left: 4px solid var(--kyb-teal);
   border-radius: 8px;
-  padding: 0.55rem 0.95rem;
-  margin-bottom: 0.55rem;
+  padding: 0.42rem 0.85rem;
+  margin-bottom: 0.48rem;
   box-shadow: var(--kyb-shadow);
 }
 
@@ -280,15 +325,20 @@ div[data-testid="stAlert"] * {
 }
 
 .cockpit-headline-pill {
-  font-size: 0.76rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.74rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--kyb-teal);
   background: rgba(31, 122, 140, 0.08);
-  padding: 0.15rem 0.55rem;
+  padding: 0.12rem 0.5rem;
   border-radius: 4px;
   border: 1px solid rgba(31, 122, 140, 0.2);
+  margin-right: 0.45rem;
+  vertical-align: middle;
 }
 
 .cockpit-date-tag {
@@ -297,7 +347,11 @@ div[data-testid="stAlert"] * {
 }
 
 .cockpit-header-bottom {
-  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  font-size: 0.81rem;
   color: var(--kyb-text);
   line-height: 1.35;
 }
@@ -310,11 +364,11 @@ div[data-testid="stAlert"] * {
   background-color: var(--kyb-card-bg);
   border: 1px solid var(--kyb-border);
   border-radius: 8px;
-  padding: 0.65rem 0.9rem;
+  padding: 0.5rem 0.8rem;
   box-shadow: var(--kyb-shadow);
   position: relative;
   overflow: visible;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.12rem;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -327,6 +381,35 @@ div[data-testid="stAlert"] * {
 .kpi-card-brass { border-top: 3px solid var(--kyb-brass); }
 .kpi-card-pos { border-top: 3px solid var(--kyb-pos); }
 .kpi-card-neg { border-top: 3px solid var(--kyb-neg); }
+.kpi-card-alert-neg {
+  border-top: 3px solid var(--kyb-neg);
+  border-left: 4px solid var(--kyb-neg);
+  background: linear-gradient(135deg, rgba(209, 73, 91, 0.06) 0%, var(--kyb-card-bg) 55%);
+}
+.kpi-card-alert-warn {
+  border-top: 3px solid var(--kyb-warn);
+  border-left: 4px solid var(--kyb-warn);
+  background: linear-gradient(135deg, rgba(229, 159, 58, 0.06) 0%, var(--kyb-card-bg) 55%);
+}
+.kpi-alert-badge {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.08rem 0.35rem;
+  border-radius: 4px;
+  margin-left: 0.3rem;
+  vertical-align: middle;
+}
+.kpi-alert-badge-neg {
+  background-color: rgba(209, 73, 91, 0.14);
+  color: var(--kyb-neg);
+}
+.kpi-alert-badge-warn {
+  background-color: rgba(229, 159, 58, 0.16);
+  color: var(--kyb-warn);
+}
 
 .kpi-header {
   display: flex;
@@ -589,9 +672,8 @@ div[data-testid="stTooltipIcon"] {
   vertical-align: middle !important;
 }
 
-[data-testid="stTooltipHoverTarget"],
-button[data-testid="stTooltipHoverTarget"],
-.stTooltipIcon {
+div[data-testid="stTooltipIcon"] > button,
+button[data-testid="stTooltipHoverTarget"] {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -611,24 +693,19 @@ button[data-testid="stTooltipHoverTarget"],
   vertical-align: middle !important;
 }
 
-[data-testid="stTooltipHoverTarget"]:hover,
-button[data-testid="stTooltipHoverTarget"]:hover,
-.stTooltipIcon:hover {
+div[data-testid="stTooltipIcon"] > button:hover,
+button[data-testid="stTooltipHoverTarget"]:hover {
   background-color: var(--kyb-teal) !important;
   color: var(--kyb-card-bg) !important;
   border-color: var(--kyb-teal) !important;
   box-shadow: 0 0 0 2px rgba(31, 122, 140, 0.2) !important;
 }
 
-[data-testid="stTooltipHoverTarget"] svg,
-button[data-testid="stTooltipHoverTarget"] svg,
-.stTooltipIcon svg {
+div[data-testid="stTooltipIcon"] svg {
   display: none !important;
 }
 
-[data-testid="stTooltipHoverTarget"]::after,
-button[data-testid="stTooltipHoverTarget"]::after,
-.stTooltipIcon::after {
+button[data-testid="stTooltipHoverTarget"]::after {
   content: "ⓘ" !important;
   font-size: 0.72rem !important;
   font-weight: 700 !important;
@@ -637,9 +714,7 @@ button[data-testid="stTooltipHoverTarget"]::after,
   font-family: inherit !important;
 }
 
-[data-testid="stTooltipHoverTarget"]:hover::after,
-button[data-testid="stTooltipHoverTarget"]:hover::after,
-.stTooltipIcon:hover::after {
+button[data-testid="stTooltipHoverTarget"]:hover::after {
   color: var(--kyb-card-bg) !important;
 }
 

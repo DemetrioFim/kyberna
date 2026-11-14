@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pandas as pd
 import streamlit as st
 
 from src.services.dto import FortitudePageDTO
@@ -9,22 +8,14 @@ from src.ui.components.prescription import render_prescription_box
 from src.ui.formatting import format_brl
 
 
-def _fmt_brl(val: object) -> str:
-    if isinstance(val, (int, float)) and not pd.isna(val):
-        return format_brl(float(val), compact=False, decimals=0)
-    return "—"
-
-
-def _fmt_pct(val: object) -> str:
-    if isinstance(val, (int, float)) and not pd.isna(val):
-        return f"{float(val):.1f}%"
-    return "—"
-
-
-def _fmt_ratio(val: object) -> str:
-    if isinstance(val, (int, float)) and not pd.isna(val):
-        return f"{float(val):.2f}x"
-    return "—"
+def _style_aging_stage(val: object) -> str:
+    """Destaca severidade do estagio de atraso com cor de fundo suave."""
+    txt = str(val)
+    if "Crítico" in txt:
+        return "background-color: rgba(209, 73, 91, 0.14); color: #D1495B; font-weight: 600;"
+    if "Risco" in txt or "Atenção" in txt:
+        return "background-color: rgba(229, 159, 58, 0.16); color: #B45309; font-weight: 600;"
+    return ""
 
 
 def render_fortitude_kpi_cards(dto: FortitudePageDTO) -> None:
@@ -43,7 +34,7 @@ def render_fortitude_kpi_cards(dto: FortitudePageDTO) -> None:
                 if runway_ok
                 else f"Abaixo meta ({k.cash_reserve_target_months:.1f}m)"
             ),
-            accent="green" if runway_ok else "red",
+            accent="green" if runway_ok else "alert_neg",
             help_text=(
                 "Meses de cobertura dos custos fixos pela reserva operacional caso o faturamento zere "
                 "(Reserva de Caixa / Custo Fixo Mensal)."
@@ -57,7 +48,7 @@ def render_fortitude_kpi_cards(dto: FortitudePageDTO) -> None:
             value=f"Dia {k.breakeven_day_of_month}",
             subfooter_left=f"Meta: {format_brl(k.breakeven_revenue_brl, compact=True, decimals=1)}/mês",
             delta_html=f"Folga operacional: {slack_days}d",
-            accent="teal" if k.breakeven_day_of_month <= 22 else "brass",
+            accent="teal" if k.breakeven_day_of_month <= 22 else "alert_warn",
             help_text=(
                 "Dia do mês em que a Margem de Contribuição acumulada cobre 100% dos Custos Fixos "
                 "(Custo Fixo / Margem % sobre Receita Bruta)."
@@ -66,9 +57,9 @@ def render_fortitude_kpi_cards(dto: FortitudePageDTO) -> None:
 
     with c3:
         ccc_accent: KpiAccent = (
-            "red"
+            "alert_neg"
             if k.cash_conversion_cycle_days > 75.0
-            else "brass"
+            else "alert_warn"
             if k.cash_conversion_cycle_days > 50.0
             else "teal"
         )
@@ -91,7 +82,7 @@ def render_fortitude_kpi_cards(dto: FortitudePageDTO) -> None:
             value=f"{k.top5_customers_share_pct:.1f}%",
             subfooter_left=f"Top 10: {k.top10_customers_share_pct:.1f}%",
             delta_html=f"Top 2 fam.: {k.top2_families_share_pct:.1f}%",
-            accent="brass" if conc_high else "teal",
+            accent="alert_warn" if conc_high else "teal",
             help_text=(
                 "Percentual da receita líquida dos últimos 12 meses concentrado nos 5 maiores "
                 "clientes. Acima de 35% eleva o risco de ruptura comercial."
@@ -99,7 +90,7 @@ def render_fortitude_kpi_cards(dto: FortitudePageDTO) -> None:
         )
 
     with c5:
-        risk_accent: KpiAccent = "red" if k.at_risk_portfolio_pct >= 20.0 else "brass"
+        risk_accent: KpiAccent = "alert_neg" if k.at_risk_portfolio_pct >= 20.0 else "alert_warn"
         render_kpi_card(
             title="Carteira em Risco (>1,5x)",
             value=format_brl(k.at_risk_portfolio_brl, compact=True, decimals=1),
@@ -140,8 +131,19 @@ def render_aging_customers_table(dto: FortitudePageDTO) -> None:
             "revenue_12m_brl": "Receita 12m",
         }
     )
-    styled = view.style.format({"Atraso": _fmt_ratio, "Receita 12m": _fmt_brl})
-    st.dataframe(styled, height=210, hide_index=True, use_container_width=True)
+    styled = view.style.map(_style_aging_stage, subset=["Estágio Aging"])
+    st.dataframe(
+        styled,
+        height=185,
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            "UF": st.column_config.TextColumn("UF", width="small"),
+            "Atraso": st.column_config.NumberColumn("Atraso", format="%.2fx"),
+            "Dias s/ Compra": st.column_config.NumberColumn("Dias s/ Compra", format="%d d"),
+            "Receita 12m": st.column_config.NumberColumn("Receita 12m", format="R$ %.0f"),
+        },
+    )
 
 
 def render_concentration_tables(dto: FortitudePageDTO) -> None:
@@ -171,15 +173,19 @@ def render_concentration_tables(dto: FortitudePageDTO) -> None:
             "cum_share_pct": "% Acum.",
         }
     )
-    styled = view.style.format(
-        {
-            "Receita 12m": _fmt_brl,
-            "Margem 12m": _fmt_brl,
-            "% Base": _fmt_pct,
-            "% Acum.": _fmt_pct,
-        }
+    st.dataframe(
+        view,
+        height=185,
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            "Porte": st.column_config.TextColumn("Porte", width="small"),
+            "Receita 12m": st.column_config.NumberColumn("Receita 12m", format="R$ %.0f"),
+            "Margem 12m": st.column_config.NumberColumn("Margem 12m", format="R$ %.0f"),
+            "% Base": st.column_config.NumberColumn("% Base", format="%.1f%%"),
+            "% Acum.": st.column_config.NumberColumn("% Acum.", format="%.1f%%"),
+        },
     )
-    st.dataframe(styled, height=210, hide_index=True, use_container_width=True)
 
 
 def render_fortitude_verdict_section(dto: FortitudePageDTO) -> None:

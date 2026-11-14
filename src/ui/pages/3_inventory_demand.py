@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.core.scenarios import load_scenario_config
 from src.ui.cache import cached_inventory_dashboard, cached_temperance_dashboard
-from src.ui.components.charts import abc_xyz_heatmap, waterfall_margin
+from src.ui.components.inventory_charts import abc_xyz_heatmap, erosion_breakdown_chart
 from src.ui.components.prescription import render_cockpit_header, section_header
 from src.ui.components.temperance_inventory_section import (
     render_locked_capital_treemap_tab,
@@ -24,7 +23,6 @@ from src.ui.state import get_app_state
 def render_page() -> None:
     """Renderiza a Página 4 — Temperança em formato Cockpit Z-Pattern (1080p sem scroll)."""
     state = get_app_state()
-    scenario_cfg = load_scenario_config(state.scenario_id)
     theme_mode = state.theme_mode
 
     dto = cached_temperance_dashboard(
@@ -44,7 +42,7 @@ def render_page() -> None:
     # 1. Faixa 1 — Topo (Status em 5s): Cabeçalho Cockpit unificado + 5 KPI Cards
     render_cockpit_header(
         title="Eficiência Operacional & Capital de Giro",
-        subtitle=f"{scenario_cfg.display_name} ({scenario_cfg.company_profile})",
+        subtitle="",
         virtue_badge="4. Temperança",
         headline_title=dto.headline_title,
         headline_text=dto.headline_text,
@@ -54,21 +52,21 @@ def render_page() -> None:
             "de tabela e valor imobilizado em produtos com giro superior a 120 dias."
         ),
     )
-    render_temperance_kpi_cards(dto)
+    render_temperance_kpi_cards(dto, inv_dto=inv_dto)
 
     # 2. Faixa 2 — Meio (Diagnóstico Visual em 2 Colunas lado a lado)
     col_diag_left, col_diag_right = st.columns([1.0, 1.0])
 
     with col_diag_left:
         section_header(
-            "Decomposição da Margem Real",
-            "Do faturamento bruto até o lucro líquido no bolso com % de perda em cada degrau",
-            help_text="Deduções da receita bruta. As barras exibem o valor e a % do faturamento bruto.",
+            "Decomposição da Erosão Comercial",
+            "Onde a margem vaza: descontos fora do teto, prazo esticado, comissões e frete",
+            help_text="Detalhamento exclusivo dos componentes de erosão comercial para priorização de corte.",
         )
-        t_wat, t_rep = st.tabs(["Waterfall da Margem Real", "Top RCAs por Desconto Fora do Teto"])
+        t_wat, t_rep = st.tabs(["Erosão por Alavanca", "Top RCAs por Desconto Fora do Teto"])
         with t_wat:
-            fig_wat = waterfall_margin(dto.waterfall_df, theme_mode=theme_mode)
-            st.plotly_chart(fig_wat, use_container_width=True)
+            fig_erosion = erosion_breakdown_chart(dto.kpis, theme_mode=theme_mode)
+            st.plotly_chart(fig_erosion, use_container_width=True)
         with t_rep:
             if not dto.policy_violations_by_rep_df.empty:
                 fig_rep = render_violations_rep_chart(dto.policy_violations_by_rep_df, theme_mode=theme_mode)
@@ -108,9 +106,14 @@ def render_page() -> None:
             "Ações imediatas para estancar sangrias e destravar capital",
             help_text="Detalhamento operacional de estoques e auditoria de políticas comerciais.",
         )
+        stockout_tab_count = (
+            inv_dto.kpis.stockout_risk_skus_count
+            if inv_dto.kpis.stockout_risk_skus_count > 0
+            else dto.kpis.stockout_risk_skus_count
+        )
         t_rup, t_lock, t_audit = st.tabs(
             [
-                f"Ruptura Iminente ({dto.kpis.stockout_risk_skus_count} SKUs)",
+                f"Ruptura Iminente ({stockout_tab_count} SKUs)",
                 f"Capital Travado >120d ({dto.kpis.locked_skus_count} SKUs)",
                 "Auditoria de Política Comercial",
             ]

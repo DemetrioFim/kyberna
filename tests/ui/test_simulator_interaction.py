@@ -61,4 +61,3 @@ def test_simulator_slider_latency_and_scenario_comparison() -> None:
     clear_btn.click().run()
     assert not at.exception
     assert len(at.session_state.saved_simulations) == 0
-

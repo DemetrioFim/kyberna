@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.core.scenarios import load_scenario_config
 from src.ui.cache import cached_fortitude_dashboard
 from src.ui.components.fortitude_charts import (
     build_aging_buckets_chart,
@@ -17,14 +16,12 @@ from src.ui.components.fortitude_sections import (
     render_fortitude_verdict_section,
 )
 from src.ui.components.prescription import render_cockpit_header, section_header
-from src.ui.formatting import format_brl
 from src.ui.state import get_app_state
 
 
 def render_page() -> None:
     """Renderiza a Página 2 — Fortaleza em formato Cockpit Z-Pattern (1080p sem scroll)."""
     state = get_app_state()
-    scenario_cfg = load_scenario_config(state.scenario_id)
     theme_mode = state.theme_mode
 
     dto = cached_fortitude_dashboard(
@@ -36,18 +33,11 @@ def render_page() -> None:
     )
 
     # 1. Faixa 1 — Topo (Status em 5s): Cabeçalho Cockpit unificado + 5 KPI Cards
-    k = dto.kpis
     render_cockpit_header(
         title="Fortaleza · Solvência & Resiliência do Caixa",
-        subtitle=(
-            f"{scenario_cfg.display_name} · Fat./Mês "
-            f"{format_brl(k.monthly_gross_revenue_brl, compact=True, decimals=1)} · "
-            f"Custo Fixo/Mês {format_brl(k.fixed_costs_monthly_brl, compact=True, decimals=1)}"
-        ),
         virtue_badge="2. Fortaleza",
         headline_title=dto.headline_title,
         headline_text=dto.headline_text,
-        period_badge=f"Janela 12m · {k.active_customers_count} clientes ativos",
         as_of_date_label=dto.as_of_date_label,
         help_text=(
             "Síntese da saúde de caixa: compara fôlego de reserva (Runway), dia do Ponto de Equilíbrio, "

@@ -3,8 +3,7 @@ from __future__ import annotations
 import streamlit as st
 
 from src.services.dto import ExecutivePageDTO
-from src.ui.components.kpi_card import render_kpi_card
-from src.ui.components.prescription import section_header
+from src.ui.components.kpi_card import KpiAccent, render_kpi_card
 from src.ui.formatting import (
     format_brl,
     format_int,
@@ -64,12 +63,15 @@ def render_prudence_kpis(dto: ExecutivePageDTO, customer_plural: str) -> None:
 
     with col4:
         margin_delta = get_delta_html(dto.kpis.margin_pct_delta_pp, kind="pp")
+        margin_accent: KpiAccent = (
+            "alert_warn" if dto.kpis.contribution_margin_pct < dto.kpis.margin_target_pct else "gold"
+        )
         render_kpi_card(
             title="Margem Líquida %",
             value=format_pct(dto.kpis.contribution_margin_pct),
             subfooter_left=f"Meta: {dto.kpis.margin_target_pct:.1f}%",
             delta_html=margin_delta,
-            accent="gold",
+            accent=margin_accent,
             help_text=(
                 "Índice de rentabilidade real (Margem de Contribuição ÷ Faturamento Bruto). "
                 f"Meta estipulada de governança: {dto.kpis.margin_target_pct:.1f}%."
@@ -78,12 +80,13 @@ def render_prudence_kpis(dto: ExecutivePageDTO, customer_plural: str) -> None:
 
     with col5:
         cust_delta = get_delta_html(dto.kpis.active_customers_delta_pct, kind="pct", invert_color=False)
+        cust_accent: KpiAccent = "alert_warn" if (dto.kpis.active_customers_delta_pct or 0.0) < 0 else "teal"
         render_kpi_card(
             title=f"{customer_plural} Ativos",
             value=format_int(dto.kpis.active_customers),
             subfooter_left=f"Ticket: {format_brl(dto.kpis.avg_ticket, compact=True)}",
             delta_html=cust_delta,
-            accent="red",
+            accent=cust_accent,
             help_text=(
                 f"Quantidade de {customer_plural.lower()} distintos com pedido faturado.<br><br>"
                 f"<strong>Projeção 30d:</strong> "
@@ -93,24 +96,16 @@ def render_prudence_kpis(dto: ExecutivePageDTO, customer_plural: str) -> None:
 
 
 def render_prudence_anomalies_section(dto: ExecutivePageDTO) -> None:
-    """Renderiza a seção do Radar de Anomalias e alertas de governança."""
-    section_header(
-        "Radar de Anomalias & Desvios da Semana",
-        "Detecção estatística automática de descontos fora da política, margem comprimida e risco",
-        help_text=(
-            "Monitoramento contínuo de exceções nas vendas que ameaçam a entrega da meta de margem "
-            "ou indicam quebra de disciplina comercial antes do fechamento do mês."
-        ),
-    )
-
+    """Renderiza os principais alertas do Radar de Anomalias lado a lado em formato compacto."""
     if dto.anomalies_df is None or dto.anomalies_df.empty:
         st.info(
             "Nenhuma anomalia crítica detectada no período. Parâmetros operacionais dentro da normalidade."
         )
         return
 
-    df_anom = dto.anomalies_df.copy()
-    for row in df_anom.to_dict(orient="records"):
+    records = dto.anomalies_df.head(2).to_dict(orient="records")
+    cols = st.columns(len(records))
+    for col, row in zip(cols, records, strict=False):
         sev = str(row.get("severity", "Média"))
         cat = str(row.get("category", "Geral"))
         title = str(row.get("title", ""))
@@ -127,42 +122,33 @@ def render_prudence_anomalies_section(dto: ExecutivePageDTO) -> None:
 
         card_top = (
             '<div style="display: flex; justify-content: space-between; align-items: center; '
-            'margin-bottom: 0.2rem;">'
-            f'<span style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; '
+            'gap: 0.35rem; margin-bottom: 0.2rem;">'
+            f'<span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; '
             f'color: {color_border};">[{sev}] {cat}</span>'
-            f'<span style="font-size: 0.82rem; font-weight: 600; color: var(--kyb-text);">'
-            f"Impacto Est.: {format_brl(impact, compact=True)}</span>"
+            f'<span style="font-size: 0.76rem; font-weight: 600; color: var(--kyb-text);">'
+            f"{format_brl(impact, compact=True)}</span>"
             "</div>"
         )
         card_html = (
             f'<div style="background: var(--kyb-card-bg); border-left: 4px solid {color_border}; '
             "border-top: 1px solid var(--kyb-border); border-right: 1px solid var(--kyb-border); "
-            "border-bottom: 1px solid var(--kyb-border); border-radius: 6px; padding: 0.6rem 0.85rem; "
-            'margin-bottom: 0.5rem;">'
+            "border-bottom: 1px solid var(--kyb-border); border-radius: 6px; padding: 0.45rem 0.65rem; "
+            'height: 100%;">'
             f"{card_top}"
-            f'<div style="font-size: 0.9rem; font-weight: 600; color: var(--kyb-text); '
-            f'margin-bottom: 0.15rem;">{title}</div>'
-            f'<div style="font-size: 0.82rem; color: var(--kyb-text-muted);">'
-            f"<strong>Recomendação:</strong> {rec}</div>"
+            f'<div style="font-size: 0.83rem; font-weight: 600; color: var(--kyb-text); '
+            f'margin-bottom: 0.15rem; line-height: 1.25;">{title}</div>'
+            f'<div style="font-size: 0.76rem; color: var(--kyb-text-muted); line-height: 1.3;">'
+            f"<strong>Ação:</strong> {rec}</div>"
             "</div>"
         )
-        st.markdown(card_html, unsafe_allow_html=True)
+        with col:
+            st.markdown(card_html, unsafe_allow_html=True)
 
 
 def render_monthly_sales_table_section(dto: ExecutivePageDTO) -> None:
     """Renderiza a tabela detalhada de vendas mês a mês para conferência analítica."""
     if dto.monthly_sales_table_df is None or dto.monthly_sales_table_df.empty:
         return
-
-    section_header(
-        "Demonstrativo de Vendas Mensal (Mês a Mês)",
-        "Acompanhamento detalhado da evolução do faturamento bruto, receita líquida e margem de contribuição",
-        help_text=(
-            "Detalhamento histórico mês a mês das vendas com volume físico (unidades e caixas), "
-            "faturamento bruto, descontos médios concedidos, receita líquida faturada, "
-            "margem de contribuição (R$ e %) e variação mensal MoM%."
-        ),
-    )
 
     df_view = dto.monthly_sales_table_df.copy()
     rename_map = {
@@ -187,7 +173,7 @@ def render_monthly_sales_table_section(dto: ExecutivePageDTO) -> None:
     st.dataframe(
         df_display,
         use_container_width=True,
-        height=210,
+        height=185,
         column_config={
             "Fat. Bruto (R$)": st.column_config.NumberColumn("Fat. Bruto", format="R$ %.2f"),
             "Δ Fat. MoM %": st.column_config.NumberColumn("Δ Fat. MoM", format="%.1f%%"),

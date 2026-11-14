@@ -26,31 +26,41 @@ def waterfall_margin(
         fig.update_layout(template=template_name, title="Sem dados para o Waterfall")
         return fig
 
-    # Textos dos valores para exibição direta nas barras (vetorizado com suporte a % de receita bruta)
+    text_values = [format_brl(float(val), compact=True, decimals=1) for val in steps_df["amount"]]
     if "pct_of_gross" in steps_df.columns:
-        text_values = [
-            f"{format_brl(float(val), compact=True, decimals=1)} ({float(pct):.1f}%)"
-            if m == "relative"
-            else format_brl(float(val), compact=True, decimals=1)
-            for val, pct, m in zip(
-                steps_df["amount"],
-                steps_df["pct_of_gross"],
-                steps_df["measure"],
-                strict=False,
-            )
+        hover_extra = [
+            f"{abs(float(pct)):.1f}% do Faturamento Bruto" if m == "relative" else "Marco DRE"
+            for pct, m in zip(steps_df["pct_of_gross"], steps_df["measure"], strict=False)
         ]
     else:
-        text_values = [format_brl(float(val), compact=True, decimals=1) for val in steps_df["amount"]]
+        hover_extra = ["Subtotal / Base" if m != "relative" else "Dedução" for m in steps_df["measure"]]
+
+    short_x_map = {
+        "1. Faturamento Bruto": "1. Fat.<br>Bruto",
+        "2. Descontos Comerciais": "2. Desc.",
+        "3. Receita Faturada": "3. Rec.<br>Faturada",
+        "4. Impostos (ICMS/PIS/COFINS)": "4. Impostos",
+        "5. Receita Líquida": "5. Rec.<br>Líquida",
+        "6. CPV (Custo Mercadoria)": "6. CPV",
+        "7. Comissões RCA": "7. Comiss.",
+        "8. Frete CIF Expedição": "8. Frete<br>CIF",
+        "9. Margem Contribuição": "9. Margem<br>Contrib.",
+    }
+    x_labels = [short_x_map.get(str(lbl), str(lbl)) for lbl in steps_df["label"].tolist()]
 
     fig = go.Figure(
         go.Waterfall(
             name="Waterfall",
             orientation="v",
             measure=steps_df["measure"].tolist(),
-            x=steps_df["label"].tolist(),
+            x=x_labels,
             y=steps_df["amount"].tolist(),
             text=text_values,
+            customdata=hover_extra,
             textposition="outside",
+            textfont={"size": 11},
+            cliponaxis=False,
+            hovertemplate="<b>%{x}</b><br>Valor: R$ %{y:,.2f}<br>%{customdata}<extra></extra>",
             connector={"line": {"color": tokens["border_subtle"], "width": 1.5, "dash": "dot"}},
             increasing={"marker": {"color": tokens["teal_500"]}},
             decreasing={"marker": {"color": tokens["negative"]}},
@@ -62,8 +72,9 @@ def waterfall_margin(
         template=template_name,
         title=None,
         showlegend=False,
-        height=280,
-        margin={"l": 25, "r": 20, "t": 15, "b": 25},
+        height=245,
+        margin={"l": 16, "r": 16, "t": 22, "b": 24},
+        xaxis={"tickangle": 0, "tickfont": {"size": 10}},
         yaxis={"showgrid": False, "showticklabels": False, "title": ""},
         waterfallgap=0.25,
     )
@@ -136,9 +147,17 @@ def dual_trend(
             line_color=tokens["warning"],
             line_width=2,
             annotation_text=f"Meta: {target_margin_pct:.1f}%",
-            annotation_position="top right",
+            annotation_position="top left",
+            annotation_yshift=8,
+            annotation_bgcolor=tokens["surface_card"],
+            annotation_borderpad=2,
             annotation_font_color=tokens["warning"],
         )
+
+    m_min = float(monthly_df["margin_pct"].min())
+    m_max = float(monthly_df["margin_pct"].max())
+    y2_low = min(15.0, m_min - 3.0)
+    y2_high = max(35.0, m_max + 3.0)
 
     fig.update_layout(
         template=template_name,
@@ -148,98 +167,67 @@ def dual_trend(
             "title": "Margem (%)",
             "side": "right",
             "overlaying": "y",
+            "range": [y2_low, y2_high],
+            "tickformat": ".1f",
             "ticksuffix": "%",
             "showgrid": False,
         },
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1},
-        height=280,
-        margin={"l": 30, "r": 35, "t": 35, "b": 25},
+        height=245,
+        margin={"l": 24, "r": 32, "t": 28, "b": 18},
     )
     return fig
 
 
-def abc_xyz_heatmap(
-    matrix_df: pd.DataFrame,
+def family_margin_chart(
+    skus_df: pd.DataFrame,
     theme_mode: str = "light",
-    selected_cell: str | None = None,
 ) -> go.Figure:
-    """Gera o mapa de calor da Matriz 3x3 ABC/XYZ com políticas prescritivas operacionais.
-
-    Espera DataFrame com colunas:
-        - `abc_class`: 'A', 'B', 'C'.
-        - `xyz_class`: 'X', 'Y', 'Z'.
-        - `sku_count`: Quantidade de produtos na célula.
-        - `margin_share_pct`: Participação percentual na margem de contribuição.
-        - `recommended_policy`: Política operacional resumida.
-    """
+    """Gera barras horizontais de Margem de Contribuição (R$ e %) por Família (Tela 1)."""
+    tokens = get_theme_tokens(theme_mode)
     template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
+    if skus_df.empty or "family" not in skus_df.columns:
+        fig = go.Figure()
+        fig.update_layout(template=template_name, title=None, height=245)
+        return fig
 
-    abc_classes = ["A", "B", "C"]
-    xyz_classes = ["X", "Y", "Z"]
+    agg = skus_df.groupby("family", as_index=False).agg(
+        gross_revenue=("gross_revenue", "sum"),
+        contribution_margin=("contribution_margin", "sum"),
+    )
+    agg["margin_pct"] = (
+        agg["contribution_margin"] / agg["gross_revenue"].replace(0.0, float("nan")) * 100.0
+    ).fillna(0.0)
+    agg = agg.sort_values("contribution_margin", ascending=True).reset_index(drop=True)
 
-    # Cria matrizes 3x3 para z (valores de cor) e texto anotado
-    z_values: list[list[float]] = []
-    text_matrix: list[list[str]] = []
-
-    for abc in abc_classes:
-        z_row: list[float] = []
-        text_row: list[str] = []
-        for xyz in xyz_classes:
-            cell_code = f"{abc}{xyz}"
-            match = matrix_df[(matrix_df["abc_class"] == abc) & (matrix_df["xyz_class"] == xyz)]
-            if not match.empty:
-                sku_cnt = int(match["sku_count"].iloc[0])
-                m_share = float(match["margin_share_pct"].iloc[0])
-                policy = str(match["recommended_policy"].iloc[0])
-                # Trunca política longa para exibição compacta
-                short_policy = policy.split("/", maxsplit=1)[0].strip() if "/" in policy else policy[:30]
-
-                is_sel = selected_cell == cell_code
-                sel_marker = " (Selecionado)" if is_sel else ""
-
-                text_row.append(
-                    f"<b>{cell_code}</b>{sel_marker}<br>"
-                    f"<b>{sku_cnt} SKUs</b> ({m_share:.1f}% MC)<br>"
-                    f"<i>{short_policy}</i>"
-                )
-                z_row.append(m_share)
-            else:
-                text_row.append(f"<b>{cell_code}</b><br>0 SKUs<br>—")
-                z_row.append(0.0)
-
-        z_values.append(z_row)
-        text_matrix.append(text_row)
-
+    texts = [
+        f"{format_brl(float(cm), compact=True, decimals=1)} ({float(mp):.1f}%)"
+        for cm, mp in zip(agg["contribution_margin"], agg["margin_pct"], strict=False)
+    ]
     fig = go.Figure(
-        data=go.Heatmap(
-            z=z_values,
-            x=xyz_classes,
-            y=abc_classes,
-            text=text_matrix,
-            texttemplate="%{text}",
-            colorscale="Teal" if theme_mode == "light" else "Blues",
-            showscale=False,
-            hoverongaps=False,
+        go.Bar(
+            y=agg["family"].tolist(),
+            x=agg["contribution_margin"].tolist(),
+            orientation="h",
+            marker_color=tokens["teal_500"],
+            text=texts,
+            textposition="outside",
+            cliponaxis=False,
+            customdata=agg["gross_revenue"].tolist(),
+            hovertemplate=(
+                "<b>%{y}</b><br>Margem Contrib.: R$ %{x:,.2f}"
+                "<br>Fat. Bruto: R$ %{customdata:,.2f}<extra></extra>"
+            ),
         )
     )
-
+    max_x = max(float(agg["contribution_margin"].max()) * 1.32, 1.0)
     fig.update_layout(
         template=template_name,
         title=None,
-        xaxis={
-            "tickmode": "array",
-            "tickvals": ["X", "Y", "Z"],
-            "ticktext": ["X · Regular", "Y · Sazonal", "Z · Intermitente"],
-            "title": None,
-        },
-        yaxis={
-            "tickmode": "array",
-            "tickvals": ["A", "B", "C"],
-            "ticktext": ["Classe A (80%)", "Classe B (15%)", "Classe C (5%)"],
-            "title": None,
-        },
-        height=280,
-        margin={"l": 20, "r": 20, "t": 10, "b": 25},
+        height=245,
+        margin={"l": 16, "r": 24, "t": 14, "b": 18},
+        xaxis={"title": "Margem de Contribuição (R$)", "range": [0, max_x]},
+        yaxis={"title": None},
     )
     return fig
 
@@ -301,15 +289,30 @@ def quadrant_scatter(
     else:
         marker_kwargs["size"] = 12
 
+    extreme_idxs: set[object] = {
+        df[x_col].idxmax(),
+        df[y_col].idxmin(),
+        df[y_col].idxmax(),
+    }
+    if size_col and size_col in df.columns:
+        extreme_idxs.add(df[size_col].idxmax())
+
+    display_labels = [
+        str(lbl)[:18] if idx in extreme_idxs else ""
+        for idx, lbl in zip(df.index, df[label_col], strict=False)
+    ]
+
     scatter_trace = go.Scatter(
         x=df[x_col],
         y=df[y_col],
         mode="markers+text",
-        text=df[label_col],
+        text=display_labels,
         textposition="top center",
+        textfont={"size": 10, "color": tokens["text_primary"]},
+        customdata=df[label_col],
         marker=marker_kwargs,
         hovertemplate=(
-            f"<b>%{{text}}</b><br>{x_col}: %{{x:,.2f}}<br>{y_col}: %{{y:,.1f}}%<br><extra></extra>"
+            f"<b>%{{customdata}}</b><br>{x_col}: %{{x:,.2f}}<br>{y_col}: %{{y:,.1f}}%<br><extra></extra>"
         ),
     )
 
@@ -335,51 +338,26 @@ def quadrant_scatter(
 
     # Anotações sutis de cada quadrante
     text_color = tokens.get("text_muted", "#64748b")
+    quadrant_labels = (
+        (0.98, 0.98, "right", "top", "Estrela", "Alto Vol. · Alta Margem"),
+        (0.98, 0.02, "right", "bottom", "Volume sem Margem", "Alto Vol. · Baixa Margem"),
+        (0.02, 0.98, "left", "top", "Margem sem Volume", "Baixo Vol. · Alta Margem"),
+        (0.02, 0.02, "left", "bottom", "Atenção", "Baixo Vol. · Baixa Margem"),
+    )
     annotations = [
         go.layout.Annotation(
             xref="paper",
             yref="paper",
-            x=0.98,
-            y=0.98,
-            xanchor="right",
-            yanchor="top",
-            text="<b>Estrela</b><br><span style='font-size:10px;'>Alto Vol. · Alta Margem</span>",
+            x=qx,
+            y=qy,
+            xanchor=x_anchor,
+            yanchor=y_anchor,
+            text=f"<b>{q_title}</b><br><span style='font-size:10px;'>{q_sub}</span>",
             showarrow=False,
+            opacity=0.62,
             font={"size": 11, "color": text_color},
-        ),
-        go.layout.Annotation(
-            xref="paper",
-            yref="paper",
-            x=0.98,
-            y=0.02,
-            xanchor="right",
-            yanchor="bottom",
-            text="<b>Volume sem Margem</b><br><span style='font-size:10px;'>Alto Vol. · Baixa Margem</span>",
-            showarrow=False,
-            font={"size": 11, "color": text_color},
-        ),
-        go.layout.Annotation(
-            xref="paper",
-            yref="paper",
-            x=0.02,
-            y=0.98,
-            xanchor="left",
-            yanchor="top",
-            text="<b>Margem sem Volume</b><br><span style='font-size:10px;'>Baixo Vol. · Alta Margem</span>",
-            showarrow=False,
-            font={"size": 11, "color": text_color},
-        ),
-        go.layout.Annotation(
-            xref="paper",
-            yref="paper",
-            x=0.02,
-            y=0.02,
-            xanchor="left",
-            yanchor="bottom",
-            text="<b>Atenção</b><br><span style='font-size:10px;'>Baixo Vol. · Baixa Margem</span>",
-            showarrow=False,
-            font={"size": 11, "color": text_color},
-        ),
+        )
+        for qx, qy, x_anchor, y_anchor, q_title, q_sub in quadrant_labels
     ]
 
     fig.update_layout(
@@ -389,7 +367,7 @@ def quadrant_scatter(
         yaxis_title=final_y_title,
         annotations=annotations,
         showlegend=False,
-        height=280,
-        margin={"l": 30, "r": 30, "t": 15, "b": 35},
+        height=245,
+        margin={"l": 24, "r": 24, "t": 14, "b": 28},
     )
     return fig

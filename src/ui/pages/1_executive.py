@@ -4,10 +4,10 @@ import streamlit as st
 
 from src.core.scenarios import load_scenario_config
 from src.services.dto import ExecutivePageDTO
-from src.ui.cache import cached_executive_dashboard
+from src.ui.cache import cached_executive_dashboard, cached_family_elasticity
 from src.ui.components.charts import (
-    abc_xyz_heatmap,
     dual_trend,
+    family_margin_chart,
     waterfall_margin,
 )
 from src.ui.components.prescription import (
@@ -20,6 +20,7 @@ from src.ui.components.prudence_sections import (
     render_prudence_anomalies_section,
     render_prudence_kpis,
 )
+from src.ui.components.simulator_charts import elasticity_family_chart
 from src.ui.components.simulator_section import render_what_if_quick_fragment
 from src.ui.state import get_app_state
 
@@ -49,7 +50,7 @@ def _render_sku_list_table(dto: ExecutivePageDTO) -> None:
     st.dataframe(
         sku_view,
         use_container_width=True,
-        height=210,
+        height=185,
         column_config={
             "Fat. Bruto (R$)": st.column_config.NumberColumn(format="R$ %.2f"),
             "Margem Líq. (R$)": st.column_config.NumberColumn(format="R$ %.2f"),
@@ -60,60 +61,24 @@ def _render_sku_list_table(dto: ExecutivePageDTO) -> None:
     )
 
 
-@st.fragment
-def _render_abc_xyz_fragment(dto: ExecutivePageDTO, theme_mode: str) -> None:
-    """Fragmento isolado para exploração interativa da Matriz ABC/XYZ em cockpit."""
-    col_mat_head, col_mat_ctrl = st.columns([1.5, 1.0])
-
-    with col_mat_head:
-        section_header(
-            "Matriz 3x3 ABC/XYZ & Demanda",
-            "Cruza relevância financeira e variabilidade",
-            help_text=(
-                "Classificação bidimensional de SKUs: Curva ABC por contribuição na margem "
-                "(A=80%, B=15%, C=5%) e Matriz XYZ por regularidade da demanda semanal: "
-                "X estável (CV ≤ 1,5), Y sazonal (CV entre 1,5 e 2,5) e Z intermitente (CV superior a 2,5)."
-            ),
-        )
-
-    cell_options = [
-        "Todas",
-        "AX",
-        "AY",
-        "AZ",
-        "BX",
-        "BY",
-        "BZ",
-        "CX",
-        "CY",
-        "CZ",
-    ]
-    current_cell = st.session_state.get("selected_abc_xyz_cell", "Todas")
-    cell_idx = cell_options.index(current_cell) if current_cell in cell_options else 0
-
-    with col_mat_ctrl:
-        selected_cell = st.selectbox(
-            "Filtrar Célula da Matriz",
-            options=cell_options,
-            index=cell_idx,
-            key="_abc_xyz_cell_select",
-            label_visibility="collapsed",
-        )
-        st.session_state.selected_abc_xyz_cell = selected_cell if selected_cell != "Todas" else None
-
-    fig_heatmap = abc_xyz_heatmap(
-        dto.abc_xyz_matrix_df,
-        theme_mode=theme_mode,
-        selected_cell=st.session_state.get("selected_abc_xyz_cell"),
+def _render_elasticity_overview_section(dto: ExecutivePageDTO, scenario_id: str, theme_mode: str) -> None:
+    """Renderiza a visão executiva de Margem por Família e Elasticidade-Preço na Tela 1."""
+    section_header(
+        "Rentabilidade & Elasticidade-Preço por Família",
+        "Margem de contribuição por linha de produto e sensibilidade de demanda (β)",
+        help_text=(
+            "Na 1ª aba: faturamento e margem líquida por família de produto. Na 2ª aba: coeficiente β "
+            "estimado via regressão log-log robusta (Huber + Bootstrap) que alimenta o Simulador What-If."
+        ),
     )
-    st.plotly_chart(fig_heatmap, use_container_width=True)
-
-    if selected_cell != "Todas" and not dto.abc_xyz_matrix_df.empty:
-        cell_col = "abc_xyz_cell" if "abc_xyz_cell" in dto.abc_xyz_matrix_df.columns else "cell"
-        cell_info = dto.abc_xyz_matrix_df[dto.abc_xyz_matrix_df[cell_col] == selected_cell]
-        if not cell_info.empty:
-            policy_text = str(cell_info["recommended_policy"].iloc[0])
-            st.caption(f"**Célula {selected_cell}:** {policy_text}")
+    t_fam, t_el = st.tabs(["Margem por Família", "Elasticidade-Preço (β)"])
+    with t_fam:
+        fig_fam = family_margin_chart(dto.abc_xyz_skus_df, theme_mode=theme_mode)
+        st.plotly_chart(fig_fam, use_container_width=True)
+    with t_el:
+        elasticity_df = cached_family_elasticity(scenario_id)  # type: ignore[arg-type]
+        fig_el = elasticity_family_chart(elasticity_df, theme_mode=theme_mode)
+        st.plotly_chart(fig_el, use_container_width=True)
 
 
 def render_page() -> None:
@@ -135,11 +100,9 @@ def render_page() -> None:
     # 1. Faixa 1 — Topo (Status em 5s): Cabeçalho Cockpit unificado + 5 KPI Cards
     render_cockpit_header(
         title="Visão Executiva & Margem Real",
-        subtitle=f"{scenario.display_name} ({scenario.company_profile})",
         virtue_badge="1. Prudência",
         headline_title=dto.headline_title,
         headline_text=dto.headline_text,
-        period_badge=f"{dto.period_label} · Δ {dto.comparison_label}",
         as_of_date_label=dto.as_of_date_label,
         help_text=(
             "Síntese executiva calculando ritmo comercial contra metas e dispersão de margem real "
@@ -152,6 +115,14 @@ def render_page() -> None:
     col_diag_left, col_diag_right = st.columns([1.1, 1.0])
 
     with col_diag_left:
+        section_header(
+            "Evolução & Decomposição da Margem",
+            "Ritmo mensal de faturamento vs. meta e DRE completo da operação",
+            help_text=(
+                "Acompanha o equilíbrio entre volume faturado e margem percentual frente à meta, "
+                "além do detalhamento DRE até a margem líquida."
+            ),
+        )
         t_evol, t_wat = st.tabs(
             [
                 "Ritmo Mensal: Volume vs. Margem %",
@@ -170,12 +141,20 @@ def render_page() -> None:
             st.plotly_chart(fig_wat, use_container_width=True)
 
     with col_diag_right:
-        _render_abc_xyz_fragment(dto, theme_mode=state.theme_mode)
+        _render_elasticity_overview_section(dto, state.scenario_id, theme_mode=state.theme_mode)
 
     # 3. Faixa 3 — Base (Detalhamento & Plano de Ação em 2 Colunas lado a lado)
     col_act_left, col_act_right = st.columns([1.2, 1.0])
 
     with col_act_left:
+        section_header(
+            "Auditoria de Exceções & Demonstrativo",
+            "Radar de anomalias da semana, demonstrativo mês a mês e portfólio de SKUs",
+            help_text=(
+                "Monitoramento de exceções críticas nas vendas, demonstrativo financeiro mensal "
+                "e desempenho por SKU."
+            ),
+        )
         t_anom, t_table, t_skus = st.tabs(
             [
                 "Radar de Anomalias",
@@ -191,6 +170,14 @@ def render_page() -> None:
             _render_sku_list_table(dto)
 
     with col_act_right:
+        section_header(
+            "Decisão & Simulador Prescritivo What-If",
+            "Veredito prescritivo de proteção de margem e simulação interativa de alavancas",
+            help_text=(
+                "Consolida o impacto financeiro estimado e permite testar variações de preço, "
+                "desconto, CMV e comissão com elasticidade real."
+            ),
+        )
         t_presc, t_whatif = st.tabs(
             [
                 "Veredito Prescritivo",

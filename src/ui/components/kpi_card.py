@@ -5,7 +5,7 @@ from typing import Literal
 
 import streamlit as st
 
-KpiAccent = Literal["teal", "brass", "green", "red", "pos", "neg", "blue", "gold"]
+KpiAccent = Literal["teal", "brass", "green", "red", "pos", "neg", "blue", "gold", "alert_neg", "alert_warn"]
 
 
 def info_tooltip_html(
@@ -62,8 +62,15 @@ def kpi_card_html(
         "neg": "kpi-card-neg",
         "blue": "kpi-card-teal",
         "gold": "kpi-card-brass",
+        "alert_neg": "kpi-card-alert-neg",
+        "alert_warn": "kpi-card-alert-warn",
     }
     card_class = accent_map.get(accent, "kpi-card-teal")
+    alert_badge = ""
+    if accent == "alert_neg":
+        alert_badge = '<span class="kpi-alert-badge kpi-alert-badge-neg">Crítico</span>'
+    elif accent == "alert_warn":
+        alert_badge = '<span class="kpi-alert-badge kpi-alert-badge-warn">Atenção</span>'
 
     title_escaped = html.escape(title)
     value_escaped = html.escape(value)
@@ -77,7 +84,7 @@ def kpi_card_html(
     return (
         f'<div class="kpi-card {card_class}">'
         f'<div class="kpi-header">'
-        f'<div class="kpi-title">{title_escaped}</div>'
+        f'<div class="kpi-title">{title_escaped} {alert_badge}</div>'
         f"{info_html}"
         f"</div>"
         f'<div class="kpi-value">{value_escaped}</div>'

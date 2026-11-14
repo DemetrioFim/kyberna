@@ -22,7 +22,7 @@ def render_justice_kpi_cards(dto: CommercialPageDTO, customer_plural: str) -> No
             title=f"{customer_plural} em Risco",
             value=f"{format_int(dto.kpis.at_risk_customers)} {customer_plural.lower()}",
             subfooter_left=f"{dto.kpis.at_risk_customers_pct:.1f}% da carteira",
-            accent="red",
+            accent="alert_neg",
             help_text=(
                 f"Total de {customer_plural.lower()} com atraso crítico no ciclo habitual "
                 "(delay ratio > 1.5x) classificados em 'Risco Imediato' ou 'Adormecido'.<br><br>"
@@ -35,7 +35,7 @@ def render_justice_kpi_cards(dto: CommercialPageDTO, customer_plural: str) -> No
             title="Receita Anual em Risco",
             value=format_brl(dto.kpis.annual_revenue_at_risk_brl, compact=True),
             subfooter_left=f"Margem: {format_brl(dto.kpis.annual_margin_at_risk_brl, compact=True)}",
-            accent="gold",
+            accent="alert_warn",
             help_text=(
                 "Faturamento histórico anualizado dos lojistas em risco ponderado pela "
                 "probabilidade estatística individual de evasão (churn).<br><br>"
@@ -48,7 +48,7 @@ def render_justice_kpi_cards(dto: CommercialPageDTO, customer_plural: str) -> No
             title="Janela Ideal Pré-Churn",
             value=f"{format_int(dto.kpis.attention_customers)} {customer_plural.lower()}",
             subfooter_left=f"Fat.: {format_brl(dto.kpis.attention_revenue_brl, compact=True)}",
-            accent="gold",
+            accent="alert_warn",
             help_text=(
                 "Clientes com atraso moderado entre 1.1x e 1.5x do ciclo de compra. "
                 "Representam a <strong>janela de ouro de contato proativo</strong> antes "
@@ -154,7 +154,7 @@ def render_sales_reps_table(dto: CommercialPageDTO, rep_label: str) -> None:
         rep_display_df,
         use_container_width=True,
         hide_index=True,
-        height=210,
+        height=185,
         column_config={k: v for k, v in rep_cfg.items() if k in cols},
     )
 
@@ -187,14 +187,15 @@ def render_critical_customers_table(dto: CommercialPageDTO, customer_label: str)
         "customer_name": st.column_config.TextColumn(customer_label),
         "state": st.column_config.TextColumn("UF", width="small"),
         "sales_rep_name": st.column_config.TextColumn("RCA"),
-        "risk_status": st.column_config.TextColumn("Status"),
+        "risk_status": st.column_config.TextColumn("Status", width="small"),
         "delay_ratio": st.column_config.NumberColumn("Atraso", format="%.2fx"),
         "annual_revenue_at_risk": st.column_config.NumberColumn("R$ em Risco", format="R$ %,.2f"),
-        "top_opportunity_family": st.column_config.TextColumn("Oportunidade Mix"),
+        "top_opportunity_family": st.column_config.TextColumn("Oportunidade Mix", width="small"),
         "top_opportunity_brl": st.column_config.NumberColumn("Potencial R$", format="R$ %,.2f"),
         "whatsapp_link": st.column_config.LinkColumn(
-            "Ação WhatsApp",
-            display_text="Abordar no WhatsApp",
+            "WhatsApp",
+            display_text="Chamar",
+            width="small",
             help="Abre conversa pré-preenchida no WhatsApp Web/App.",
         ),
     }
@@ -202,7 +203,7 @@ def render_critical_customers_table(dto: CommercialPageDTO, customer_label: str)
         display_df,
         use_container_width=True,
         hide_index=True,
-        height=210,
+        height=185,
         column_config={k: v for k, v in cust_cfg.items() if k in cols},
     )
 
@@ -239,8 +240,9 @@ def render_white_space_deals_table(dto: CommercialPageDTO, customer_label: str) 
         "affinity_lift": st.column_config.NumberColumn("Lift Afinidade", format="%.2fx"),
         "action_pitch": st.column_config.TextColumn("Argumento Comercial (Pitch)", width="large"),
         "whatsapp_link": st.column_config.LinkColumn(
-            "Ação WhatsApp",
-            display_text="Abordar no WhatsApp",
+            "WhatsApp",
+            display_text="Chamar",
+            width="small",
             help="Abre conversa pré-preenchida no WhatsApp Web/App.",
         ),
     }
@@ -248,6 +250,6 @@ def render_white_space_deals_table(dto: CommercialPageDTO, customer_label: str) 
         deals_df,
         use_container_width=True,
         hide_index=True,
-        height=210,
+        height=185,
         column_config={k: v for k, v in col_cfg.items() if k in cols},
     )

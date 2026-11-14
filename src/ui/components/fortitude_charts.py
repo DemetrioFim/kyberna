@@ -24,7 +24,7 @@ def build_cycle_comparison_chart(
     template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
     if cycle_df.empty:
         fig = go.Figure()
-        fig.update_layout(template=template_name, height=280, title=None)
+        fig.update_layout(template=template_name, height=245, title=None)
         return fig
 
     text_vals = [
@@ -39,20 +39,22 @@ def build_cycle_comparison_chart(
             y=cycle_df["days"].tolist(),
             text=text_vals,
             textposition="outside",
+            cliponaxis=False,
             connector={"line": {"color": tokens["border_subtle"], "width": 1.4, "dash": "dot"}},
             increasing={"marker": {"color": tokens["teal_500"]}},
             decreasing={"marker": {"color": tokens["positive"]}},
             totals={"marker": {"color": tokens["brass_500"]}},
         )
     )
-    max_y = max(float(cycle_df["days"].clip(lower=0).sum()) * 1.18, 30.0)
+    rel_pos = float(cycle_df.loc[cycle_df["measure"] != "total", "days"].clip(lower=0).sum())
+    max_y = max(rel_pos * 1.18, 130.0)
     fig.update_layout(
         template=template_name,
         title=None,
         showlegend=False,
-        height=280,
-        margin={"l": 16, "r": 16, "t": 24, "b": 24},
-        yaxis={"showgrid": False, "showticklabels": False, "title": "", "range": [0, max_y]},
+        height=245,
+        margin={"l": 16, "r": 16, "t": 20, "b": 20},
+        yaxis={"showgrid": False, "showticklabels": False, "title": "", "range": [-10, max_y]},
         waterfallgap=0.28,
     )
     return fig
@@ -68,7 +70,7 @@ def build_breakeven_curve_chart(
     template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
     if curve_df.empty:
         fig = go.Figure()
-        fig.update_layout(template=template_name, height=280, title=None)
+        fig.update_layout(template=template_name, height=245, title=None)
         return fig
 
     fig = go.Figure()
@@ -101,8 +103,8 @@ def build_breakeven_curve_chart(
     fig.update_layout(
         template=template_name,
         title=None,
-        height=280,
-        margin={"l": 16, "r": 16, "t": 28, "b": 28},
+        height=245,
+        margin={"l": 16, "r": 16, "t": 24, "b": 24},
         xaxis={"title": "Dia do Mês", "dtick": 5},
         yaxis={"title": "R$ Acumulado", "showgrid": True, "gridcolor": tokens["border_subtle"]},
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1},
@@ -119,7 +121,7 @@ def build_aging_buckets_chart(
     template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
     if aging_buckets_df.empty:
         fig = go.Figure()
-        fig.update_layout(template=template_name, height=280, title=None)
+        fig.update_layout(template=template_name, height=245, title=None)
         return fig
 
     df = aging_buckets_df.sort_values("bucket_order", ascending=False).copy()
@@ -153,8 +155,8 @@ def build_aging_buckets_chart(
         template=template_name,
         title=None,
         showlegend=False,
-        height=280,
-        margin={"l": 12, "r": 24, "t": 18, "b": 20},
+        height=245,
+        margin={"l": 12, "r": 24, "t": 16, "b": 18},
         xaxis={"showgrid": False, "showticklabels": False, "title": "", "range": [0, max_x]},
         yaxis={"title": ""},
     )
@@ -170,7 +172,7 @@ def build_concentration_chart(
     template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
     if customer_df.empty:
         fig = go.Figure()
-        fig.update_layout(template=template_name, height=280, title=None)
+        fig.update_layout(template=template_name, height=245, title=None)
         return fig
 
     top10 = customer_df.head(10).iloc[::-1].copy()
@@ -195,7 +197,7 @@ def build_concentration_chart(
         template=template_name,
         title=None,
         showlegend=False,
-        height=280,
+        height=245,
         margin={"l": 12, "r": 20, "t": 16, "b": 16},
         xaxis={"showgrid": False, "showticklabels": False, "title": "", "range": [0, max_x]},
         yaxis={"title": ""},

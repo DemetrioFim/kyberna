@@ -162,4 +162,3 @@ def query_sku_forecast_series(
     except Exception as exc:
         logger.warning("Erro ao consultar série de forecast para %s (%s): %s", product_id, scenario_id, exc)
         return pd.DataFrame()
-

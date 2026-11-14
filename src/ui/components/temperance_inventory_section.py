@@ -38,10 +38,9 @@ def _fmt_boxes(x: object) -> str:
 
 def render_locked_inventory_table(dto: TemperancePageDTO) -> None:
     """Renderiza a tabela de SKUs com capital imobilizado com scroll interno."""
-    st.markdown(
-        f"**Diagnóstico de Imobilização:** Total de **{format_brl(dto.kpis.locked_capital_brl)}** "
-        f"travados em {dto.kpis.locked_skus_count} produtos. Uma liquidação de 25% pode liberar "
-        f"**{format_brl(dto.kpis.locked_capital_brl * 0.25)}** imediatos para o caixa operacional."
+    st.caption(
+        f"Imobilização: {format_brl(dto.kpis.locked_capital_brl)} em {dto.kpis.locked_skus_count} SKUs · "
+        f"Liquidação de 25% libera {format_brl(dto.kpis.locked_capital_brl * 0.25)} no caixa."
     )
     if not dto.locked_inventory_df.empty:
         cols_locked = [
@@ -78,7 +77,7 @@ def render_locked_inventory_table(dto: TemperancePageDTO) -> None:
             ),
             use_container_width=True,
             hide_index=True,
-            height=210,
+            height=185,
         )
 
 
@@ -91,10 +90,9 @@ def render_stockout_risk_table(
         total_boxes = inv_dto.kpis.suggested_order_boxes_total
         prot_rev = format_brl(inv_dto.kpis.protected_revenue_brl)
         count_skus = inv_dto.kpis.stockout_risk_skus_count
-        st.markdown(
-            f"**Alerta Prescritivo de Reposição:** {count_skus} SKUs em ruptura iminente "
-            f"(cobertura ≤ lead time + SS), protegendo **{prot_rev}** em receita. "
-            f"Ordem sugerida: **{format_int(total_boxes)} Caixas Master**."
+        st.caption(
+            f"Reposição: {count_skus} SKUs abaixo do ROP · Receita protegida: {prot_rev} · "
+            f"Ordem sugerida: {format_int(total_boxes)} cx master"
         )
         cols_pos = [
             "product_id",
@@ -134,7 +132,7 @@ def render_stockout_risk_table(
             ),
             use_container_width=True,
             hide_index=True,
-            height=210,
+            height=185,
         )
         return
 
@@ -184,7 +182,7 @@ def render_stockout_risk_table(
             ),
             use_container_width=True,
             hide_index=True,
-            height=210,
+            height=185,
         )
 
 

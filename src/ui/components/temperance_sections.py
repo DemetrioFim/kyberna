@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.services.dto import TemperancePageDTO
+from src.services.inventory_dto import InventoryPageDTO
 from src.ui.components.kpi_card import render_kpi_card
 from src.ui.components.prescription import render_prescription_box
 from src.ui.formatting import (
@@ -42,8 +43,11 @@ def _fmt_boxes(x: object) -> str:
     return f"{float(str(x)):.1f}"
 
 
-def render_temperance_kpi_cards(dto: TemperancePageDTO) -> None:
-    """Renderiza os 5 KPI Cards estruturados com ícones de informação e bordas temáticas."""
+def render_temperance_kpi_cards(
+    dto: TemperancePageDTO,
+    inv_dto: InventoryPageDTO | None = None,
+) -> None:
+    """Renderiza os 5 KPI Cards estruturados com ícones de informação e semântica de alerta."""
     kpis = dto.kpis
     c1, c2, c3, c4, c5 = st.columns(5)
 
@@ -52,7 +56,7 @@ def render_temperance_kpi_cards(dto: TemperancePageDTO) -> None:
             title="Erosão Comercial Total",
             value=format_brl(kpis.total_commercial_erosion_brl, compact=True, decimals=1),
             subfooter_left=f"Sangria: {kpis.total_commercial_erosion_pct:.1f}% da receita",
-            accent="teal",
+            accent="alert_warn",
             help_text="Deduções entre faturamento bruto e lucro: descontos, comissões de RCAs e frete CIF.",
         )
 
@@ -61,7 +65,7 @@ def render_temperance_kpi_cards(dto: TemperancePageDTO) -> None:
             title="Descontos Fora de Tabela",
             value=format_brl(kpis.excess_discount_brl, compact=True, decimals=1),
             subfooter_left=f"{kpis.excess_discount_pct_of_discount:.1f}% dos descontos",
-            accent="red",
+            accent="alert_neg",
             help_text="Concedido acima do teto estipulado por porte (P=3%, M=6.5%, G=10.5%).",
         )
 
@@ -84,12 +88,18 @@ def render_temperance_kpi_cards(dto: TemperancePageDTO) -> None:
         )
 
     with c5:
+        rup_skus_a = kpis.stockout_risk_skus_count
+        rup_rev = (
+            inv_dto.kpis.protected_revenue_brl
+            if inv_dto is not None and inv_dto.kpis.protected_revenue_brl > 0.0
+            else kpis.stockout_risk_revenue_brl
+        )
         render_kpi_card(
             title="Ruptura Iminente (Curva A)",
-            value=f"{kpis.stockout_risk_skus_count} SKUs",
-            subfooter_left=f"Risco: {format_brl(kpis.stockout_risk_revenue_brl, compact=True, decimals=1)}",
-            accent="neg",
-            help_text="Produtos Curva A e B com estoque físico atual menor ou igual ao lead time de entrega.",
+            value=f"{rup_skus_a} SKUs",
+            subfooter_left=f"Risco: {format_brl(rup_rev, compact=True, decimals=1)}",
+            accent="alert_neg",
+            help_text="SKUs Curva A com cobertura abaixo do ponto de pedido (lead time + SS).",
         )
 
 

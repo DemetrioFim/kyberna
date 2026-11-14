@@ -23,11 +23,28 @@ from src.ui.components.prescription import render_cockpit_header, render_prescri
 from src.ui.state import get_app_state
 
 
+def _pluralize_rep_label(rep_label: str) -> str:
+    """Pluraliza corretamente rótulos de força de vendas com ou sem parênteses."""
+    overrides = {
+        "RCA (Representante)": "RCAs (Representantes)",
+        "Vendedor de Rota": "Vendedores de Rota",
+        "Gerente de Loja": "Gerentes de Loja",
+        "Balconista / Atendente": "Balconistas / Atendentes",
+    }
+    if rep_label in overrides:
+        return overrides[rep_label]
+    if "(" in rep_label:
+        base, rest = rep_label.split("(", 1)
+        return f"{base.strip()}s ({rest.rstrip(')')}s)"
+    return f"{rep_label}s"
+
+
 def render_page() -> None:
     """Entrypoint da Página 3 — Justiça em formato Cockpit Z-Pattern."""
     state = get_app_state()
     scenario_cfg = load_scenario_config(state.scenario_id)
     labels = scenario_cfg.labels
+    rep_plural = _pluralize_rep_label(labels.sales_rep)
     theme_mode = state.theme_mode
 
     dto = cached_commercial_dashboard(
@@ -46,7 +63,7 @@ def render_page() -> None:
     # 1. Faixa 1 — Topo (Status em 5s): Cabeçalho Cockpit unificado + 5 KPI Cards
     render_cockpit_header(
         title="Radar Comercial, Margem & Carteira",
-        subtitle=f"{scenario_cfg.display_name} ({scenario_cfg.company_profile})",
+        subtitle="",
         virtue_badge="3. Justiça",
         headline_title=dto.headline_title,
         headline_text=dto.headline_text,
@@ -64,7 +81,7 @@ def render_page() -> None:
     with col_diag_left:
         t_quad, t_champ = st.tabs(
             [
-                f"Força de Vendas ({labels.sales_rep}s)",
+                f"Força de Vendas ({rep_plural})",
                 "Rentabilidade (Campeões vs. Vampiros)",
             ]
         )
@@ -117,7 +134,7 @@ def render_page() -> None:
             [
                 f"{labels.customer_plural} em Risco",
                 "Pitch Cross-Sell (White Space)",
-                f"Desempenho dos {labels.sales_rep}s",
+                f"Desempenho dos {rep_plural}",
             ]
         )
         with t_crit:

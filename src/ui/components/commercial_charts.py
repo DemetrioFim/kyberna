@@ -34,8 +34,11 @@ def cycle_delay_scatter(
 
     fig = go.Figure()
 
-    # Linha guia de 45 graus (y = x), linha de alerta ideal (y = 1.1x) e risco crítico (y = 1.5x)
-    max_val = max(float(df["expected_cycle_days"].max()), float(df["recency_days"].max()), 100.0)
+    # Limita o eixo X ao intervalo operacional [0, 95d] para evitar achatamento por outliers
+    p95_x = float(np.percentile(df["expected_cycle_days"], 95))
+    cap_x = min(max(60.0, p95_x * 1.15), 95.0)
+    outliers_count = int((df["expected_cycle_days"] > cap_x).sum())
+    max_val = min(max(float(df["expected_cycle_days"].max()), float(df["recency_days"].max()), 60.0), cap_x)
     line_x = [0, max_val]
 
     fig.add_trace(
@@ -112,14 +115,26 @@ def cycle_delay_scatter(
             )
         )
 
+    if outliers_count > 0:
+        fig.add_annotation(
+            text=f"+{outliers_count} cliente(s) com ciclo > {cap_x:.0f}d (ver tabela)",
+            x=0.98,
+            y=0.04,
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+            font={"size": 10, "color": tokens["text_muted"]},
+        )
+
     fig.update_layout(
         template=template_name,
         title=None,
         xaxis_title="Ciclo Médio Histórico (dias)",
         yaxis_title="Dias sem Comprar (Recência)",
+        xaxis={"range": [0, cap_x]},
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1},
-        height=280,
-        margin={"l": 30, "r": 30, "t": 35, "b": 35},
+        height=245,
+        margin={"l": 24, "r": 24, "t": 28, "b": 28},
     )
     return fig
 
@@ -168,7 +183,7 @@ def rfm_treemap(
     fig.update_layout(
         template=template_name,
         title=None,
-        height=280,
+        height=245,
         margin={"l": 10, "r": 10, "t": 10, "b": 10},
     )
 
@@ -332,7 +347,7 @@ def white_space_heatmap(
         title=None,
         xaxis_title="Segmento RFM do Lojista",
         yaxis_title="Família Recomendada",
-        height=280,
-        margin={"l": 30, "r": 30, "t": 15, "b": 35},
+        height=245,
+        margin={"l": 24, "r": 24, "t": 12, "b": 28},
     )
     return fig

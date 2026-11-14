@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import html
-from pathlib import Path
 from typing import Final
 
 import streamlit as st
@@ -149,20 +148,7 @@ def render_sidebar(repo: DataRepository | None = None) -> AppState:  # noqa: PLR
     scenario = load_scenario_config(state.scenario_id)
 
     with st.sidebar:
-        # 1. Branding / Logotipo adaptativo
-        logo_filename = "logo_dark.svg" if state.theme_mode == "dark" else "logo.svg"
-        logo_path = Path(__file__).parent.parent / "assets" / logo_filename
-        if not logo_path.exists():
-            logo_path = Path(__file__).parent.parent / "assets" / "logo.svg"
-
-        if logo_path.exists():
-            st.image(str(logo_path), width=260)
-        else:
-            st.markdown("### **KYBERNA**")
-
-        st.markdown("---")
-
-        # 2. Alternador de Tema (Toggle Switch)
+        # 1. Alternador de Tema (Toggle Switch)
         st.toggle(
             "Modo Escuro",
             value=(state.theme_mode == "dark"),

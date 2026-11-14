@@ -14,23 +14,23 @@ def section_header(
     badge: str | None = None,
     help_text: str | None = None,
 ) -> None:
-    """Renderiza cabeçalho visual de seção executiva com subtítulo, badge e tooltip opcional."""
+    """Renderiza cabeçalho compacto de seção (Título + Tooltip ⓘ com contexto)."""
     badge_html = f' <span class="badge badge-source">{html.escape(badge)}</span>' if badge else ""
-    info_html = f" {info_tooltip_html(help_text, align='left')}" if help_text else ""
-    subtitle_html = (
-        '<div style="font-size: 0.78rem; color: var(--kyb-text-muted); '
-        f'margin-bottom: 0.35rem;">{html.escape(subtitle)}</div>'
-        if subtitle
-        else ""
-    )
+    clean_sub = subtitle.strip()
+    if clean_sub and help_text:
+        combined_help: str | None = f"<strong>{html.escape(clean_sub)}</strong><br>{help_text}"
+    elif clean_sub:
+        combined_help = html.escape(clean_sub)
+    else:
+        combined_help = help_text
+    info_html = f" {info_tooltip_html(combined_help, align='left')}" if combined_help else ""
 
     content = (
-        f'<div style="margin-top: 0.35rem; margin-bottom: 0.2rem;">'
-        f'<h5 style="margin: 0; display: inline-flex; align-items: center; gap: 0.4rem; '
-        f'font-weight: 700; font-size: 0.92rem;">'
+        '<div style="margin-top: 0.2rem; margin-bottom: 0.1rem;">'
+        '<h5 style="margin: 0; display: inline-flex; align-items: center; gap: 0.35rem; '
+        'font-weight: 700; font-size: 0.92rem;">'
         f"{html.escape(title)}{badge_html}{info_html}</h5>"
-        f"{subtitle_html}"
-        f"</div>"
+        "</div>"
     )
     st.markdown(content, unsafe_allow_html=True)
 
@@ -45,7 +45,7 @@ def _sanitize_inline_bold_html(raw_text: str) -> str:
 
 def render_cockpit_header(
     title: str,
-    subtitle: str,
+    subtitle: str = "",
     *,
     headline_title: str,
     headline_text: str,
@@ -54,28 +54,28 @@ def render_cockpit_header(
     as_of_date_label: str = "31/12/2024",
     help_text: str | None = None,
 ) -> None:
-    """Renderiza o cabeçalho executivo compacto de cockpit (Faixa 1 — Topo em 2 linhas)."""
-    info_html = f" {info_tooltip_html(help_text, align='right')}" if help_text else ""
+    """Renderiza cabeçalho executivo padronizado em 2 linhas (Título/Corte + Pill/Síntese)."""
+    del subtitle, period_badge  # Mantidos na assinatura por retrocompatibilidade; exibidos apenas na sidebar
+    info_html = f" {info_tooltip_html(help_text, align='left')}" if help_text else ""
     virtue_html = (
         f'<span class="badge badge-source">{html.escape(virtue_badge)}</span>' if virtue_badge else ""
     )
-    period_html = f'<span class="cockpit-date-tag">{html.escape(period_badge)}</span>' if period_badge else ""
+    pill_html = f'<span class="cockpit-headline-pill">{html.escape(headline_title)}{info_html}</span>'
     header_html = (
-        f'<div class="cockpit-header">'
-        f'<div class="cockpit-header-top">'
-        f'<div class="cockpit-title-group">'
+        '<div class="cockpit-header">'
+        '<div class="cockpit-header-top">'
+        '<div class="cockpit-title-group">'
         f"{virtue_html}"
         f'<h2 class="cockpit-title">{html.escape(title)}</h2>'
-        f'<span class="cockpit-subtitle">{html.escape(subtitle)}</span>'
-        f"</div>"
-        f'<div class="cockpit-meta-group">'
-        f'<span class="cockpit-headline-pill">{html.escape(headline_title)}{info_html}</span>'
-        f"{period_html}"
+        "</div>"
+        '<div class="cockpit-meta-group">'
         f'<span class="cockpit-date-tag">Corte: <strong>{html.escape(as_of_date_label)}</strong></span>'
-        f"</div>"
-        f"</div>"
-        f'<div class="cockpit-header-bottom">{_sanitize_inline_bold_html(headline_text)}</div>'
-        f"</div>"
+        "</div>"
+        "</div>"
+        '<div class="cockpit-header-bottom">'
+        f"{pill_html}<span>{_sanitize_inline_bold_html(headline_text)}</span>"
+        "</div>"
+        "</div>"
     )
     st.markdown(header_html, unsafe_allow_html=True)
 

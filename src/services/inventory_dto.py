@@ -47,4 +47,3 @@ class InventoryPageDTO(BaseModel):
     locked_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     treemap_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     sku_options_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
-

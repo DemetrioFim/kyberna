@@ -3,11 +3,11 @@ from __future__ import annotations
 import pandas as pd
 
 from src.ui.components.charts import (
-    abc_xyz_heatmap,
     dual_trend,
     quadrant_scatter,
     waterfall_margin,
 )
+from src.ui.components.inventory_charts import abc_xyz_heatmap
 
 
 def test_waterfall_margin_figure_light_and_dark() -> None:

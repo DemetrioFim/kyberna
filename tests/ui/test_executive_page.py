@@ -32,16 +32,13 @@ def test_executive_page_full_render() -> None:
     assert "Margem Líquida %" in all_markdown
 
 
-def test_executive_page_abc_xyz_cell_selection() -> None:
-    """Valida a interação de seleção de célula na Matriz ABC/XYZ."""
+def test_executive_page_elasticity_section_rendered() -> None:
+    """Valida a seção exclusiva de Elasticidade-Preço por Família na Página 1 — Prudência."""
     page_path = get_project_root() / "src" / "ui" / "pages" / "1_executive.py"
     at = AppTest.from_file(str(page_path), default_timeout=10)
     at.run()
 
     assert not at.exception
-    # Seleciona célula AX no selectbox da matriz
-    assert len(at.selectbox) >= 1
-    at.selectbox[0].set_value("AX").run()
-
-    assert not at.exception
-    assert at.session_state.selected_abc_xyz_cell == "AX"
+    all_markdown = " ".join(m.value for m in at.markdown)
+    assert "Elasticidade-Preço por Família" in all_markdown
+    assert len(at.get("plotly_chart")) >= 2

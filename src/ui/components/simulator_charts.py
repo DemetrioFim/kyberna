@@ -8,6 +8,7 @@ from src.ui.formatting import format_brl
 from src.ui.theme import get_theme_tokens
 
 __all__ = [
+    "elasticity_family_chart",
     "profit_curve_chart",
     "tornado_sensitivity_chart",
 ]
@@ -153,3 +154,50 @@ def tornado_sensitivity_chart(
     fig.add_vline(x=0.0, line_width=1.2, line_dash="solid", line_color=tokens["chart_zero_line"])
     return fig
 
+
+def elasticity_family_chart(elasticity_df: pd.DataFrame, *, theme_mode: str = "light") -> go.Figure:
+    """Gráfico exclusivo de Elasticidade-Preço por Família (Tela 1 — Prudência)."""
+    tokens = get_theme_tokens(theme_mode)
+    template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
+
+    if elasticity_df.empty:
+        fig = go.Figure()
+        fig.update_layout(template=template_name, title=None, height=245)
+        return fig
+
+    df = elasticity_df.sort_values("beta_hat", ascending=True).reset_index(drop=True)
+    colors = [tokens["negative"] if float(b) < -1.0 else tokens["positive"] for b in df["beta_hat"].tolist()]
+    texts = [
+        f"{float(b):.2f} ({c})" for b, c in zip(df["beta_hat"], df["elasticity_classification"], strict=False)
+    ]
+
+    fig = go.Figure(
+        go.Bar(
+            y=df["family"],
+            x=df["beta_hat"],
+            orientation="h",
+            marker={"color": colors},
+            text=texts,
+            textposition="outside",
+            cliponaxis=False,
+            hovertemplate="<b>%{y}</b><br>Elasticidade β: %{x:.2f}<extra></extra>",
+        )
+    )
+    fig.add_vline(
+        x=-1.0,
+        line_width=1.5,
+        line_dash="dash",
+        line_color=tokens["warning"],
+        annotation_text="Limiar Elástico (-1.0)",
+        annotation_position="top left",
+        annotation_font_color=tokens["warning"],
+    )
+    fig.update_layout(
+        template=template_name,
+        title=None,
+        height=245,
+        margin={"l": 16, "r": 58, "t": 18, "b": 16},
+        xaxis_title="Elasticidade-Preço (β)",
+        yaxis_title=None,
+    )
+    return fig

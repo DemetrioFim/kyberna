@@ -56,4 +56,3 @@ def render_commercial_export_bar(
             disabled=not has_data,
             help="Exporta CSV com separador ';' e BOM UTF-8 para abertura imediata no Excel BR.",
         )
-

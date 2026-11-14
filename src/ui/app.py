@@ -61,7 +61,18 @@ def inject_custom_css(theme_mode: str) -> None:
 inject_custom_css(state.theme_mode)
 
 # ==============================================================================
-# Sidebar Global (Branding, Cenários, Tema, Cascata e Fonte de Dados)
+# Branding Global no Topo da Sidebar (Acima do Menu de Navegação)
+# ==============================================================================
+
+_logo_name = "logo_dark.svg" if state.theme_mode == "dark" else "logo.svg"
+_logo_path = Path(__file__).parent / "assets" / _logo_name
+if not _logo_path.exists():
+    _logo_path = Path(__file__).parent / "assets" / "logo.svg"
+if _logo_path.exists():
+    st.logo(str(_logo_path), size="large")
+
+# ==============================================================================
+# Sidebar Global (Cenários, Tema, Cascata e Fonte de Dados)
 # ==============================================================================
 
 repo: DataRepository | None = None
