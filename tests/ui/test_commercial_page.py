@@ -1,33 +1,43 @@
 from __future__ import annotations
 
+import html
+
 from streamlit.testing.v1 import AppTest
 
 from src.core.paths import get_project_root
 
 
 def test_commercial_page_full_render() -> None:
-    """Valida a renderização isolada da Tela 2 (Radar Comercial, RFM & Antecipação de Churn)."""
+    """Valida Página 3 (3. Justiça — Visão Financeira) com 3 abas PowerBI sem sub-abas."""
     page_path = get_project_root() / "src" / "ui" / "pages" / "2_commercial_radar.py"
-    at = AppTest.from_file(str(page_path), default_timeout=10)
+    at = AppTest.from_file(str(page_path), default_timeout=15)
     at.run()
 
     assert not at.exception
+    assert len(at.tabs) == 3
 
-    # Confere presença de tooltips, cabeçalho Cockpit e design system Kyberna
-    all_markdown = " ".join(m.value for m in at.markdown)
+    all_markdown = html.unescape(" ".join(m.value for m in at.markdown))
     assert "cockpit-header" in all_markdown
     assert "3. Justiça" in all_markdown
+    assert "Governança Financeira" in all_markdown
     assert "kyb-info-icon" in all_markdown
     assert "kyb-tooltip-popover" in all_markdown
-    assert "Radar Comercial" in all_markdown
-    assert "em Risco" in all_markdown
-    assert "Receita Anual em Risco" in all_markdown
-    assert "Oportunidade White Space" in all_markdown
-    assert "Positivação de Carteira" in all_markdown
 
-    # Confere presença das seções analíticas e dataframes
-    assert len(at.dataframe) >= 1
+    # Aba 1: DRE Gerencial & Margem Real + Toggle PoP/YoY
+    assert any(r.key == "_comparison_mode_radio" for r in at.radio)
+    assert "Faturamento Bruto" in all_markdown
+    assert "Receita Líquida" in all_markdown
+    assert "Margem Contribuição" in all_markdown
+    assert "Margem Líquida %" in all_markdown
 
-    # Confere presença dos botões de ação em 1 clique (Excel por RCA e CSV)
-    all_buttons = at.get("download_button")
-    assert len(all_buttons) >= 2
+    # Aba 2: Fluxo de Caixa, Runway & Ciclo (NCG)
+    assert "Runway de Caixa" in all_markdown
+    assert "Break-Even Mensal" in all_markdown
+    assert "Ciclo Financeiro & NCG" in all_markdown
+
+    # Aba 3: Aging de Recebíveis & Concentração Pareto
+    assert "Carteira em Atraso (>1,5x)" in all_markdown
+    assert "Concentração Top 5 Clientes" in all_markdown
+
+    assert len(at.dataframe) >= 4
+    assert len(at.get("plotly_chart")) >= 6

@@ -737,10 +737,15 @@ div[data-testid="stTooltipContent"] {
   border: 1px solid var(--kyb-border) !important;
 }
 
-/* Abas (st.tabs / BaseWeb tabs) */
+/* Abas de Página Estilo PowerBI (st.tabs / BaseWeb tabs) */
 [data-baseweb="tab-list"] {
-  border-bottom-color: var(--kyb-border) !important;
-  gap: 0.35rem !important;
+  background-color: var(--kyb-card-bg) !important;
+  border: 1px solid var(--kyb-border) !important;
+  border-radius: 8px !important;
+  padding: 0.2rem 0.45rem !important;
+  gap: 0.45rem !important;
+  margin-bottom: 0.35rem !important;
+  box-shadow: var(--kyb-shadow) !important;
 }
 
 [data-baseweb="tab"],
@@ -748,6 +753,9 @@ button[data-baseweb="tab"] p,
 button[data-baseweb="tab"] span {
   color: var(--kyb-text-muted) !important;
   background-color: transparent !important;
+  font-size: 0.84rem !important;
+  padding: 0.32rem 0.65rem !important;
+  border-radius: 6px !important;
 }
 
 [data-baseweb="tab"]:hover,
@@ -759,11 +767,13 @@ button[data-baseweb="tab"]:hover p {
 [data-baseweb="tab"][aria-selected="true"] p,
 [data-baseweb="tab"][aria-selected="true"] span {
   color: var(--kyb-teal) !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
+  background-color: rgba(56, 189, 248, 0.1) !important;
 }
 
 [data-baseweb="tab-highlight"] {
   background-color: var(--kyb-teal) !important;
+  height: 3px !important;
 }
 
 /* Expander (st.expander) */

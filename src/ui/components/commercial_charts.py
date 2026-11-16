@@ -351,3 +351,46 @@ def white_space_heatmap(
         margin={"l": 24, "r": 24, "t": 12, "b": 28},
     )
     return fig
+
+
+def white_space_family_chart(
+    df: pd.DataFrame,
+    theme_mode: str = "light",
+) -> go.Figure:
+    """Gráfico adjacente ao Modelo Apriori: potencial incremental (R$) por família recomendada."""
+    tokens = get_theme_tokens(theme_mode)
+    template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
+    if df.empty or "recommended_family" not in df.columns:
+        fig = go.Figure()
+        fig.update_layout(template=template_name, title="Sem dados de White Space por família")
+        return fig
+
+    agg = (
+        df.groupby("recommended_family", as_index=False)
+        .agg({"potential_revenue_brl": "sum"})
+        .sort_values("potential_revenue_brl", ascending=True)
+        .reset_index(drop=True)
+    )
+    texts = [format_brl(float(v), compact=True, decimals=1) for v in agg["potential_revenue_brl"]]
+    max_x = max(float(agg["potential_revenue_brl"].max()) * 1.28, 1.0)
+    fig = go.Figure(
+        go.Bar(
+            y=agg["recommended_family"].tolist(),
+            x=agg["potential_revenue_brl"].tolist(),
+            orientation="h",
+            marker_color=tokens["teal_500"],
+            text=texts,
+            textposition="outside",
+            cliponaxis=False,
+            hovertemplate="<b>%{y}</b><br>Potencial White Space: R$ %{x:,.2f}<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        template=template_name,
+        title=None,
+        xaxis={"title": "Potencial Incremental (R$)", "range": [0, max_x]},
+        yaxis={"title": None},
+        height=245,
+        margin={"l": 16, "r": 24, "t": 12, "b": 28},
+    )
+    return fig

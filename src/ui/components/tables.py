@@ -9,6 +9,8 @@ import streamlit as st
 def render_margin_drivers_table(
     df: pd.DataFrame,
     is_generator: bool = True,
+    *,
+    height: int | None = None,
 ) -> None:
     """Renderiza a tabela de Top Geradores ou Destruidores de Margem de Contribuição.
 
@@ -63,9 +65,11 @@ def render_margin_drivers_table(
         ),
     }
 
-    st.dataframe(
-        display_df,
-        use_container_width=True,
-        hide_index=True,
-        column_config=column_config,
-    )
+    df_kwargs: dict[str, Any] = {
+        "use_container_width": True,
+        "hide_index": True,
+        "column_config": column_config,
+    }
+    if height is not None:
+        df_kwargs["height"] = height
+    st.dataframe(display_df, **df_kwargs)

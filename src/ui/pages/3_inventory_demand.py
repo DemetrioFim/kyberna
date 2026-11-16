@@ -1,31 +1,98 @@
 from __future__ import annotations
 
+import plotly.graph_objects as go
 import streamlit as st
 
-from src.ui.cache import cached_inventory_dashboard, cached_temperance_dashboard
-from src.ui.components.inventory_charts import abc_xyz_heatmap, erosion_breakdown_chart
-from src.ui.components.prescription import render_cockpit_header, section_header
-from src.ui.components.temperance_inventory_section import (
-    render_locked_capital_treemap_tab,
-    render_locked_inventory_table,
-    render_sku_forecast_fragment,
-    render_stockout_risk_table,
+from src.core.scenarios import load_scenario_config
+from src.services.dto import ExecutivePageDTO, TemperancePageDTO
+from src.ui.cache import (
+    cached_commercial_dashboard,
+    cached_executive_dashboard,
+    cached_family_elasticity,
+    cached_fortitude_dashboard,
+    cached_inventory_dashboard,
+    cached_temperance_dashboard,
 )
+from src.ui.components.inventory_charts import erosion_breakdown_chart
+from src.ui.components.justice_sections import render_champions_vampires_section
+from src.ui.components.prescription import render_cockpit_header, section_header
+from src.ui.components.simulator_charts import elasticity_family_chart
+from src.ui.components.simulator_section import render_what_if_quick_fragment
 from src.ui.components.temperance_sections import (
-    render_policy_violations_tabs,
-    render_temperance_kpi_cards,
+    render_champions_vampires_kpis,
+    render_rep_policy_violations_table,
+    render_temperance_mix_kpis,
     render_temperance_verdict_section,
-    render_violations_rep_chart,
 )
 from src.ui.state import get_app_state
 
 
+def _get_static_temperance_figures(
+    temp_dto: TemperancePageDTO,
+    cache_key: tuple[object, ...],
+    scenario_id: str,
+    theme_mode: str,
+) -> tuple[go.Figure, go.Figure]:
+    """Memoiza os gráficos estáticos de Temperança para manter sliders < 300 ms."""
+    cached = st.session_state.get("_temp_static_figs")
+    if isinstance(cached, tuple) and len(cached) == 2 and cached[0] == cache_key:
+        figs: tuple[go.Figure, go.Figure] = cached[1]
+        return figs
+
+    fig_erosion = erosion_breakdown_chart(temp_dto.kpis, theme_mode=theme_mode)
+    elasticity_df = cached_family_elasticity(scenario_id)  # type: ignore[arg-type]
+    fig_elasticity = elasticity_family_chart(elasticity_df, theme_mode=theme_mode)
+    figs = (fig_erosion, fig_elasticity)
+    st.session_state["_temp_static_figs"] = (cache_key, figs)
+    return figs
+
+
 def render_page() -> None:
-    """Renderiza a Página 4 — Temperança em formato Cockpit Z-Pattern (1080p sem scroll)."""
+    """Renderiza a Página 4 — 4. Temperança (Visão Integrada 360° Admin+Comercial+Finanças)."""
     state = get_app_state()
+    scenario_cfg = load_scenario_config(state.scenario_id)
     theme_mode = state.theme_mode
 
-    dto = cached_temperance_dashboard(
+    exec_dto: ExecutivePageDTO = cached_executive_dashboard(
+        state.scenario_id,
+        regiao=state.regiao,
+        uf=state.uf,
+        families=state.families,
+        sales_reps=state.sales_reps,
+        selected_cell=state.selected_abc_xyz_cell,
+        period_preset=state.period_preset,
+        comparison_mode=state.comparison_mode,
+        selected_month=state.selected_month,
+        selected_quarter=state.selected_quarter,
+        selected_semester=state.selected_semester,
+        custom_start_date=state.custom_start_date,
+        custom_end_date=state.custom_end_date,
+    )
+    fort_dto = cached_fortitude_dashboard(
+        state.scenario_id,
+        regiao=state.regiao,
+        uf=state.uf,
+        families=tuple(state.families),
+        sales_reps=tuple(state.sales_reps),
+    )
+    comm_dto = cached_commercial_dashboard(
+        state.scenario_id,
+        regiao=state.regiao,
+        uf=state.uf,
+        families=tuple(state.families),
+        sales_reps=tuple(state.sales_reps),
+        risk_status="Todos",
+        rfm_segment="Todos",
+        quadrant="Todos",
+        period_preset=state.period_preset,
+        comparison_mode=state.comparison_mode,
+        selected_month=state.selected_month,
+        selected_quarter=state.selected_quarter,
+        selected_semester=state.selected_semester,
+        custom_start_date=state.custom_start_date,
+        custom_end_date=state.custom_end_date,
+    )
+    temp_dto = cached_temperance_dashboard(
         state.scenario_id,
         regiao=state.regiao,
         uf=state.uf,
@@ -39,120 +106,90 @@ def render_page() -> None:
         custom_start_date=state.custom_start_date,
         custom_end_date=state.custom_end_date,
     )
-    inv_dto = cached_inventory_dashboard(
+    inv_dto = cached_inventory_dashboard(state.scenario_id, families=tuple(state.families))
+
+    fig_cache_key: tuple[object, ...] = (
         state.scenario_id,
-        families=tuple(state.families),
+        state.regiao,
+        state.uf,
+        tuple(state.families) if state.families else None,
+        tuple(state.sales_reps) if state.sales_reps else None,
+        state.period_preset,
+        state.comparison_mode,
+        state.selected_month,
+        state.selected_quarter,
+        state.selected_semester,
+        state.custom_start_date,
+        state.custom_end_date,
+        theme_mode,
+    )
+    fig_erosion, fig_elasticity = _get_static_temperance_figures(
+        temp_dto,
+        fig_cache_key,
+        state.scenario_id,
+        theme_mode,
     )
 
-    # 1. Faixa 1 — Topo (Status em 5s): Cabeçalho Cockpit unificado + 5 KPI Cards
     render_cockpit_header(
-        title="Eficiência Operacional & Capital de Giro",
-        subtitle="",
+        title="Temperança · Síntese Executiva 360° & Simulador Prescritivo",
         virtue_badge="4. Temperança",
-        headline_title=dto.headline_title,
-        headline_text=dto.headline_text,
-        as_of_date_label=dto.as_of_date_label,
+        headline_title=temp_dto.headline_title,
+        headline_text=temp_dto.headline_text,
+        as_of_date_label=temp_dto.as_of_date_label,
         help_text=(
-            "Diagnóstico quantificado das perdas estancáveis: excesso de descontos acima da política "
-            "de tabela e valor imobilizado em produtos com giro superior a 120 dias."
+            "Visão executiva transversal estilo PowerBI integrando Finanças, Comercial e Operações, "
+            "além do Simulador Estratégico What-If e Matriz 360° Campeões vs. Vampiros."
         ),
     )
-    render_temperance_kpi_cards(dto, inv_dto=inv_dto)
 
-    # 2. Faixa 2 — Meio (Diagnóstico Visual em 2 Colunas lado a lado)
-    col_diag_left, col_diag_right = st.columns([1.0, 1.0])
+    tab_mix, tab_sim, tab_cv = st.tabs(
+        [
+            "Termômetro Executivo 360° (Mix)",
+            "Simulador Estratégico What-If & Elasticidade",
+            "Matriz Campeões vs. Vampiros 360°",
+        ]
+    )
 
-    with col_diag_left:
-        section_header(
-            "Decomposição da Erosão Comercial",
-            "Onde a margem vaza: descontos fora do teto, prazo esticado, comissões e frete",
-            help_text="Detalhamento exclusivo dos componentes de erosão comercial para priorização de corte.",
-        )
-        t_wat, t_rep = st.tabs(["Erosão por Alavanca", "Top RCAs por Desconto Fora do Teto"])
-        with t_wat:
-            fig_erosion = erosion_breakdown_chart(dto.kpis, theme_mode=theme_mode)
-            st.plotly_chart(fig_erosion, use_container_width=True)
-        with t_rep:
-            if not dto.policy_violations_by_rep_df.empty:
-                fig_rep = render_violations_rep_chart(dto.policy_violations_by_rep_df, theme_mode=theme_mode)
-                st.plotly_chart(fig_rep, use_container_width=True)
-            else:
-                st.info("Nenhuma violação de política comercial identificada.")
-
-    with col_diag_right:
-        section_header(
-            "Gestão Prescritiva de Estoque",
-            "Matriz ABC/XYZ, Forecast 30d por SKU e Treemap de Capital Travado",
-            help_text=(
-                "Matriz ABC/XYZ: ABC classifica os SKUs pela relevância na Margem de Contribuição "
-                "(A=80%, B=15%, C=5%) e XYZ pela previsibilidade da demanda "
-                "(X=regular, Y=sazonal, Z=intermitente). Também exibe previsão 30d (80%/95%) "
-                "e o treemap de capital travado (> 120d)."
-            ),
-        )
-        t_abc, t_fc, t_tree = st.tabs(
-            ["Matriz ABC/XYZ 3x3", "Forecast 30d por SKU", "Treemap Capital Travado"]
-        )
-        with t_abc:
-            matrix_df = dto.abc_xyz_summary_df.copy()
-            if not matrix_df.empty and "recommended_policy" not in matrix_df.columns:
-                matrix_df["recommended_policy"] = matrix_df["policy"]
-            fig_abc = abc_xyz_heatmap(matrix_df, theme_mode=theme_mode)
-            st.plotly_chart(fig_abc, use_container_width=True)
-            st.markdown(
-                "<div style='font-size:0.72rem; color:var(--kyb-text-muted); line-height:1.35; "
-                "margin-top:-0.35rem; padding:0.2rem 0.45rem; background:var(--kyb-card-bg); "
-                "border-radius:4px; border:1px solid var(--kyb-border);'>"
-                "<strong>Legenda:</strong> "
-                "<strong>ABC (Importância no Lucro/MC):</strong> "
-                "<b>A</b> = 80% da margem · <b>B</b> = 15% · <b>C</b> = 5% "
-                "&nbsp;|&nbsp; "
-                "<strong>XYZ (Regularidade de Venda):</strong> "
-                "<b>X</b> = giro constante · <b>Y</b> = sazonal/oscilante · "
-                "<b>Z</b> = intermitente/imprevisível"
-                "</div>",
-                unsafe_allow_html=True,
+    with tab_mix:
+        render_temperance_mix_kpis(exec_dto, fort_dto, comm_dto, temp_dto, inv_dto)
+        col_l, col_r = st.columns([1.0, 1.0])
+        with col_l:
+            section_header(
+                "Erosão Comercial & Operacional por Alavanca",
+                "Decomposição das deduções entre faturamento de tabela e lucro líquido",
             )
-        with t_fc:
-            render_sku_forecast_fragment(state.scenario_id, inv_dto, theme_mode=theme_mode)
-        with t_tree:
-            render_locked_capital_treemap_tab(inv_dto, theme_mode=theme_mode)
+            st.plotly_chart(fig_erosion, use_container_width=True)
+        with col_r:
+            section_header(
+                "Elasticidade-Preço & Sensibilidade por Família (β)",
+                "Relação histórica entre variação de preço líquido e demanda por linha",
+            )
+            st.plotly_chart(fig_elasticity, use_container_width=True)
 
-    # 3. Faixa 3 — Base (Detalhamento & Ação em 2 Colunas lado a lado)
-    col_act_left, col_act_right = st.columns([1.35, 1.0])
+        col_bl, col_br = st.columns([1.25, 1.0])
+        with col_bl:
+            section_header(
+                "Auditoria Cruzada de Alçadas por Representante",
+                "Maiores desvios de tabela impactando simultaneamente margem e caixa",
+            )
+            render_rep_policy_violations_table(temp_dto)
+        with col_br:
+            section_header(
+                "Veredito Integrado de Temperança (360°)",
+                "Diretriz executiva consolidando recuperação de caixa, estoque e margem",
+            )
+            render_temperance_verdict_section(temp_dto)
 
-    with col_act_left:
+    with tab_sim:
         section_header(
-            "Auditoria de Política Comercial & Estoque",
-            "Ações imediatas para estancar sangrias e destravar capital",
-            help_text="Detalhamento operacional de estoques e auditoria de políticas comerciais.",
+            "Simulador Estratégico What-If & Elasticidade Real (β)",
+            "Teste impactos conjuntos de preço, descontos, CMV e comissão sobre lucro e ponto de equilíbrio",
         )
-        stockout_tab_count = (
-            inv_dto.kpis.stockout_risk_skus_count
-            if inv_dto.kpis.stockout_risk_skus_count > 0
-            else dto.kpis.stockout_risk_skus_count
-        )
-        t_rup, t_lock, t_audit = st.tabs(
-            [
-                f"Ruptura Iminente ({stockout_tab_count} SKUs)",
-                f"Capital Travado >120d ({dto.kpis.locked_skus_count} SKUs)",
-                "Auditoria de Política Comercial",
-            ]
-        )
-        with t_rup:
-            render_stockout_risk_table(dto, inv_dto=inv_dto)
-        with t_lock:
-            render_locked_inventory_table(dto)
-        with t_audit:
-            render_policy_violations_tabs(dto)
+        render_what_if_quick_fragment(exec_dto, theme_mode=theme_mode)
 
-    with col_act_right:
-        section_header(
-            "Veredito de Temperança",
-            "Diagnóstico prescritivo e quantificação de recuperação",
-            help_text="Cálculo consolidado de impacto financeiro no caixa operacional.",
-        )
-        render_temperance_verdict_section(dto)
+    with tab_cv:
+        render_champions_vampires_kpis(exec_dto, temp_dto, scenario_cfg.labels.customer_plural)
+        render_champions_vampires_section(exec_dto, scenario_cfg.labels)
 
 
 render_page()

@@ -86,18 +86,18 @@ def test_all_four_pages_smoke_filters_simulator_and_exports() -> None:
         all_md = " ".join(m.value for m in at.markdown)
         assert badge_text in all_md
 
-    # Interação com filtro da sidebar no app principal + slider no simulador
-    at_exec = AppTest.from_file(str(pages_dir / "1_executive.py"), default_timeout=15)
-    at_exec.run()
-    price_slider = next(s for s in at_exec.slider if s.key == "_what_if_price")
+    # Interação com slider no simulador What-If (4. Temperança - Aba 2)
+    at_temp = AppTest.from_file(str(pages_dir / "3_inventory_demand.py"), default_timeout=15)
+    at_temp.run()
+    price_slider = next(s for s in at_temp.slider if s.key == "_what_if_price")
     price_slider.set_value(5.0).run()
-    assert not at_exec.exception
+    assert not at_temp.exception
 
-    # Presença de botões de exportação Excel e CSV na Tela 3 (Justiça)
-    at_just = AppTest.from_file(str(pages_dir / "2_commercial_radar.py"), default_timeout=15)
-    at_just.run()
-    assert not at_just.exception
-    dl_buttons = at_just.get("download_button")
+    # Presença de botões de exportação Excel e CSV na Tela 2 (Fortaleza Comercial)
+    at_comm = AppTest.from_file(str(pages_dir / "4_simulator.py"), default_timeout=15)
+    at_comm.run()
+    assert not at_comm.exception
+    dl_buttons = at_comm.get("download_button")
     button_labels = " ".join(str(getattr(b, "label", "")) for b in dl_buttons)
     assert "xlsx" in button_labels.lower()
     assert "csv" in button_labels.lower()
@@ -110,3 +110,17 @@ def test_all_four_pages_smoke_filters_simulator_and_exports() -> None:
     if at_app.sidebar.selectbox:
         at_app.sidebar.selectbox(key="_scenario_select").set_value("c1_toys").run()
         assert not at_app.exception
+
+
+def test_powerbi_single_page_tabs_and_no_nested_subtabs() -> None:
+    """Garante 1 barra de abas PowerBI por página e zero sub-abas aninhadas em componentes."""
+    ui_root = get_project_root() / "src" / "ui"
+    for page_file in sorted((ui_root / "pages").glob("*.py")):
+        if page_file.name == "__init__.py":
+            continue
+        content = page_file.read_text(encoding="utf-8")
+        assert content.count("st.tabs(") == 1, f"{page_file.name} deve ter exatamente 1 st.tabs("
+
+    for comp_file in sorted((ui_root / "components").glob("*.py")):
+        content = comp_file.read_text(encoding="utf-8")
+        assert "st.tabs(" not in content, f"Sub-aba proibida encontrada em {comp_file.name}"

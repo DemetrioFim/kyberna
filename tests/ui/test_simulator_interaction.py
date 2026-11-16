@@ -9,8 +9,8 @@ from src.core.paths import get_project_root
 
 def test_simulator_zero_levers_and_controls_present() -> None:
     """DoD M4-V2: Alavancas zeradas mostram delta 0 exato e todos os controles estão ativos."""
-    page_path = get_project_root() / "src" / "ui" / "pages" / "1_executive.py"
-    at = AppTest.from_file(str(page_path), default_timeout=10)
+    page_path = get_project_root() / "src" / "ui" / "pages" / "3_inventory_demand.py"
+    at = AppTest.from_file(str(page_path), default_timeout=15)
     at.run()
 
     assert not at.exception
@@ -28,12 +28,14 @@ def test_simulator_zero_levers_and_controls_present() -> None:
     assert "Neutro (Baseline)" in all_markdown
     assert "Volume de Equilíbrio (Breakeven):" in all_markdown
     assert "Volume Projetado (β):" in all_markdown
+    assert "Receita Bruta Simulada" in all_markdown
+    assert "Impacto Direto no Lucro" in all_markdown
 
 
 def test_simulator_slider_latency_and_scenario_comparison() -> None:
     """DoD M4-V2: Mover slider responde em < 300 ms e comparador salva até 3 cenários."""
-    page_path = get_project_root() / "src" / "ui" / "pages" / "1_executive.py"
-    at = AppTest.from_file(str(page_path), default_timeout=10)
+    page_path = get_project_root() / "src" / "ui" / "pages" / "3_inventory_demand.py"
+    at = AppTest.from_file(str(page_path), default_timeout=15)
     at.run()
     assert not at.exception
 

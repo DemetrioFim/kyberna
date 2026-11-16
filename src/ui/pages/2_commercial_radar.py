@@ -3,59 +3,232 @@ from __future__ import annotations
 import streamlit as st
 
 from src.core.scenarios import load_scenario_config
-from src.ui.cache import cached_commercial_dashboard
-from src.ui.components.charts import quadrant_scatter
-from src.ui.components.commercial_charts import (
-    cycle_delay_scatter,
-    cycle_health_funnel_chart,
-    rfm_treemap,
-    white_space_heatmap,
+from src.services.dto import ExecutivePageDTO, FortitudePageDTO, TemperancePageDTO
+from src.ui.cache import (
+    cached_executive_dashboard,
+    cached_fortitude_dashboard,
+    cached_temperance_dashboard,
 )
-from src.ui.components.export_bar import render_commercial_export_bar
-from src.ui.components.justice_sections import (
-    render_champions_vampires_section,
-    render_critical_customers_table,
-    render_justice_kpi_cards,
-    render_sales_reps_table,
-    render_white_space_deals_table,
+from src.ui.components.charts import dual_trend, waterfall_margin
+from src.ui.components.fortitude_charts import (
+    build_aging_buckets_chart,
+    build_breakeven_curve_chart,
+    build_concentration_chart,
+    build_cycle_comparison_chart,
 )
-from src.ui.components.prescription import render_cockpit_header, render_prescription_box
-from src.ui.state import get_app_state
+from src.ui.components.fortitude_sections import (
+    render_aging_customers_table,
+    render_concentration_tables,
+    render_fortitude_kpi_cards,
+    render_fortitude_verdict_section,
+)
+from src.ui.components.justice_sections import render_financial_aging_kpis, render_term_leak_table
+from src.ui.components.prescription import (
+    render_cockpit_header,
+    render_prescription_box,
+    section_header,
+)
+from src.ui.components.prudence_sections import (
+    render_monthly_sales_table_section,
+    render_prudence_kpis,
+)
+from src.ui.state import (
+    COMPARISON_MODE_LABELS,
+    AppState,
+    ComparisonMode,
+    get_app_state,
+    on_comparison_mode_change,
+)
 
 
-def _pluralize_rep_label(rep_label: str) -> str:
-    """Pluraliza corretamente rótulos de força de vendas com ou sem parênteses."""
-    overrides = {
-        "RCA (Representante)": "RCAs (Representantes)",
-        "Vendedor de Rota": "Vendedores de Rota",
-        "Gerente de Loja": "Gerentes de Loja",
-        "Balconista / Atendente": "Balconistas / Atendentes",
-    }
-    if rep_label in overrides:
-        return overrides[rep_label]
-    if "(" in rep_label:
-        base, rest = rep_label.split("(", 1)
-        return f"{base.strip()}s ({rest.rstrip(')')}s)"
-    return f"{rep_label}s"
+def _format_comparison_mode(mode: ComparisonMode) -> str:
+    """Retorna rótulo pt-BR da base comparativa dos KPIs financeiros."""
+    return COMPARISON_MODE_LABELS[mode]
+
+
+def _render_tab_dre(
+    state: AppState,
+    exec_dto: ExecutivePageDTO,
+    customer_plural: str,
+) -> None:
+    """Aba 1: DRE Gerencial & Margem Real."""
+    col_period_info, col_comp_toggle = st.columns([1.65, 1.0])
+    with col_period_info:
+        st.markdown(
+            "<div style='font-size:0.78rem; color:var(--kyb-text-muted); padding-top:0.2rem;'>"
+            f"<strong style='color:var(--kyb-text);'>Janela:</strong> {exec_dto.period_label} · "
+            f"<span style='color:var(--kyb-teal); font-weight:600;'>{exec_dto.comparison_label}</span>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+    with col_comp_toggle:
+        st.radio(
+            "Base Comparativa dos KPIs",
+            options=["pop", "yoy"],
+            index=0 if state.comparison_mode == "pop" else 1,
+            format_func=_format_comparison_mode,
+            key="_comparison_mode_radio",
+            on_change=on_comparison_mode_change,
+            horizontal=True,
+            label_visibility="collapsed",
+        )
+    render_prudence_kpis(exec_dto, customer_plural)
+
+    col_l, col_r = st.columns([1.0, 1.05])
+    with col_l:
+        section_header(
+            "Decomposição DRE Completa (Waterfall)",
+            "Do faturamento bruto de tabela até a margem de contribuição líquida",
+            help_text="Deduz descontos comerciais, impostos (ICMS/PIS/COFINS), CPV, comissões e frete.",
+        )
+        st.plotly_chart(
+            waterfall_margin(exec_dto.waterfall_df, theme_mode=state.theme_mode),
+            use_container_width=True,
+        )
+    with col_r:
+        section_header(
+            "Ritmo Mensal: Faturamento vs. Margem %",
+            "Evolução temporal de volume frente à meta de rentabilidade",
+            help_text="Identifica se ganhos de volume estão ocorrendo com sacrifício de margem.",
+        )
+        st.plotly_chart(
+            dual_trend(
+                exec_dto.monthly_trend_df,
+                theme_mode=state.theme_mode,
+                target_margin_pct=exec_dto.kpis.margin_target_pct,
+            ),
+            use_container_width=True,
+        )
+
+    col_bl, col_br = st.columns([1.3, 1.0])
+    with col_bl:
+        section_header("Demonstrativo Financeiro Mês a Mês", "Série contábil consolidada com deltas MoM")
+        render_monthly_sales_table_section(exec_dto)
+    with col_br:
+        section_header("Veredito Financeiro de Margem", "Alavancas prioritárias de proteção do lucro")
+        render_prescription_box(
+            title=exec_dto.prescription_title,
+            recommendation_html=exec_dto.prescription_html,
+            impact_brl=exec_dto.prescription_impact_brl,
+            action_hint="Aprofunde testes de precificação no Simulador What-If em 4. Temperança.",
+            help_text=(
+                "Estimativa financeira de ganho ao recuperar clientes abaixo do piso saudável de margem."
+            ),
+        )
+
+
+def _render_tab_cash_cycle(
+    fort_dto: FortitudePageDTO,
+    temp_dto: TemperancePageDTO,
+    theme_mode: str,
+) -> None:
+    """Aba 2: Fluxo de Caixa, Runway & Ciclo (NCG)."""
+    render_fortitude_kpi_cards(fort_dto)
+    col_l, col_r = st.columns([1.0, 1.0])
+    with col_l:
+        section_header(
+            "Ciclo Financeiro em Dias (PME + PMR - PMP)",
+            "Quantos dias a tesouraria financia a operação antes de receber",
+            help_text="Cada dia reduzido no ciclo libera Capital de Giro (NCG) direto para o caixa.",
+        )
+        st.plotly_chart(
+            build_cycle_comparison_chart(fort_dto.cycle_components_df, theme_mode=theme_mode),
+            use_container_width=True,
+        )
+    with col_r:
+        section_header(
+            "Curva Diária do Break-Even Acumulado",
+            "Dia exato do mês em que a margem paga 100% dos custos fixos",
+            help_text="Acompanhamento intra-mês da geração operacional até o ponto de equilíbrio.",
+        )
+        st.plotly_chart(
+            build_breakeven_curve_chart(fort_dto.breakeven_curve_df, fort_dto.kpis, theme_mode=theme_mode),
+            use_container_width=True,
+        )
+
+    col_bl, col_br = st.columns([1.15, 1.0])
+    with col_bl:
+        section_header(
+            "Custo Financeiro de Prazo Concedido",
+            "Carregamento financeiro de prazos médios esticados acima de 30 dias",
+        )
+        render_term_leak_table(temp_dto)
+    with col_br:
+        section_header("Veredito de Solvência & NCG", "Liberação imediata de caixa sem endividamento")
+        render_fortitude_verdict_section(fort_dto)
+
+
+def _render_tab_aging(
+    fort_dto: FortitudePageDTO,
+    temp_dto: TemperancePageDTO,
+    theme_mode: str,
+) -> None:
+    """Aba 3: Aging de Recebíveis & Concentração Pareto."""
+    render_financial_aging_kpis(fort_dto, temp_dto)
+    col_l, col_r = st.columns([1.0, 1.0])
+    with col_l:
+        section_header(
+            "Exposição por Faixa de Aging (Atraso)",
+            "Distribuição de risco de carteira por buckets de atraso no ciclo",
+        )
+        st.plotly_chart(
+            build_aging_buckets_chart(fort_dto.aging_buckets_df, theme_mode=theme_mode),
+            use_container_width=True,
+        )
+    with col_r:
+        section_header(
+            "Concentração Pareto — Top 10 Clientes",
+            "Peso acumulado das maiores contas sobre a receita líquida anual",
+        )
+        st.plotly_chart(
+            build_concentration_chart(fort_dto.customer_concentration_df, theme_mode=theme_mode),
+            use_container_width=True,
+        )
+
+    col_bl, col_br = st.columns([1.05, 1.0])
+    with col_bl:
+        section_header(
+            "Auditoria de Vencimentos (Aging List)", "Priorização financeira para cobrança/resgate"
+        )
+        render_aging_customers_table(fort_dto)
+    with col_br:
+        section_header("Concentração Pareto (Top 20)", "Dependência individual e participação acumulada")
+        render_concentration_tables(fort_dto)
 
 
 def render_page() -> None:
-    """Entrypoint da Página 3 — Justiça em formato Cockpit Z-Pattern."""
+    """Renderiza a Página 3 — 3. Justiça (Visão Financeira) estilo PowerBI."""
     state = get_app_state()
-    scenario_cfg = load_scenario_config(state.scenario_id)
-    labels = scenario_cfg.labels
-    rep_plural = _pluralize_rep_label(labels.sales_rep)
-    theme_mode = state.theme_mode
+    labels = load_scenario_config(state.scenario_id).labels
 
-    dto = cached_commercial_dashboard(
+    exec_dto = cached_executive_dashboard(
+        state.scenario_id,
+        regiao=state.regiao,
+        uf=state.uf,
+        families=state.families,
+        sales_reps=state.sales_reps,
+        selected_cell=state.selected_abc_xyz_cell,
+        period_preset=state.period_preset,
+        comparison_mode=state.comparison_mode,
+        selected_month=state.selected_month,
+        selected_quarter=state.selected_quarter,
+        selected_semester=state.selected_semester,
+        custom_start_date=state.custom_start_date,
+        custom_end_date=state.custom_end_date,
+    )
+    fort_dto = cached_fortitude_dashboard(
         state.scenario_id,
         regiao=state.regiao,
         uf=state.uf,
         families=tuple(state.families),
         sales_reps=tuple(state.sales_reps),
-        risk_status="Todos",
-        rfm_segment="Todos",
-        quadrant="Todos",
+    )
+    temp_dto = cached_temperance_dashboard(
+        state.scenario_id,
+        regiao=state.regiao,
+        uf=state.uf,
+        families=state.families,
+        sales_reps=state.sales_reps,
         period_preset=state.period_preset,
         comparison_mode=state.comparison_mode,
         selected_month=state.selected_month,
@@ -65,106 +238,31 @@ def render_page() -> None:
         custom_end_date=state.custom_end_date,
     )
 
-    # 1. Faixa 1 — Topo (Status em 5s): Cabeçalho Cockpit unificado + 5 KPI Cards
     render_cockpit_header(
-        title="Radar Comercial, Margem & Carteira",
-        subtitle="",
+        title="Justiça · Governança Financeira, DRE & Solvência de Caixa",
         virtue_badge="3. Justiça",
-        headline_title=dto.headline_title,
-        headline_text=dto.headline_text,
-        as_of_date_label=dto.as_of_date_label,
+        headline_title=exec_dto.headline_title,
+        headline_text=exec_dto.headline_text,
+        as_of_date_label=exec_dto.as_of_date_label,
         help_text=(
-            "Equilíbrio entre rentabilidade por produto/cliente, mitigação de churn pelo ciclo de recompra, "
-            "mérito da força de vendas (RCAs) e potencial de expansão White Space."
+            "Visão financeira completa em 3 abas estilo PowerBI: DRE Gerencial & Margem Real, "
+            "Fluxo de Caixa/NCG e Aging de Recebíveis & Concentração Pareto."
         ),
     )
-    render_justice_kpi_cards(dto, labels.customer_plural)
 
-    # 2. Faixa 2 — Meio (Diagnóstico Visual em 2 Colunas lado a lado)
-    col_diag_left, col_diag_right = st.columns([1.0, 1.0])
-
-    with col_diag_left:
-        t_quad, t_champ = st.tabs(
-            [
-                f"Força de Vendas ({rep_plural})",
-                "Rentabilidade (Campeões vs. Vampiros)",
-            ]
-        )
-        with t_quad:
-            if not dto.rep_performance_df.empty:
-                fig_quad = quadrant_scatter(
-                    dto.rep_performance_df,
-                    x_col="gross_revenue",
-                    y_col="margin_pct",
-                    label_col="sales_rep_name",
-                    size_col="revenue_at_risk_brl",
-                    theme_mode=theme_mode,
-                )
-                st.plotly_chart(fig_quad, use_container_width=True)
-            else:
-                st.info("Nenhum dado de representantes no filtro.")
-        with t_champ:
-            render_champions_vampires_section(dto, labels)
-
-    with col_diag_right:
-        t_scatter, t_rfm, t_funnel, t_ws = st.tabs(
-            [
-                "Atraso de Recompra (Ciclo)",
-                "Segmentação RFM & LTV",
-                "Funil de Recompra",
-                "Matriz White Space",
-            ]
-        )
-        with t_scatter:
-            fig_scatter = cycle_delay_scatter(dto.priority_risk_df, theme_mode=theme_mode)
-            st.plotly_chart(fig_scatter, use_container_width=True)
-        with t_rfm:
-            fig_rfm = rfm_treemap(dto.rfm_summary_df, theme_mode=theme_mode)
-            st.plotly_chart(fig_rfm, use_container_width=True)
-        with t_funnel:
-            if not dto.cycle_funnel_df.empty:
-                fig_funnel = cycle_health_funnel_chart(dto.cycle_funnel_df, theme_mode=theme_mode)
-                st.plotly_chart(fig_funnel, use_container_width=True)
-            else:
-                st.info("Sem dados de funil no filtro.")
-        with t_ws:
-            fig_ws = white_space_heatmap(dto.white_space_matrix_df, theme_mode=theme_mode)
-            st.plotly_chart(fig_ws, use_container_width=True)
-
-    # 3. Faixa 3 — Base (Detalhamento & Ação em 2 Colunas lado a lado)
-    col_act_left, col_act_right = st.columns([1.35, 1.0])
-
-    with col_act_left:
-        t_crit, t_deals, t_reps = st.tabs(
-            [
-                f"{labels.customer_plural} em Risco",
-                "Pitch Cross-Sell (White Space)",
-                f"Desempenho dos {rep_plural}",
-            ]
-        )
-        with t_crit:
-            render_critical_customers_table(dto, labels.customer)
-        with t_deals:
-            render_white_space_deals_table(dto, labels.customer)
-        with t_reps:
-            render_sales_reps_table(dto, labels.sales_rep)
-
-    with col_act_right:
-        render_prescription_box(
-            title=dto.prescription_title,
-            recommendation_html=dto.prescription_html,
-            impact_brl=dto.prescription_impact_brl,
-            action_hint="Priorize o contato com os lojistas do topo da lista antes do fechamento semanal.",
-            help_text=(
-                "Diretrizes táticas consolidadas com base no valor em risco e oportunidades de cross-sell."
-            ),
-        )
-        render_commercial_export_bar(
-            dto.priority_risk_df,
-            dto.top_white_space_deals_df,
-            scenario_id=state.scenario_id,
-            scenario_name=scenario_cfg.display_name,
-        )
+    tab_dre, tab_cash, tab_aging = st.tabs(
+        [
+            "DRE Gerencial & Margem Real",
+            "Fluxo de Caixa, Runway & Ciclo (NCG)",
+            "Aging de Recebíveis & Concentração Pareto",
+        ]
+    )
+    with tab_dre:
+        _render_tab_dre(state, exec_dto, labels.customer_plural)
+    with tab_cash:
+        _render_tab_cash_cycle(fort_dto, temp_dto, state.theme_mode)
+    with tab_aging:
+        _render_tab_aging(fort_dto, temp_dto, state.theme_mode)
 
 
 render_page()

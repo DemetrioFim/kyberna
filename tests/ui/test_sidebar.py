@@ -250,17 +250,17 @@ def test_sidebar_cascade_and_progressive_period_controls() -> None:
 
 
 def test_executive_pop_yoy_toggle_and_app_render() -> None:
-    """AppTest: Toggle PoP/YoY na Tela 1 alterna comparison_mode e app.py renderiza limpo."""
-    page_path = get_project_root() / "src" / "ui" / "pages" / "1_executive.py"
-    at_exec = AppTest.from_file(str(page_path), default_timeout=15)
-    at_exec.run()
-    assert not at_exec.exception
+    """AppTest: Toggle PoP/YoY na Visão Financeira (Justiça) alterna comparison_mode e app.py renderiza."""
+    page_path = get_project_root() / "src" / "ui" / "pages" / "2_commercial_radar.py"
+    at_fin = AppTest.from_file(str(page_path), default_timeout=15)
+    at_fin.run()
+    assert not at_fin.exception
 
-    comp_radio = next(r for r in at_exec.radio if r.key == "_comparison_mode_radio")
+    comp_radio = next(r for r in at_fin.radio if r.key == "_comparison_mode_radio")
     assert comp_radio.value == "pop"
     comp_radio.set_value("yoy").run()
-    assert not at_exec.exception
-    assert at_exec.session_state.comparison_mode == "yoy"
+    assert not at_fin.exception
+    assert at_fin.session_state.comparison_mode == "yoy"
 
     app_path = get_project_root() / "src" / "ui" / "app.py"
     at_app = AppTest.from_file(str(app_path), default_timeout=15)

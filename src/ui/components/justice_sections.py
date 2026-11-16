@@ -5,10 +5,9 @@ from typing import Any
 import streamlit as st
 
 from src.core.scenarios import ScenarioLabels
-from src.services.dto import CommercialPageDTO
+from src.services.dto import CommercialPageDTO, ExecutivePageDTO, FortitudePageDTO, TemperancePageDTO
 from src.services.export_service import attach_whatsapp_links
-from src.ui.components.kpi_card import render_kpi_card
-from src.ui.components.prescription import section_header
+from src.ui.components.kpi_card import KpiAccent, render_kpi_card
 from src.ui.components.tables import render_margin_drivers_table
 from src.ui.formatting import format_brl, format_int
 
@@ -84,43 +83,107 @@ def render_justice_kpi_cards(dto: CommercialPageDTO, customer_plural: str) -> No
         )
 
 
-def render_champions_vampires_section(dto: CommercialPageDTO, labels: ScenarioLabels) -> None:
-    """Renderiza a Matriz de Rentabilidade: Campeões vs. Vampiros (4 Abas)."""
-    section_header(
-        "Matriz de Rentabilidade: Campeões vs. Vampiros",
-        "Volume vs. Margem de Contribuição — separe quem gera lucro líquido real de quem corrói caixa",
-        help_text=(
-            "Cruza volume e margem líquida. Campeões sustentam o resultado da empresa; "
-            "vampiros geram alto volume operacional com margem irrisória ou negativa "
-            "por excesso de descontos."
-        ),
+def render_champions_vampires_section(
+    dto: ExecutivePageDTO | CommercialPageDTO,
+    labels: ScenarioLabels,
+) -> None:
+    """Renderiza Campeões vs. Vampiros em Grid 2x2 limpo (Produtos à esq., Clientes à dir., sem sub-abas)."""
+    prod_gen = getattr(dto, "top_product_generators_df", getattr(dto, "top_generators_df", None))
+    prod_dest = getattr(dto, "top_product_destroyers_df", getattr(dto, "top_destroyers_df", None))
+
+    c_left, c_right = st.columns(2)
+    with c_left:
+        st.markdown("##### Visão Administrativa · Top Produtos Campeões")
+        if prod_gen is not None:
+            render_margin_drivers_table(prod_gen, is_generator=True, height=180)
+        st.markdown("##### Visão Administrativa · Produtos Vampiros")
+        if prod_dest is not None:
+            render_margin_drivers_table(prod_dest, is_generator=False, height=180)
+    with c_right:
+        st.markdown(f"##### Visão Comercial · {labels.customer_plural} Campeões")
+        render_margin_drivers_table(dto.top_customer_generators_df, is_generator=True, height=180)
+        st.markdown(f"##### Visão Comercial · {labels.customer_plural} Vampiros")
+        render_margin_drivers_table(dto.top_customer_destroyers_df, is_generator=False, height=180)
+
+
+def render_financial_aging_kpis(fort_dto: FortitudePageDTO, temp_dto: TemperancePageDTO) -> None:
+    """Renderiza os 5 KPIs da Aba 3 (Aging de Recebíveis & Concentração) de Justiça Financeira."""
+    fk = fort_dto.kpis
+    tk = temp_dto.kpis
+    risk_accent: KpiAccent = "alert_neg" if fk.at_risk_portfolio_pct >= 20.0 else "alert_warn"
+    conc_accent: KpiAccent = "alert_warn" if fk.top5_customers_share_pct > 35.0 else "teal"
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+    with c1:
+        render_kpi_card(
+            title="Carteira em Atraso (>1,5x)",
+            value=format_brl(fk.at_risk_portfolio_brl, compact=True, decimals=1),
+            subfooter_left=f"{fk.at_risk_portfolio_pct:.1f}% da receita 12m",
+            accent=risk_accent,
+            help_text="Faturamento anualizado em contas cujo atraso excedeu 1,5x o ciclo habitual.",
+        )
+    with c2:
+        render_kpi_card(
+            title="Clientes em Atraso Crítico",
+            value=f"{format_int(fk.at_risk_customers_count)} clientes",
+            subfooter_left=f"De {format_int(fk.active_customers_count)} ativos",
+            accent="alert_neg",
+            help_text="Quantidade de contas classificadas em Risco 31-60d ou Crítico >60d.",
+        )
+    with c3:
+        render_kpi_card(
+            title="Concentração Top 5 Clientes",
+            value=f"{fk.top5_customers_share_pct:.1f}%",
+            subfooter_left="Limite saudável <= 35%",
+            accent=conc_accent,
+            help_text="Dependência financeira sobre os 5 maiores compradores dos últimos 12 meses.",
+        )
+    with c4:
+        render_kpi_card(
+            title="Concentração Top 10 Clientes",
+            value=f"{fk.top10_customers_share_pct:.1f}%",
+            subfooter_left=f"Top 2 fam.: {fk.top2_families_share_pct:.1f}%",
+            accent="brass",
+            help_text="Parcela da receita concentrada nos 10 maiores clientes e 2 maiores famílias.",
+        )
+    with c5:
+        render_kpi_card(
+            title="Custo Financeiro de Prazo",
+            value=format_brl(tk.financial_term_leak_brl, compact=True, decimals=1),
+            subfooter_left="Prazo > 30d (1,35% a.m.)",
+            accent="alert_warn",
+            help_text="Despesa financeira implícita de carregar duplicatas acima do prazo padrão de 30 dias.",
+        )
+
+
+def render_term_leak_table(temp_dto: TemperancePageDTO) -> None:
+    """Renderiza a tabela direta de custo financeiro de prazo concedido (sem sub-abas)."""
+    df = temp_dto.term_leak_by_rep_df
+    if df.empty:
+        st.info("Nenhum custo excedente de prazo identificado no filtro atual.")
+        return
+    cols = [c for c in ("rep_name", "avg_pmr_days", "term_leak_brl") if c in df.columns]
+    view = (
+        df[cols]
+        .head(12)
+        .rename(
+            columns={
+                "rep_name": "Representante (RCA)",
+                "avg_pmr_days": "Prazo Médio (dias)",
+                "term_leak_brl": "Custo Financeiro (R$)",
+            }
+        )
     )
-
-    t_fam, t_prod, t_cust, t_rep = st.tabs(
-        [
-            f"Por {labels.product_family}",
-            "Por Produto (SKU)",
-            f"Por {labels.customer_plural}",
-            f"Por {labels.sales_rep}",
-        ]
+    st.dataframe(
+        view,
+        use_container_width=True,
+        hide_index=True,
+        height=185,
+        column_config={
+            "Prazo Médio (dias)": st.column_config.NumberColumn(format="%.1f d"),
+            "Custo Financeiro (R$)": st.column_config.NumberColumn(format="R$ %,.2f"),
+        },
     )
-
-    tabs_data = [
-        (t_fam, f"{labels.product_family}", dto.top_family_generators_df, dto.top_family_destroyers_df),
-        (t_prod, "Produtos (SKUs)", dto.top_product_generators_df, dto.top_product_destroyers_df),
-        (t_cust, f"{labels.customer_plural}", dto.top_customer_generators_df, dto.top_customer_destroyers_df),
-        (t_rep, f"{labels.sales_rep}", dto.top_rep_generators_df, dto.top_rep_destroyers_df),
-    ]
-
-    for tab, title, gen_df, dest_df in tabs_data:
-        with tab:
-            c1, c2 = st.columns(2)
-            with c1:
-                st.markdown(f"##### Campeões de Margem ({title})")
-                render_margin_drivers_table(gen_df, is_generator=True)
-            with c2:
-                st.markdown(f"##### Sangria de Margem / Vampiros ({title})")
-                render_margin_drivers_table(dest_df, is_generator=False)
 
 
 def render_sales_reps_table(dto: CommercialPageDTO, rep_label: str) -> None:

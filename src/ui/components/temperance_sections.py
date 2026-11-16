@@ -4,14 +4,16 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.services.dto import TemperancePageDTO
-from src.services.inventory_dto import InventoryPageDTO
-from src.ui.components.kpi_card import render_kpi_card
-from src.ui.components.prescription import render_prescription_box
-from src.ui.formatting import (
-    format_brl,
-    format_int,
+from src.services.dto import (
+    CommercialPageDTO,
+    ExecutivePageDTO,
+    FortitudePageDTO,
+    TemperancePageDTO,
 )
+from src.services.inventory_dto import InventoryPageDTO
+from src.ui.components.kpi_card import KpiAccent, render_kpi_card
+from src.ui.components.prescription import render_prescription_box
+from src.ui.formatting import format_brl, format_int
 from src.ui.theme import get_theme_tokens
 
 
@@ -27,27 +29,11 @@ def _fmt_int(x: object) -> str:
     return format_int(int(float(str(x))))
 
 
-def _fmt_days(x: object) -> str:
-    return f"{float(str(x)):.1f}d"
-
-
-def _fmt_days_full(x: object) -> str:
-    return f"{float(str(x)):.1f} dias"
-
-
-def _fmt_days_int(x: object) -> str:
-    return f"{int(float(str(x)))}d"
-
-
-def _fmt_boxes(x: object) -> str:
-    return f"{float(str(x)):.1f}"
-
-
 def render_temperance_kpi_cards(
     dto: TemperancePageDTO,
     inv_dto: InventoryPageDTO | None = None,
 ) -> None:
-    """Renderiza os 5 KPI Cards estruturados com ícones de informação e semântica de alerta."""
+    """Renderiza os 5 KPI Cards de disciplina comercial e estoques."""
     kpis = dto.kpis
     c1, c2, c3, c4, c5 = st.columns(5)
 
@@ -88,7 +74,11 @@ def render_temperance_kpi_cards(
         )
 
     with c5:
-        rup_skus_a = kpis.stockout_risk_skus_count
+        rup_skus_a = (
+            inv_dto.kpis.stockout_risk_skus_count
+            if inv_dto is not None and inv_dto.kpis.stockout_risk_skus_count > 0
+            else kpis.stockout_risk_skus_count
+        )
         rup_rev = (
             inv_dto.kpis.protected_revenue_brl
             if inv_dto is not None and inv_dto.kpis.protected_revenue_brl > 0.0
@@ -103,6 +93,146 @@ def render_temperance_kpi_cards(
         )
 
 
+def render_temperance_mix_kpis(
+    exec_dto: ExecutivePageDTO,
+    fort_dto: FortitudePageDTO,
+    comm_dto: CommercialPageDTO,
+    temp_dto: TemperancePageDTO,
+    inv_dto: InventoryPageDTO,
+) -> None:
+    """Renderiza os 5 KPIs integrados 360 (Financeiro + Comercial + Admin) da Aba 1."""
+    ek = exec_dto.kpis
+    fk = fort_dto.kpis
+    ck = comm_dto.kpis
+    tk = temp_dto.kpis
+    ik = inv_dto.kpis
+    rup_skus = ik.stockout_risk_skus_count if ik.stockout_risk_skus_count > 0 else tk.stockout_risk_skus_count
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+    with c1:
+        m_acc: KpiAccent = "alert_warn" if ek.contribution_margin_pct < ek.margin_target_pct else "green"
+        render_kpi_card(
+            title="[Finanças] Margem Líquida",
+            value=format_brl(ek.contribution_margin, compact=True),
+            subfooter_left=f"{ek.contribution_margin_pct:.1f}% vs. Meta {ek.margin_target_pct:.1f}%",
+            accent=m_acc,
+            help_text="Resultado financeiro líquido após descontos, tributos, CMV, comissões e frete.",
+        )
+    with c2:
+        ccc_acc: KpiAccent = "alert_neg" if fk.cash_conversion_cycle_days > 75.0 else "teal"
+        render_kpi_card(
+            title="[Finanças] Ciclo & NCG",
+            value=f"{fk.cash_conversion_cycle_days:.0f} dias",
+            subfooter_left=f"NCG: {format_brl(fk.ncg_brl, compact=True, decimals=1)}",
+            accent=ccc_acc,
+            help_text="Ciclo Financeiro (PME + PMR - PMP) e Necessidade de Capital de Giro.",
+        )
+    with c3:
+        render_kpi_card(
+            title="[Comercial] Risco vs. Mix",
+            value=format_brl(ck.annual_revenue_at_risk_brl, compact=True),
+            subfooter_left=f"White Space: +{format_brl(ck.white_space_potential_revenue_brl, compact=True)}",
+            accent="alert_warn",
+            help_text="Contrapõe a receita em risco de evasão ao potencial incremental de cross-sell.",
+        )
+    with c4:
+        render_kpi_card(
+            title="[Admin] Capital Travado",
+            value=format_brl(tk.locked_capital_brl, compact=True, decimals=1),
+            subfooter_left=f"Ruptura Curva A: {rup_skus} SKUs",
+            accent="gold",
+            help_text="Capital parado em estoque >120d confrontado com SKUs em ruptura iminente.",
+        )
+    with c5:
+        render_kpi_card(
+            title="[Síntese] Erosão Recuperável",
+            value=format_brl(tk.total_commercial_erosion_brl, compact=True, decimals=1),
+            subfooter_left=f"Fora do teto: {format_brl(tk.excess_discount_brl, compact=True, decimals=1)}",
+            accent="alert_neg",
+            help_text="Total de vazamentos comerciais e logísticos passíveis de contenção executiva.",
+        )
+
+
+def render_champions_vampires_kpis(
+    exec_dto: ExecutivePageDTO,
+    temp_dto: TemperancePageDTO,
+    customer_plural: str,
+) -> None:
+    """Renderiza os 5 KPIs da Aba 3 (Matriz Campeões vs. Vampiros 360) de Temperança."""
+    prod_gen_sum = (
+        float(exec_dto.top_generators_df["contribution_margin"].sum())
+        if not exec_dto.top_generators_df.empty
+        else 0.0
+    )
+    prod_dest_sum = (
+        float(exec_dto.top_destroyers_df["contribution_margin"].sum())
+        if not exec_dto.top_destroyers_df.empty
+        else 0.0
+    )
+    cust_gen_sum = (
+        float(exec_dto.top_customer_generators_df["contribution_margin"].sum())
+        if not exec_dto.top_customer_generators_df.empty
+        else 0.0
+    )
+    cust_dest_sum = (
+        float(exec_dto.top_customer_destroyers_df["contribution_margin"].sum())
+        if not exec_dto.top_customer_destroyers_df.empty
+        else 0.0
+    )
+    prod_dest_disc = (
+        float(exec_dto.top_destroyers_df["discount_pct"].mean())
+        if not exec_dto.top_destroyers_df.empty
+        else 0.0
+    )
+    cust_dest_disc = (
+        float(exec_dto.top_customer_destroyers_df["discount_pct"].mean())
+        if not exec_dto.top_customer_destroyers_df.empty
+        else 0.0
+    )
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+    with c1:
+        render_kpi_card(
+            title="Top 10 SKUs Campeões",
+            value=format_brl(prod_gen_sum, compact=True),
+            subfooter_left="Maior geração absoluta de lucro",
+            accent="green",
+            help_text="Margem de contribuição somada pelos 10 SKUs mais rentáveis.",
+        )
+    with c2:
+        render_kpi_card(
+            title="Top 10 SKUs Vampiros",
+            value=format_brl(prod_dest_sum, compact=True),
+            subfooter_left=f"Desc. médio: {prod_dest_disc:.1f}%",
+            accent="alert_warn",
+            help_text="SKUs com menor ou pior eficiência de margem após descontos e frete.",
+        )
+    with c3:
+        render_kpi_card(
+            title=f"Top 10 {customer_plural} Campeões",
+            value=format_brl(cust_gen_sum, compact=True),
+            subfooter_left="Contas âncora de rentabilidade",
+            accent="teal",
+            help_text="Margem líquida gerada pelas 10 contas mais lucrativas da carteira.",
+        )
+    with c4:
+        render_kpi_card(
+            title=f"Top 10 {customer_plural} Vampiros",
+            value=format_brl(cust_dest_sum, compact=True),
+            subfooter_left=f"Desc. médio: {cust_dest_disc:.1f}%",
+            accent="alert_neg",
+            help_text="Contas que concentram descontos elevados ou destruição de margem.",
+        )
+    with c5:
+        render_kpi_card(
+            title="Descontos Fora de Tabela",
+            value=format_brl(temp_dto.kpis.excess_discount_brl, compact=True, decimals=1),
+            subfooter_left=f"{temp_dto.kpis.excess_discount_pct_of_discount:.1f}% do total",
+            accent="alert_neg",
+            help_text="Parcela dos descontos concedidos acima das alçadas definidas por porte.",
+        )
+
+
 def render_violations_rep_chart(df: pd.DataFrame, theme_mode: str) -> go.Figure:
     """Gera gráfico de barras horizontais com o ranking de excesso de desconto por RCA."""
     tokens = get_theme_tokens(theme_mode)
@@ -110,7 +240,7 @@ def render_violations_rep_chart(df: pd.DataFrame, theme_mode: str) -> go.Figure:
 
     if df.empty:
         fig = go.Figure()
-        fig.update_layout(template=template_name, title="Sem dados de violação")
+        fig.update_layout(template=template_name, title="Sem dados de violação", height=245)
         return fig
 
     top_df = df.head(8).iloc[::-1]
@@ -122,113 +252,50 @@ def render_violations_rep_chart(df: pd.DataFrame, theme_mode: str) -> go.Figure:
             marker_color=tokens["negative"],
             text=[format_brl(float(v), compact=True, decimals=1) for v in top_df["excess_discount_brl"]],
             textposition="outside",
+            cliponaxis=False,
             hovertemplate="<b>%{y}</b><br>Excesso Fora do Teto: R$ %{x:,.2f}<extra></extra>",
         )
     )
+    max_x = max(float(top_df["excess_discount_brl"].max()) * 1.25, 1.0)
     fig.update_layout(
         template=template_name,
         title=None,
-        xaxis_title=None,
-        margin={"l": 20, "r": 40, "t": 10, "b": 15},
-        height=280,
+        xaxis={"title": None, "range": [0, max_x]},
+        margin={"l": 20, "r": 24, "t": 10, "b": 15},
+        height=245,
     )
     return fig
 
 
-def render_policy_violations_tabs(dto: TemperancePageDTO) -> None:
-    """Renderiza as abas de auditoria de política comercial e custos de prazo com scroll interno."""
-    t_reps, t_fams, t_terms = st.tabs(
-        [
-            "Por Representante (RCA)",
-            "Por Família de Produto",
-            "Custo Financeiro de Prazo",
-        ]
+def render_rep_policy_violations_table(dto: TemperancePageDTO) -> None:
+    """Renderiza tabela direta de auditoria de desvios por representante (sem sub-abas)."""
+    if dto.policy_violations_by_rep_df.empty:
+        st.info("Nenhuma violação de política identificada para a seleção atual.")
+        return
+    cols_show = ["rep_name", "total_orders", "gross_revenue", "avg_discount_pct", "excess_discount_brl"]
+    df_rep_table = dto.policy_violations_by_rep_df[
+        [c for c in cols_show if c in dto.policy_violations_by_rep_df.columns]
+    ].copy()
+    df_rep_table.columns = [
+        "Representante",
+        "Pedidos",
+        "Faturamento (R$)",
+        "Desc. Médio %",
+        "Excesso Fora do Teto (R$)",
+    ]
+    st.dataframe(
+        df_rep_table.head(10).style.format(
+            {
+                "Faturamento (R$)": _fmt_brl,
+                "Desc. Médio %": _fmt_pct,
+                "Excesso Fora do Teto (R$)": _fmt_brl,
+                "Pedidos": _fmt_int,
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+        height=185,
     )
-
-    with t_reps:
-        if not dto.policy_violations_by_rep_df.empty:
-            cols_show = [
-                "rep_name",
-                "total_orders",
-                "gross_revenue",
-                "avg_discount_pct",
-                "excess_discount_brl",
-            ]
-            df_rep_table = dto.policy_violations_by_rep_df[cols_show].copy()
-            df_rep_table.columns = [
-                "Representante",
-                "Pedidos",
-                "Faturamento (R$)",
-                "Desc. Médio %",
-                "Excesso Fora do Teto (R$)",
-            ]
-            st.dataframe(
-                df_rep_table.head(10).style.format(
-                    {
-                        "Faturamento (R$)": _fmt_brl,
-                        "Desc. Médio %": _fmt_pct,
-                        "Excesso Fora do Teto (R$)": _fmt_brl,
-                        "Pedidos": _fmt_int,
-                    }
-                ),
-                use_container_width=True,
-                hide_index=True,
-                height=210,
-            )
-        else:
-            st.info("Nenhuma violação de política identificada para a seleção atual.")
-
-    with t_fams:
-        if not dto.policy_violations_by_family_df.empty:
-            cols_fam = [
-                "family",
-                "total_orders",
-                "gross_revenue",
-                "avg_discount_pct",
-                "excess_discount_brl",
-            ]
-            df_fam_table = dto.policy_violations_by_family_df[cols_fam].copy()
-            df_fam_table.columns = [
-                "Família",
-                "Pedidos",
-                "Faturamento (R$)",
-                "Desc. Médio %",
-                "Excesso Fora do Teto (R$)",
-            ]
-            st.dataframe(
-                df_fam_table.style.format(
-                    {
-                        "Faturamento (R$)": _fmt_brl,
-                        "Desc. Médio %": _fmt_pct,
-                        "Excesso Fora do Teto (R$)": _fmt_brl,
-                        "Pedidos": _fmt_int,
-                    }
-                ),
-                use_container_width=True,
-                hide_index=True,
-                height=210,
-            )
-
-    with t_terms:
-        if not dto.term_leak_by_rep_df.empty:
-            cols_term = ["rep_name", "avg_pmr_days", "term_leak_brl"]
-            df_term_table = dto.term_leak_by_rep_df[cols_term].copy()
-            df_term_table.columns = [
-                "Representante",
-                "Prazo Médio (dias)",
-                "Custo Financeiro de Prazo (R$)",
-            ]
-            st.dataframe(
-                df_term_table.head(10).style.format(
-                    {
-                        "Prazo Médio (dias)": _fmt_days_full,
-                        "Custo Financeiro de Prazo (R$)": _fmt_brl,
-                    }
-                ),
-                use_container_width=True,
-                hide_index=True,
-                height=210,
-            )
 
 
 def render_temperance_verdict_section(dto: TemperancePageDTO) -> None:
