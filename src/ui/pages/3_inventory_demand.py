@@ -32,7 +32,12 @@ def render_page() -> None:
         families=tuple(state.families),
         sales_reps=tuple(state.sales_reps),
         period_preset=state.period_preset,
+        comparison_mode=state.comparison_mode,
         selected_month=state.selected_month,
+        selected_quarter=state.selected_quarter,
+        selected_semester=state.selected_semester,
+        custom_start_date=state.custom_start_date,
+        custom_end_date=state.custom_end_date,
     )
     inv_dto = cached_inventory_dashboard(
         state.scenario_id,

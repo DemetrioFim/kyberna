@@ -42,14 +42,16 @@ def test_app_geographic_cascade_interaction() -> None:
     at = AppTest.from_file(str(app_path), default_timeout=10)
     at.run()
 
-    # Na inicialização ("Todas"), o selectbox 1 é Período, 2 é Região e 3 é UF
+    # Na inicialização ("Todas"): selectbox 0 é Período, 1 é Região, 2 é UF e -1 é Cenário
     assert len(at.sidebar.selectbox) >= 4
-    assert at.sidebar.selectbox[2].options == ["Todas", "Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte"]
-    assert len(at.sidebar.selectbox[3].options) == 28  # "Todas" + 27 UFs
+    assert at.sidebar.selectbox[0].key == "_period_preset_select"
+    assert at.sidebar.selectbox[-1].key == "_scenario_select"
+    assert at.sidebar.selectbox[1].options == ["Todas", "Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte"]
+    assert len(at.sidebar.selectbox[2].options) == 28  # "Todas" + 27 UFs
 
     # Testa seleção de período e região
-    at.sidebar.selectbox[1].set_value("ytd")
-    at.sidebar.selectbox[2].set_value("Sul").run()
+    at.sidebar.selectbox[0].set_value("ytd")
+    at.sidebar.selectbox[1].set_value("Sul").run()
     assert not at.exception
     assert at.session_state.period_preset == "ytd"
     assert at.session_state.regiao == "Sul"

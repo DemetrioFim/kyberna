@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date
+
 import pandas as pd
 import streamlit as st
 
@@ -29,7 +31,7 @@ from src.services.inventory_service import (
 )
 from src.services.simulator import query_family_elasticity
 from src.services.temperance_service import build_temperance_dashboard
-from src.ui.state import resolve_period_bounds
+from src.ui.state import ComparisonMode, fetch_date_bounds, resolve_period_bounds
 
 
 @st.cache_resource(show_spinner=False)
@@ -40,6 +42,13 @@ def get_cached_repository() -> DataRepository:
     re-testes repetidos de ping contra o Azure SQL durante interações de tela.
     """
     return get_repository()
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def get_cached_date_bounds(scenario_id: ScenarioId) -> tuple[date, date]:
+    """Retorna `(min_date, max_date)` reais disponíveis para o cenário em cache."""
+    repo = get_cached_repository()
+    return fetch_date_bounds(repo, scenario_id)
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -59,11 +68,28 @@ def cached_executive_dashboard(
     sales_reps: tuple[str, ...] = (),
     selected_cell: str | None = None,
     period_preset: str = "all",
+    comparison_mode: ComparisonMode = "pop",
     selected_month: str | None = None,
+    selected_quarter: str | None = None,
+    selected_semester: str | None = None,
+    custom_start_date: str | None = None,
+    custom_end_date: str | None = None,
 ) -> ExecutivePageDTO:
     """Consulta e agrega os dados da Visão Executiva com cache em memória (TTL 5 min)."""
     repo = get_cached_repository()
-    bounds = resolve_period_bounds(period_preset, selected_month)
+    min_d, max_d = get_cached_date_bounds(scenario_id)
+    bounds = resolve_period_bounds(
+        period_preset,
+        selected_month,
+        comparison_mode=comparison_mode,
+        selected_quarter=selected_quarter,
+        selected_semester=selected_semester,
+        rolling_end_month=selected_month,
+        custom_start=custom_start_date,
+        custom_end=custom_end_date,
+        min_date=min_d,
+        max_date=max_d,
+    )
     return build_executive_dashboard(
         repo,
         scenario_id,
@@ -94,11 +120,28 @@ def cached_commercial_dashboard(
     rfm_segment: str = "Todos",
     quadrant: str = "Todos",
     period_preset: str = "all",
+    comparison_mode: ComparisonMode = "pop",
     selected_month: str | None = None,
+    selected_quarter: str | None = None,
+    selected_semester: str | None = None,
+    custom_start_date: str | None = None,
+    custom_end_date: str | None = None,
 ) -> CommercialPageDTO:
     """Consulta e agrega os dados do Radar de Justiça Comercial com cache em memória (TTL 5 min)."""
     repo = get_cached_repository()
-    bounds = resolve_period_bounds(period_preset, selected_month)
+    min_d, max_d = get_cached_date_bounds(scenario_id)
+    bounds = resolve_period_bounds(
+        period_preset,
+        selected_month,
+        comparison_mode=comparison_mode,
+        selected_quarter=selected_quarter,
+        selected_semester=selected_semester,
+        rolling_end_month=selected_month,
+        custom_start=custom_start_date,
+        custom_end=custom_end_date,
+        min_date=min_d,
+        max_date=max_d,
+    )
     return build_commercial_dashboard(
         repo,
         scenario_id,
@@ -124,11 +167,28 @@ def cached_temperance_dashboard(
     families: tuple[str, ...] = (),
     sales_reps: tuple[str, ...] = (),
     period_preset: str = "all",
+    comparison_mode: ComparisonMode = "pop",
     selected_month: str | None = None,
+    selected_quarter: str | None = None,
+    selected_semester: str | None = None,
+    custom_start_date: str | None = None,
+    custom_end_date: str | None = None,
 ) -> TemperancePageDTO:
     """Consulta e agrega os dados da Tela 4 (Temperança) com cache em memória (TTL 5 min)."""
     repo = get_cached_repository()
-    bounds = resolve_period_bounds(period_preset, selected_month)
+    min_d, max_d = get_cached_date_bounds(scenario_id)
+    bounds = resolve_period_bounds(
+        period_preset,
+        selected_month,
+        comparison_mode=comparison_mode,
+        selected_quarter=selected_quarter,
+        selected_semester=selected_semester,
+        rolling_end_month=selected_month,
+        custom_start=custom_start_date,
+        custom_end=custom_end_date,
+        min_date=min_d,
+        max_date=max_d,
+    )
     return build_temperance_dashboard(
         repo,
         scenario_id,

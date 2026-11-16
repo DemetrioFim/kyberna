@@ -102,12 +102,11 @@ def test_all_four_pages_smoke_filters_simulator_and_exports() -> None:
     assert "xlsx" in button_labels.lower()
     assert "csv" in button_labels.lower()
 
-    # Troca de filtro na sidebar do app principal
+    # Troca de cenário no final da sidebar do app principal
     app_path = get_project_root() / "src" / "ui" / "app.py"
     at_app = AppTest.from_file(str(app_path), default_timeout=15)
     at_app.run()
     assert not at_app.exception
     if at_app.sidebar.selectbox:
-        at_app.sidebar.selectbox[0].set_value("c1_toys").run()
+        at_app.sidebar.selectbox(key="_scenario_select").set_value("c1_toys").run()
         assert not at_app.exception
-

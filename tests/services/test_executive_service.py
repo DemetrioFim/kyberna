@@ -16,7 +16,7 @@ from src.services.executive_service import (
     get_monthly_sales_table,
     get_top_margin_drivers,
 )
-from src.ui.state import resolve_period_bounds
+from src.ui.state import fetch_date_bounds, resolve_period_bounds
 
 
 @pytest.fixture
@@ -163,8 +163,9 @@ def test_executive_dashboard_build_latency_and_payload(repo: DuckDBRepository) -
 
 def test_executive_dashboard_temporal_presets_and_monthly_table(repo: DuckDBRepository) -> None:
     """Valida filtros temporais (YTD 12M, Mês Específico) e a geração da tabela de demonstrativo mensal."""
+    min_d, max_d = fetch_date_bounds(repo, "c1_toys")
     # Teste com filtro YTD (Ano 2024) resolvido
-    bounds_ytd = resolve_period_bounds("ytd")
+    bounds_ytd = resolve_period_bounds("ytd", min_date=min_d, max_date=max_d)
     dto_ytd = build_executive_dashboard(
         repo,
         scenario_id="c1_toys",

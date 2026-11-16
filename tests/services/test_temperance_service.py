@@ -14,7 +14,7 @@ from src.services.temperance_queries import (
     query_term_leak_by_rep,
 )
 from src.services.temperance_service import build_temperance_dashboard
-from src.ui.state import resolve_period_bounds
+from src.ui.state import fetch_date_bounds, resolve_period_bounds
 
 
 @pytest.fixture
@@ -172,7 +172,8 @@ def test_prudencia_and_temperanca_waterfalls_match_across_period_presets(
     preset: str,
 ) -> None:
     """Valida reconciliação exata do Waterfall entre Prudência e Temperança em todos os presets."""
-    bounds = resolve_period_bounds(preset, selected_month="2024-11")
+    min_d, max_d = fetch_date_bounds(repo, "c1_toys")
+    bounds = resolve_period_bounds(preset, selected_month="2024-11", min_date=min_d, max_date=max_d)
 
     exec_dto = build_executive_dashboard(
         repo,

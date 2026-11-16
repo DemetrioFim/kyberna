@@ -3,6 +3,7 @@ from __future__ import annotations
 import plotly.io as pio
 import pytest
 
+from src.core.paths import get_project_root
 from src.ui.theme import (
     KYBERNA_DARK_TOKENS,
     KYBERNA_LIGHT_TOKENS,
@@ -116,3 +117,45 @@ def test_plotly_templates_registered() -> None:
 
     assert get_plotly_template_name("dark") == "kyberna_dark"
     assert get_plotly_template_name("light") == "kyberna_light"
+
+
+def test_dark_mode_wcag_aa_tokens_and_css_audit() -> None:
+    """Valida contraste WCAG AA (>= 4.5:1) para textos/ícones Dark Mode e cobertura do CSS."""
+    cr_dark_muted_bg = calculate_contrast_ratio(
+        KYBERNA_DARK_TOKENS["text_muted"],
+        KYBERNA_DARK_TOKENS["bg_primary"],
+    )
+    assert cr_dark_muted_bg >= 4.5, f"Contraste Dark text_muted/bg: {cr_dark_muted_bg:.2f}"
+
+    cr_dark_muted_card = calculate_contrast_ratio(
+        KYBERNA_DARK_TOKENS["text_muted"],
+        KYBERNA_DARK_TOKENS["surface_card"],
+    )
+    assert cr_dark_muted_card >= 4.5, f"Contraste Dark text_muted/card: {cr_dark_muted_card:.2f}"
+
+    cr_dark_teal_card = calculate_contrast_ratio(
+        KYBERNA_DARK_TOKENS["teal_500"],
+        KYBERNA_DARK_TOKENS["surface_card"],
+    )
+    assert cr_dark_teal_card >= 4.5, f"Contraste Dark teal/card: {cr_dark_teal_card:.2f}"
+
+    cr_light_teal_card = calculate_contrast_ratio(
+        KYBERNA_LIGHT_TOKENS["teal_500"],
+        KYBERNA_LIGHT_TOKENS["surface_card"],
+    )
+    assert cr_light_teal_card >= 4.5, f"Contraste Light teal/card: {cr_light_teal_card:.2f}"
+
+    css_path = get_project_root() / "src" / "ui" / "assets" / "styles.css"
+    css_text = css_path.read_text(encoding="utf-8")
+    required_selectors = (
+        ".kyb-info-icon",
+        '[data-baseweb="tab"]',
+        '[data-testid="stExpander"] summary',
+        '[data-testid="stCaptionContainer"]',
+        '[data-testid="stSidebar"] svg',
+        '[data-baseweb="tag"]',
+        '[data-testid="stRadio"]',
+        '[data-baseweb="calendar"]',
+    )
+    for selector in required_selectors:
+        assert selector in css_text, f"Seletor Dark Mode ausente em styles.css: {selector}"

@@ -123,7 +123,12 @@ def _execute_silver(
     con = get_duckdb_connection(duckdb_p)
     try:
         _, clean_report = build_silver_sales(db_con=con, base_dir=base_dir, sample=sample)
-        _, anchor_meta = apply_time_anchor(db_con=con, reference_date=reference_date, base_dir=base_dir)
+        _, anchor_meta = apply_time_anchor(
+            db_con=con,
+            reference_date=reference_date,
+            no_shift=(sample and reference_date is None),
+            base_dir=base_dir,
+        )
     finally:
         con.close()
 

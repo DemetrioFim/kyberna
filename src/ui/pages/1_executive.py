@@ -23,7 +23,12 @@ from src.ui.components.prudence_sections import (
 )
 from src.ui.components.simulator_charts import elasticity_family_chart
 from src.ui.components.simulator_section import render_what_if_quick_fragment
-from src.ui.state import get_app_state
+from src.ui.state import (
+    COMPARISON_MODE_LABELS,
+    ComparisonMode,
+    get_app_state,
+    on_comparison_mode_change,
+)
 
 
 def _render_sku_list_table(dto: ExecutivePageDTO) -> None:
@@ -105,6 +110,11 @@ def _render_elasticity_overview_section(fig_fam: go.Figure, fig_el: go.Figure) -
         st.plotly_chart(fig_el, use_container_width=True)
 
 
+def _format_comparison_mode(mode: ComparisonMode) -> str:
+    """Retorna o rótulo pt-BR da base comparativa dos KPIs."""
+    return COMPARISON_MODE_LABELS[mode]
+
+
 def render_page() -> None:
     """Renderiza a página 'Visão Executiva & Margem Real' em formato Cockpit Z-Pattern."""
     state = get_app_state()
@@ -118,7 +128,12 @@ def render_page() -> None:
         sales_reps=state.sales_reps,
         selected_cell=state.selected_abc_xyz_cell,
         period_preset=state.period_preset,
+        comparison_mode=state.comparison_mode,
         selected_month=state.selected_month,
+        selected_quarter=state.selected_quarter,
+        selected_semester=state.selected_semester,
+        custom_start_date=state.custom_start_date,
+        custom_end_date=state.custom_end_date,
     )
     fig_cache_key: tuple[object, ...] = (
         state.scenario_id,
@@ -128,7 +143,12 @@ def render_page() -> None:
         tuple(state.sales_reps) if state.sales_reps else None,
         state.selected_abc_xyz_cell,
         state.period_preset,
+        state.comparison_mode,
         state.selected_month,
+        state.selected_quarter,
+        state.selected_semester,
+        state.custom_start_date,
+        state.custom_end_date,
         state.theme_mode,
     )
     fig_trend, fig_wat, fig_fam, fig_el = _get_static_diagnostic_figures(
@@ -138,7 +158,7 @@ def render_page() -> None:
         state.theme_mode,
     )
 
-    # 1. Faixa 1 — Topo (Status em 5s): Cabeçalho Cockpit unificado + 5 KPI Cards
+    # 1. Faixa 1 — Topo (Status em 5s): Cabeçalho Cockpit unificado + Base Comparativa + 5 KPI Cards
     render_cockpit_header(
         title="Visão Executiva & Margem Real",
         virtue_badge="1. Prudência",
@@ -150,6 +170,26 @@ def render_page() -> None:
             "na janela temporal filtrada."
         ),
     )
+    col_period_info, col_comp_toggle = st.columns([1.65, 1.0])
+    with col_period_info:
+        st.markdown(
+            "<div style='font-size:0.78rem; color:var(--kyb-text-muted); padding-top:0.2rem;'>"
+            f"<strong style='color:var(--kyb-text);'>Janela:</strong> {dto.period_label} · "
+            f"<span style='color:var(--kyb-teal); font-weight:600;'>{dto.comparison_label}</span>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+    with col_comp_toggle:
+        st.radio(
+            "Base Comparativa dos KPIs",
+            options=["pop", "yoy"],
+            index=0 if state.comparison_mode == "pop" else 1,
+            format_func=_format_comparison_mode,
+            key="_comparison_mode_radio",
+            on_change=on_comparison_mode_change,
+            horizontal=True,
+            label_visibility="collapsed",
+        )
     render_prudence_kpis(dto, scenario.labels.customer_plural)
 
     # 2. Faixa 2 — Meio (Diagnóstico Visual em 2 Colunas lado a lado)

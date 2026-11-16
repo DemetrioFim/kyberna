@@ -726,3 +726,118 @@ div[data-testid="stTooltipContent"] {
   border-radius: 6px !important;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2) !important;
 }
+
+/* ==============================================================================
+   Saneamento de Contraste WCAG AA & Modo Escuro (Dark Mode Audit — M5-V2)
+   ============================================================================== */
+
+.kyb-info-icon {
+  background-color: var(--kyb-card-bg) !important;
+  color: var(--kyb-teal) !important;
+  border: 1px solid var(--kyb-border) !important;
+}
+
+/* Abas (st.tabs / BaseWeb tabs) */
+[data-baseweb="tab-list"] {
+  border-bottom-color: var(--kyb-border) !important;
+  gap: 0.35rem !important;
+}
+
+[data-baseweb="tab"],
+button[data-baseweb="tab"] p,
+button[data-baseweb="tab"] span {
+  color: var(--kyb-text-muted) !important;
+  background-color: transparent !important;
+}
+
+[data-baseweb="tab"]:hover,
+button[data-baseweb="tab"]:hover p {
+  color: var(--kyb-text) !important;
+}
+
+[data-baseweb="tab"][aria-selected="true"],
+[data-baseweb="tab"][aria-selected="true"] p,
+[data-baseweb="tab"][aria-selected="true"] span {
+  color: var(--kyb-teal) !important;
+  font-weight: 600 !important;
+}
+
+[data-baseweb="tab-highlight"] {
+  background-color: var(--kyb-teal) !important;
+}
+
+/* Expander (st.expander) */
+[data-testid="stExpander"] {
+  background-color: var(--kyb-card-bg) !important;
+  border: 1px solid var(--kyb-border) !important;
+  border-radius: 8px !important;
+}
+
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary p,
+[data-testid="stExpander"] summary span {
+  color: var(--kyb-text) !important;
+}
+
+[data-testid="stExpander"] summary svg {
+  fill: var(--kyb-text) !important;
+  color: var(--kyb-text) !important;
+}
+
+/* Captions e Rótulos Auxiliares */
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p,
+[data-testid="stCaptionContainer"] em,
+[data-testid="stCaptionContainer"] strong {
+  color: var(--kyb-text-muted) !important;
+}
+
+/* Ícones SVG na Sidebar */
+[data-testid="stSidebar"] svg {
+  fill: var(--kyb-text) !important;
+  color: var(--kyb-text) !important;
+}
+
+/* Tags de Multiselect */
+[data-baseweb="tag"] {
+  background-color: rgba(56, 189, 248, 0.16) !important;
+  color: var(--kyb-text) !important;
+  border: 1px solid var(--kyb-border) !important;
+}
+
+[data-baseweb="tag"] span,
+[data-baseweb="tag"] svg {
+  color: var(--kyb-text) !important;
+  fill: var(--kyb-text) !important;
+}
+
+/* Controles Radio (Toggle PoP / YoY) */
+[data-testid="stRadio"] > div {
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+[data-testid="stRadio"] label,
+[data-testid="stRadio"] label p,
+[data-testid="stRadio"] label span {
+  color: var(--kyb-text) !important;
+  font-size: 0.78rem !important;
+}
+
+/* Inputs de Data & Calendário (st.date_input) */
+[data-testid="stDateInput"] input {
+  background-color: var(--kyb-input-bg) !important;
+  color: var(--kyb-text) !important;
+  border: 1px solid var(--kyb-border) !important;
+}
+
+[data-baseweb="calendar"],
+[data-baseweb="calendar"] * {
+  background-color: var(--kyb-card-bg) !important;
+  color: var(--kyb-text) !important;
+}
+
+[data-baseweb="calendar"] [aria-selected="true"] {
+  background-color: var(--kyb-teal) !important;
+  color: var(--kyb-card-bg) !important;
+}
