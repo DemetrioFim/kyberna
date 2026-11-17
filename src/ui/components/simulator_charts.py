@@ -156,7 +156,7 @@ def tornado_sensitivity_chart(
 
 
 def elasticity_family_chart(elasticity_df: pd.DataFrame, *, theme_mode: str = "light") -> go.Figure:
-    """Gráfico exclusivo de Elasticidade-Preço por Família (Tela 1 — Prudência)."""
+    """Gráfico exclusivo de Elasticidade-Preço por Família (Tela 4 — Temperança)."""
     tokens = get_theme_tokens(theme_mode)
     template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
 

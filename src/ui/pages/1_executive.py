@@ -7,7 +7,6 @@ from src.services.dto import ExecutivePageDTO, TemperancePageDTO
 from src.services.inventory_dto import InventoryPageDTO
 from src.ui.cache import (
     cached_executive_dashboard,
-    cached_family_elasticity,
     cached_inventory_dashboard,
     cached_temperance_dashboard,
 )
@@ -19,13 +18,13 @@ from src.ui.components.prescription import (
     section_header,
 )
 from src.ui.components.prudence_admin_sections import (
+    family_policy_violations_chart,
     render_admin_demand_policy_kpis,
     render_admin_inventory_kpis,
     render_admin_portfolio_kpis,
     render_sku_portfolio_table,
 )
 from src.ui.components.prudence_sections import render_prudence_anomalies_section
-from src.ui.components.simulator_charts import elasticity_family_chart
 from src.ui.components.temperance_inventory_section import (
     render_locked_capital_treemap_tab,
     render_locked_inventory_table,
@@ -167,7 +166,6 @@ def _render_tab_forecast_policy(
     exec_dto: ExecutivePageDTO,
     temp_dto: TemperancePageDTO,
     inv_dto: InventoryPageDTO,
-    elasticity_df: pd.DataFrame,
 ) -> None:
     """Aba 3: Previsão de Demanda 30d & Alçadas."""
     render_admin_demand_policy_kpis(exec_dto, temp_dto, inv_dto)
@@ -181,12 +179,17 @@ def _render_tab_forecast_policy(
         render_sku_forecast_fragment(state.scenario_id, inv_dto, theme_mode=state.theme_mode)
     with col_r:
         section_header(
-            "Elasticidade-Preço por Família (β)",
-            "Sensibilidade estimada do volume frente a ajustes na tabela de preços",
-            help_text="Famílias inelásticas (|β| < 1) permitem recomposição de preço sem queda drástica.",
+            "Descontos Fora do Teto por Família",
+            "Excesso financeiro concedido acima das alçadas por linha de produto",
+            help_text=(
+                "Ranqueia as famílias com maior concessão de descontos acima do teto autorizado "
+                "(P=3%, M=6,5%, G=10,5%)."
+            ),
         )
         st.plotly_chart(
-            elasticity_family_chart(elasticity_df, theme_mode=state.theme_mode),
+            family_policy_violations_chart(
+                temp_dto.policy_violations_by_family_df, theme_mode=state.theme_mode
+            ),
             use_container_width=True,
         )
 
@@ -240,7 +243,6 @@ def render_page() -> None:
         custom_end_date=state.custom_end_date,
     )
     inv_dto = cached_inventory_dashboard(state.scenario_id, families=state.families)
-    elasticity_df = cached_family_elasticity(state.scenario_id)
 
     render_cockpit_header(
         title="Visão Administrativa & Operações",
@@ -270,7 +272,7 @@ def render_page() -> None:
     with tab_inv:
         _render_tab_inventory(temp_dto, inv_dto, state.theme_mode)
     with tab_fc:
-        _render_tab_forecast_policy(state, exec_dto, temp_dto, inv_dto, elasticity_df)
+        _render_tab_forecast_policy(state, exec_dto, temp_dto, inv_dto)
 
 
 render_page()

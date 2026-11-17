@@ -45,8 +45,8 @@ def test_executive_page_full_render() -> None:
         assert not at.exception
 
 
-def test_executive_page_elasticity_section_rendered() -> None:
-    """Valida os gráficos de Matriz ABC/XYZ, Margem por Família e Elasticidade na Página 1."""
+def test_executive_page_charts_and_no_elasticity_rendered() -> None:
+    """Valida Matriz ABC/XYZ, Margem e Descontos por Família na Página 1 (sem elasticidade duplicada)."""
     page_path = get_project_root() / "src" / "ui" / "pages" / "1_executive.py"
     at = AppTest.from_file(str(page_path), default_timeout=15)
     at.run()
@@ -54,5 +54,6 @@ def test_executive_page_elasticity_section_rendered() -> None:
     assert not at.exception
     all_markdown = html.unescape(" ".join(m.value for m in at.markdown))
     assert "Matriz Estratégica ABC/XYZ 3x3" in all_markdown
-    assert "Elasticidade-Preço por Família" in all_markdown
+    assert "Descontos Fora do Teto por Família" in all_markdown
+    assert "Elasticidade-Preço" not in all_markdown
     assert len(at.get("plotly_chart")) >= 5

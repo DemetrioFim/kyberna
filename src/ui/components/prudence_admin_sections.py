@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 from src.services.dto import ExecutivePageDTO, TemperancePageDTO
 from src.services.inventory_dto import InventoryPageDTO
 from src.ui.components.kpi_card import render_kpi_card
 from src.ui.formatting import format_brl, format_int
+from src.ui.theme import get_theme_tokens
 
 
 def _cell_stats(matrix_df: pd.DataFrame, abc: str, xyz: str) -> tuple[int, float]:
@@ -231,3 +233,54 @@ def render_sku_portfolio_table(exec_dto: ExecutivePageDTO) -> None:
         },
         hide_index=True,
     )
+
+
+def family_policy_violations_chart(df: pd.DataFrame, *, theme_mode: str = "light") -> go.Figure:
+    """Gráfico horizontal de descontos fora do teto por família (1. Prudência — Aba 3)."""
+    tokens = get_theme_tokens(theme_mode)
+    template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
+
+    if df.empty or "family" not in df.columns or "excess_discount_brl" not in df.columns:
+        fig = go.Figure()
+        fig.update_layout(template=template_name, title=None, height=245)
+        return fig
+
+    top_df = df.head(8).iloc[::-1].copy()
+    excess_vals = [float(v) for v in top_df["excess_discount_brl"]]
+    avg_disc_vals = (
+        [float(v) for v in top_df["avg_discount_pct"]]
+        if "avg_discount_pct" in top_df.columns
+        else [0.0] * len(top_df)
+    )
+    bar_colors = [tokens["negative"] if v > 0 else tokens["teal_500"] for v in excess_vals]
+    texts = [
+        f"{format_brl(ex, compact=True, decimals=1)} ({disc:.1f}%)"
+        for ex, disc in zip(excess_vals, avg_disc_vals, strict=False)
+    ]
+
+    fig = go.Figure(
+        go.Bar(
+            x=excess_vals,
+            y=top_df["family"].astype(str).tolist(),
+            orientation="h",
+            marker={"color": bar_colors},
+            customdata=avg_disc_vals,
+            text=texts,
+            textposition="outside",
+            cliponaxis=False,
+            hovertemplate=(
+                "<b>%{y}</b><br>Excesso Fora do Teto: R$ %{x:,.2f}<br>"
+                "Desconto Médio: %{customdata:.1f}%<extra></extra>"
+            ),
+        )
+    )
+    max_x = max(max(excess_vals, default=0.0) * 1.28, 1.0)
+    fig.update_layout(
+        template=template_name,
+        title=None,
+        height=245,
+        margin={"l": 16, "r": 64, "t": 12, "b": 16},
+        xaxis={"title": "Excesso Fora do Teto (R$)", "range": [0, max_x]},
+        yaxis_title=None,
+    )
+    return fig

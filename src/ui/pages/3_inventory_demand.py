@@ -163,6 +163,10 @@ def render_page() -> None:
             section_header(
                 "Elasticidade-Preço & Sensibilidade por Família (β)",
                 "Relação histórica entre variação de preço líquido e demanda por linha",
+                help_text=(
+                    "Famílias inelásticas (|β| < 1) permitem recomposição de preço sem queda drástica "
+                    "de volume; use estes coeficientes na aba Simulador What-If."
+                ),
             )
             st.plotly_chart(fig_elasticity, use_container_width=True)
 
