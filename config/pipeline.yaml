@@ -134,6 +134,10 @@ thresholds:
     lookalike_weight: 0.60            # Peso do lookalike de clientes (mix relativo + porte + região)
     apriori_min_support: 0.03         # Frequência mínima de cestas conjuntas (Suporte Apriori)
     apriori_min_confidence: 0.15      # Probabilidade condicional mínima P(B|A) (Confiança Apriori)
+    sku_min_support: 0.005            # Frequência mínima para regras Apriori por produto (SKU)
+    sku_min_confidence: 0.10          # Confiança mínima P(B|A) para regras por produto (SKU)
+    sku_min_lift: 1.05                # Alavancagem mínima (Lift > 1) para regras por produto (SKU)
+    sku_max_rules: 150                # Máximo de regras SKU persistidas por cenário
     active_window_days: 180           # Janela de dias para considerar compra ativa do cliente
     min_active_share: 0.05            # Share mínimo no período ativo para excluir recomendação (5%)
     min_confidence_score: 0.10        # Limiar de confiança para sugestão

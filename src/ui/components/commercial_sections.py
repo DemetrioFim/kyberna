@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pandas as pd
 import streamlit as st
 
 from src.services.dto import CommercialPageDTO, TemperancePageDTO
@@ -8,60 +9,124 @@ from src.ui.formatting import format_brl, format_int
 
 
 def render_commercial_cross_sell_kpis(comm_dto: CommercialPageDTO) -> None:
-    """Renderiza os 5 KPIs da Aba 1 (Cross-Sell & Mix — Modelo Apriori) de Fortaleza."""
+    """Renderiza os 5 KPIs exclusivos da Aba 1 (Cross-Sell & Modelo Apriori) sem duplicação."""
     k = comm_dto.kpis
-    deals_df = comm_dto.top_white_space_deals_df
-    n_deals = len(deals_df)
-    unique_cust = (
-        int(deals_df["customer_name"].nunique())
-        if not deals_df.empty and "customer_name" in deals_df.columns
-        else n_deals
+    eligible_cnt = (
+        k.white_space_eligible_customers
+        if k.white_space_eligible_customers > 0
+        else (
+            int(comm_dto.top_white_space_deals_df["customer_name"].nunique())
+            if not comm_dto.top_white_space_deals_df.empty
+            and "customer_name" in comm_dto.top_white_space_deals_df.columns
+            else 0
+        )
+    )
+    total_offers = (
+        k.white_space_total_offers
+        if k.white_space_total_offers > 0
+        else len(comm_dto.top_white_space_deals_df)
+    )
+    avg_gap = k.white_space_potential_revenue_brl / max(eligible_cnt, 1)
+    margin_pct = (
+        (k.white_space_potential_margin_brl / k.white_space_potential_revenue_brl) * 100.0
+        if k.white_space_potential_revenue_brl > 0
+        else 0.0
     )
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         render_kpi_card(
-            title="Oportunidade White Space",
+            title="Potencial White Space",
             value=format_brl(k.white_space_potential_revenue_brl, compact=True),
-            subfooter_left="Potencial anual de expansão",
+            subfooter_left=f"Lacuna média: {format_brl(avg_gap, compact=True)} / loja",
             accent="teal",
             help_text=(
-                "Receita incremental mapeada pelo modelo Apriori (cestas frequentes) e cluster "
-                "Lookalike para famílias ausentes nos clientes."
+                "Receita incremental anual mapeada pelo algoritmo Apriori + Lookalike "
+                "para linhas ausentes no mix dos lojistas."
             ),
         )
     with c2:
         render_kpi_card(
             title="Margem Incremental Estimada",
             value=format_brl(k.white_space_potential_margin_brl, compact=True),
-            subfooter_left="Lucro líquido potencial",
+            subfooter_left=f"Rentabilidade média: {margin_pct:.1f}%",
             accent="green",
-            help_text="Contribuição líquida estimada ao capturar as recomendações de mix.",
+            help_text="Contribuição líquida estimada ao capturar as oportunidades de expansão de mix.",
         )
     with c3:
         render_kpi_card(
-            title="Lojas com Oferta Prioritária",
-            value=f"{format_int(unique_cust)} lojas",
-            subfooter_left=f"{format_int(n_deals)} pitches prontos",
+            title="Confiança & Suporte (Apriori)",
+            value=f"{k.apriori_avg_confidence_pct:.1f}%",
+            subfooter_left=(
+                f"Suporte médio: {k.apriori_avg_support_pct:.2f}% · {k.apriori_rules_count} regras"
+            ),
             accent="brass",
-            help_text="Quantidade de lojas com recomendação acionável imediata no pipeline White Space.",
+            help_text=(
+                "Confiança mede P(Ofertar B | Já compra A). Suporte mede a frequência conjunta "
+                "nas cestas históricas."
+            ),
         )
     with c4:
         render_kpi_card(
-            title="Positivação de Carteira",
-            value=f"{k.avg_positivation_pct:.1f}%",
-            subfooter_left=f"{format_int(k.active_customers)}/{format_int(k.total_customers)} ativos",
-            accent="green" if k.avg_positivation_pct >= 70.0 else "alert_warn",
-            help_text="Proporção da base de clientes comprando de forma recorrente.",
+            title="Alavancagem Máx. (Lift)",
+            value=f"{k.apriori_max_lift:.2f}x",
+            subfooter_left="Lift > 1,0x confirma sinergia real",
+            accent="green" if k.apriori_max_lift >= 1.15 else "teal",
+            help_text=(
+                "Quantas vezes mais provável é a compra conjunta frente ao acaso. "
+                "Valores acima de 1,0x indicam associação positiva."
+            ),
         )
     with c5:
         render_kpi_card(
-            title="LTV Médio Estimado",
-            value=format_brl(k.avg_ltv_brl, compact=True),
-            subfooter_left="Valor do ciclo de vida",
+            title="Cobertura de Oportunidades",
+            value=f"{format_int(eligible_cnt)} lojas",
+            subfooter_left=(
+                f"{format_int(total_offers)} ofertas · Mix "
+                f"{k.avg_families_per_customer:.1f}/{k.total_catalog_families}"
+            ),
             accent="teal",
-            help_text="Lifetime Value médio por cliente ativo; cross-sell eleva diretamente este indicador.",
+            help_text=(
+                "Total real de lojas elegíveis na carteira com lacuna de mix e média de famílias "
+                "compradas por cliente."
+            ),
         )
+
+
+def render_top_apriori_rules_table(rules_df: pd.DataFrame, *, rule_level: str = "sku") -> None:
+    """Renderiza micro-tabela com as Top 5 regras Apriori (Suporte, Confiança e Lift)."""
+    if rules_df.empty or "rule_level" not in rules_df.columns:
+        st.info("Nenhuma regra Apriori disponível para o recorte atual.")
+        return
+
+    sub = rules_df[rules_df["rule_level"] == rule_level].copy()
+    if sub.empty:
+        sub = rules_df.copy()
+
+    top_df = (
+        sub.sort_values(by=["lift", "confidence_pct"], ascending=False)
+        .head(5)[["rule_label", "support_pct", "confidence_pct", "lift"]]
+        .rename(
+            columns={
+                "rule_label": "Regra (Se compra → Ofertar)",
+                "support_pct": "Suporte %",
+                "confidence_pct": "Confiança %",
+                "lift": "Lift",
+            }
+        )
+    )
+    st.dataframe(
+        top_df,
+        use_container_width=True,
+        hide_index=True,
+        height=135,
+        column_config={
+            "Regra (Se compra → Ofertar)": st.column_config.TextColumn(width="large"),
+            "Suporte %": st.column_config.NumberColumn(format="%.2f%%", width="small"),
+            "Confiança %": st.column_config.NumberColumn(format="%.1f%%", width="small"),
+            "Lift": st.column_config.NumberColumn(format="%.2fx", width="small"),
+        },
+    )
 
 
 def render_commercial_reps_kpis(
@@ -122,4 +187,3 @@ def render_commercial_reps_kpis(
             accent="alert_neg",
             help_text="Concessão comercial acima da alçada autorizada por porte do cliente.",
         )
-

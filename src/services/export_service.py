@@ -39,14 +39,31 @@ _WS_EXPORT_LABELS: Final[dict[str, str]] = {
     "sales_rep_name": "RCA Responsável",
     "rfm_segment": "Segmento RFM",
     "recommended_family": "Família Ausente",
-    "recommended_top_sku": "SKU Recomendado",
+    "best_rule_antecedent": "Regra Antecedente",
+    "recommended_top_sku": "SKU Âncora Recomendado",
     "anchor_sku_name": "Perfil / Âncora",
+    "apriori_support_pct": "Suporte (%)",
+    "apriori_confidence_pct": "Confiança (%)",
+    "apriori_lift": "Lift Apriori (x)",
     "affinity_lift": "Lift Afinidade (x)",
     "potential_revenue_brl": "Potencial Receita (R$)",
     "potential_margin_brl": "Potencial Margem (R$)",
     "action_pitch": "Argumento Comercial (Pitch)",
     "whatsapp": "WhatsApp",
     "whatsapp_link": "Link WhatsApp",
+}
+
+_APRIORI_EXPORT_LABELS: Final[dict[str, str]] = {
+    "rule_level": "Nível Regra",
+    "antecedent_name": "Se Compra (Antecedente)",
+    "antecedent_family": "Família Antecedente",
+    "consequent_name": "Ofertar (Consequente)",
+    "consequent_family": "Família Consequente",
+    "pair_baskets": "Cestas Conjuntas",
+    "support_pct": "Suporte (%)",
+    "confidence_pct": "Confiança (%)",
+    "lift": "Lift (x)",
+    "leverage": "Leverage",
 }
 
 _CURRENCY_EXPORT_COLS: Final[frozenset[str]] = frozenset(
@@ -59,7 +76,18 @@ _CURRENCY_EXPORT_COLS: Final[frozenset[str]] = frozenset(
     }
 )
 _DECIMAL_EXPORT_COLS: Final[frozenset[str]] = frozenset(
-    {"delay_ratio", "expected_cycle_days", "affinity_lift"}
+    {
+        "delay_ratio",
+        "expected_cycle_days",
+        "affinity_lift",
+        "apriori_support_pct",
+        "apriori_confidence_pct",
+        "apriori_lift",
+        "support_pct",
+        "confidence_pct",
+        "lift",
+        "leverage",
+    }
 )
 
 
@@ -213,6 +241,8 @@ def generate_commercial_action_excel(
     risk_df: pd.DataFrame,
     white_space_df: pd.DataFrame,
     scenario_name: str,
+    *,
+    apriori_rules_df: pd.DataFrame | None = None,
 ) -> bytes:
     """Gera workbook Excel em memória com Resumo Priorizado, White Space e 1 aba por RCA."""
     risk_ready = attach_whatsapp_links(
@@ -263,6 +293,10 @@ def generate_commercial_action_excel(
         if not ws_ready.empty:
             ws_sheet = sanitize_excel_sheet_name("Oportunidades_WhiteSpace", used_names)
             _write_styled_sheet(writer, ws_ready, ws_sheet, _WS_EXPORT_LABELS, formats)
+
+        if apriori_rules_df is not None and not apriori_rules_df.empty:
+            ap_sheet = sanitize_excel_sheet_name("Regras_Apriori", used_names)
+            _write_styled_sheet(writer, apriori_rules_df, ap_sheet, _APRIORI_EXPORT_LABELS, formats)
 
         if not risk_ready.empty and "sales_rep_name" in risk_ready.columns:
             rep_names = sorted(

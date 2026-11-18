@@ -26,6 +26,7 @@ GoldTable = Literal[
     "mart_rfm",
     "mart_customer_risk",
     "mart_white_space",
+    "mart_apriori_rules",
     "mart_rep_performance",
     "mart_forecast_30d",
     "mart_inventory_position",

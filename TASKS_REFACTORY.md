@@ -24,7 +24,8 @@ flowchart LR
     V1["🔴 Onda V1 (P0)<br/>Branding Virtus +<br/>1. Prudência & 3. Justiça"] --> V2["🟠 Onda V2 (P0/P1)<br/>Parâmetros Working Capital,<br/>Estoque & 4. Temperança"]
     V2 --> V3["🟢 Onda V3 (P1)<br/>2. Fortaleza (Caixa/NCG/Aging)<br/>+ Blindagem QA & Dark Mode"]
     V3 --> V4["🟣 Onda V4 (P0/P1)<br/>Saneamento Analítico Cross-Page,<br/>Cockpit 1080p, <400L & Testes Herméticos"]
-    V4 --> M3V2["➡️ Retorno ao TASKS.md<br/>M3-V2 (Exportação Excel + WhatsApp)"]
+    V4 --> V5["🔵 Onda V5 (P1)<br/>2. Fortaleza Comercial:<br/>Apriori Explicável + RFM Explícito"]
+    V5 --> M5I["➡️ Retorno ao TASKS.md<br/>M5-I1..M5-I3 (Docker & Azure ACA)"]
 ```
 
 ---
@@ -48,13 +49,17 @@ flowchart LR
 | **`V4-V1`** | **Cockpit Header & Polimento** (UI) | Adoção de `render_cockpit_header` nas 4 páginas, títulos das 4 Virtudes no menu `app.py`, 3º slider (`_what_if_cost`) em Prudência, correção de classe CSS/tooltip em Justiça, `title=None` no Plotly e remoção de emojis/código morto | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P0** |
 | **`V4-I1`** | **Modularização < 400L** (Infra/ETL/ML) | Divisão cirúrgica dos 6 módulos $>400$ linhas (`audit.py`: 1.109L, `white_space.py`: 668L, `c1_toys.py`: 662L, `cli.py`: 540L, `features.py`: 532L, `rfm.py`: 408L) preservando re-exports públicos | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
 | **`V4-I2`** | **Blindagem Hermética QA** (Tests) | Fixture `conftest.py` auto-bootstrap para `get_duckdb_path()`, testes de reconciliação cross-page (`Prudência == Temperança`) e suíte unitária dedicada `tests/services/test_simulator.py` | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
+| **`V5-D1`** | **Apriori Persistido** (ML/Dados) | Novo mart `mart_apriori_rules` (`family` + `sku`: Suporte, Confiança, Lift reais) + enriquecimento de `mart_white_space` com regra aplicada e SKU âncora real | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
+| **`V5-S1`** | **Serviços Apriori & RFM** (Services/SQL) | Queries reais em `white_space_queries.py`, remoção de proxy falso (`* 1.5`) e do teto `LIMIT 50` nos KPIs, `rfm_segment` e aba `Regras Apriori` no Excel | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
+| **`V5-V1`** | **Gráficos Apriori & Dark CSS** (Charts/CSS) | Heatmap aprimorado (9 segmentos RFM ordenados, `R$ + lojas`, contraste, zero corte) + scatter `Suporte × Confiança × Lift` (`apriori_charts.py`) + fix botões Dark Mode | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
+| **`V5-V2`** | **Fortaleza Aba 1 & 2** (UI/QA) | Redesign PowerBI da Aba 1 sem KPIs duplicados, exploração livre por qualquer Segmento RFM (padrão `Todos`), tabela sem corte horizontal e `Segmento RFM` na Aba 2 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ *(🟢 Baixa)* | **P1** |
 
 ---
 
 ### 🛡️ Guia Rápido de Integração & Anti-Alucinação para Execução (`Virtus`)
 
 > [!IMPORTANT]
-> **Leia este bloco antes de implementar qualquer tarefa (`V1`..`V3`).**
+> **Leia este bloco antes de implementar qualquer tarefa (`V1`..`V5`).**
 >
 > 1. **Limite Estrito de 400 Linhas por Arquivo (`GEMINI.md` §3)**:
 >    - Nenhum arquivo em `src/` pode ultrapassar **400 linhas**.
@@ -421,6 +426,107 @@ flowchart LR
 
 ---
 
+### 🔵 Onda V5 — **2. Fortaleza · Visão Comercial**: Apriori Explicável (`Suporte`, `Confiança`, `Lift`) & Segmento RFM Explícito (`v0.5.4-fortaleza-apriori`)
+
+> **Objetivo da Onda V5**: Transformar a **Aba 1 (`Cross-Sell & Mix — Modelo Apriori`)** e a **Aba 2 (`Lojas em Risco & Oportunidades`)** da Página **2. Fortaleza** ([`4_simulator.py`](./src/ui/pages/4_simulator.py)) de uma "caixa-preta" com métricas sintéticas e RFM oculto em um cockpit comercial **100% explicável, explorável e acionável**, sem pré-filtros nem viés para um único segmento RFM:
+> 1. Persistir e expor as métricas reais do **Algoritmo Apriori** (**Suporte**, **Confiança** e **Alavancagem / Lift**) em níveis **Produto (SKU)** e **Família**;
+> 2. Tornar o **Segmento RFM** de cada lojista explícito em todos os 9 grupos (`Campeões`, `Fiéis`, `Promissores`, `Novos Clientes`, `Precisam de Atenção`, `Em Risco`, `Não Pode Perder`, `Hibernando`, `Perdidos`), com filtro livre iniciando em `Todos`;
+> 3. Melhorar o **Heatmap `Família × Segmento RFM`**, substituir o gráfico redundante de barras por família pelo **Mapa de Regras Apriori (`Suporte × Confiança × Lift`)**, eliminar KPIs duplicados entre as Abas 1 e 2 e corrigir o contraste de botões/células no Modo Escuro.
+
+#### 🗄️ Engenharia de Dados & ML Apriori (`D`)
+
+- [x] **V5-D1** *(VIRTUS-FORT-APRIORI-01)* — **Persistência de `mart_apriori_rules` (Família + SKU) e Enriquecimento Real de `mart_white_space`**: Persistir as regras mineradas pelo algoritmo Apriori no DuckDB/Parquet e substituir o SKU genérico (`' - Sortimento A'`) e o proxy falso de Lift por métricas reais associadas a cada recomendação.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
+  - *Arquivos:* `config/pipeline.yaml`, `src/core/types.py`, `src/etl/gold_contracts.py`, `src/etl/contracts.py`, `src/ml/white_space_apriori.py`, `src/ml/white_space.py`, `tests/ml/test_white_space.py`.
+  - *Depende de:* `V4-I2`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. Parâmetros e Tipos (`config/pipeline.yaml` e `src/core/types.py`)**:
+      - Em `config/pipeline.yaml` (bloco `thresholds.white_space`), adicionar os limiares para mineração em nível de SKU dentro de cestas `(customer_id, date)`: `sku_min_support: 0.005`, `sku_min_confidence: 0.10`, `sku_min_lift: 1.05`, `sku_max_rules: 150`.
+      - Em `src/core/types.py`, adicionar `"mart_apriori_rules"` ao literal `GoldTable`.
+    - **2. Contratos Pandera (`src/etl/gold_contracts.py` < 400L e `src/etl/contracts.py`)**:
+      - Criar `GoldAprioriRulesSchema(pa.DataFrameModel)` validando: `scenario_id`, `as_of_date`, `rule_level` (`isin=["family", "sku"]`), `antecedent_id`, `antecedent_name`, `antecedent_family`, `consequent_id`, `consequent_name`, `consequent_family`, `total_baskets` (`int >= 1`), `antecedent_baskets` (`int >= 1`), `consequent_baskets` (`int >= 1`), `pair_baskets` (`int >= 1`), `support` (`0.0..1.0`), `confidence` (`0.0..1.0`), `lift` (`>= 0.0`), `leverage` (`float`), `snapshot_date`.
+      - Em `GoldWhiteSpaceSchema`, adicionar as colunas opcionais/enriquecidas (ou obrigatórias após rebuild): `best_rule_antecedent: str`, `recommended_anchor_sku: str`, `apriori_support: float`, `apriori_confidence: float`, `apriori_lift: float`. Re-exportar `GoldAprioriRulesSchema` em `src/etl/contracts.py`.
+    - **3. Mineração Apriori em 2 Níveis (`src/ml/white_space_apriori.py` < 380L) e Persistência (`src/ml/white_space.py` < 390L)**:
+      - Preservar `compute_apriori_rules()` intacta para retrocompatibilidade dos testes e enriquecer com contagens exatas (`total_baskets`, `antecedent_baskets`, `consequent_baskets`, `pair_baskets`, `leverage`).
+      - Criar `compute_sku_apriori_rules(orders_items_df, min_support=..., min_confidence=..., min_lift=..., max_rules=...)` sobre cestas `(customer_id, date)` (ou `basket_id`/`order_id` se multicategoria) retornando associações produto a produto (`rule_level="sku"`), onde no dataset atual emergem 87+ regras com `Lift` entre `1.13x` e `1.38x`.
+      - Em `build_white_space_mart()`, concatenar regras `family` + `sku` em `rules_all_df`, validar via `GoldAprioriRulesSchema`, gravar `<scenario_id>.mart_apriori_rules` e `gold.mart_apriori_rules` no DuckDB e exportar `gold_snapshot_path(scenario=scenario_id, table="mart_apriori_rules")`.
+      - Em `compute_white_space_recommendations()`, vincular cada recomendação `(customer_id, recommended_family)` à melhor regra Apriori aplicável ao mix já comprado pelo cliente (preferindo antecedente presente no histórico ativo do cliente e maior `lift * confidence`; fallback para melhor regra daquela família consequente), gravando `best_rule_antecedent`, `recommended_anchor_sku` (`anchor_skus[fam][1]`), `apriori_support`, `apriori_confidence` e `apriori_lift`.
+      - Se `white_space.py` ou `white_space_apriori.py` se aproximarem de 380 linhas, extrair o helper de persistência DuckDB/Parquet para manter **ambos < 400 linhas**.
+  - *DoD:* `uv run kyberna ml white-space --scenario c1_toys` persiste `mart_apriori_rules` e `mart_white_space` sem erro; todos os arquivos em `src/` `< 400` linhas; `uv run ruff check .`, `uv run mypy src` e `uv run pytest tests/ml/test_white_space.py -q` passam 100%.
+
+#### 🧠 Camada de Serviços, Consultas SQL & Exportação (`S`)
+
+- [x] **V5-S1** *(VIRTUS-FORT-APRIORI-02)* — **Consultas Apriori Reais (`white_space_queries.py`), Fim do `LIMIT 50` nos KPIs e Exportação Enriquecida**: Atualizar DTOs, SQL e exportação Excel/CSV para entregar Suporte/Confiança/Lift reais, todos os 9 segmentos RFM explícitos e contagem real de lojas elegíveis.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
+  - *Arquivos:* `src/services/dto.py`, `src/services/white_space_queries.py`, `src/services/commercial_service.py`, `src/services/export_service.py`, `tests/services/test_commercial_service.py`.
+  - *Depende de:* `V5-D1`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. Regra de Teto de Linhas (`commercial_queries.py` já tem 396L)**:
+      - **Proibido** adicionar novas funções em `src/services/commercial_queries.py` (396L). Concentrar todas as novas consultas em [`src/services/white_space_queries.py`](./src/services/white_space_queries.py) (atualmente 125L).
+    - **2. Evolução de `CommercialKpisDTO` e `CommercialPageDTO` (`src/services/dto.py`)**:
+      - Em `CommercialKpisDTO`, adicionar: `white_space_eligible_customers: int = 0`, `white_space_total_offers: int = 0`, `avg_families_per_customer: float = 0.0`, `total_catalog_families: int = 7`, `apriori_rules_count: int = 0`, `apriori_max_lift: float = 0.0`, `apriori_avg_confidence_pct: float = 0.0`, `apriori_avg_support_pct: float = 0.0`.
+      - Em `CommercialPageDTO`, adicionar: `apriori_rules_df: pd.DataFrame = Field(default_factory=pd.DataFrame)`.
+    - **3. Consultas em `src/services/white_space_queries.py`**:
+      - **`query_apriori_rules_data(repo, scenario_id, *, families=())`**: consulta `gold.mart_apriori_rules` (com fallback seguro se a tabela não existir), retornando `rule_level`, `antecedent_name`, `antecedent_family`, `consequent_name`, `consequent_family`, `pair_baskets`, `support_pct`, `confidence_pct`, `lift`, `rule_label`.
+      - **`query_white_space_coverage_kpis(repo, scenario_id, *, regiao=..., uf=..., sales_reps=..., families=...)`**: calcula sobre **toda** a carteira elegível em `mart_white_space` (sem truncamento de `LIMIT 50`!) a contagem real de lojas distintas (`eligible_customers`), total de ofertas (`total_offers`) e média de famílias ativas por cliente em `fact_sales` (`avg_families_per_customer`).
+      - **Enriquecimento de `query_white_space_matrix_data()`**: além de `opportunities_count`, `potential_revenue_brl` e `potential_margin_brl`, retornar `avg_confidence_pct` e `avg_lift` por célula `(recommended_family × rfm_segment)`.
+      - **Correção de `query_top_white_space_deals()`**: remover `ROUND(COALESCE(ws.item_affinity_score * 1.5, 1.2), 2) AS affinity_lift` e `ws.recommended_family || ' - Sortimento A'`; retornar `rfm_segment`, `best_rule_antecedent`, `recommended_top_sku` (`ws.recommended_anchor_sku`), `apriori_support_pct`, `apriori_confidence_pct`, `apriori_lift`, `potential_revenue_brl`, `potential_margin_brl`, `action_pitch` e `whatsapp` (com fallback seguro para snapshots antigos que ainda não tenham as novas colunas).
+    - **4. Exportação Excel/CSV (`src/services/export_service.py` < 360L)**:
+      - Atualizar `_WS_EXPORT_LABELS` com `best_rule_antecedent`, `apriori_support_pct`, `apriori_confidence_pct`, `apriori_lift` (mantendo `rfm_segment` explícito) e adicionar aba opcional `Regras Apriori` no workbook `.xlsx` quando `apriori_rules_df` for fornecido.
+  - *DoD:* zero ocorrências do proxy `item_affinity_score * 1.5` no código; `white_space_eligible_customers` reflete toda a base (ex.: 300/300 no `c1_toys`, não 44 de `LIMIT 50`); `uv run ruff check .`, `uv run mypy src` e `uv run pytest tests/services/test_commercial_service.py -q` passam 100%.
+
+#### 🎨 Gráficos, Heatmap Aprimorado & Contraste Dark Mode (`V`)
+
+- [x] **V5-V1** *(VIRTUS-FORT-APRIORI-03)* — **Heatmap RFM×Família Aprimorado, Mapa de Regras Apriori (`Suporte × Confiança × Lift`) e Fix de Botões no Modo Escuro**: Construir visualizações explicáveis para o Apriori e corrigir contraste/clipping no Heatmap e nos botões de download.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
+  - *Arquivos:* `src/ui/components/apriori_charts.py` (novo), `src/ui/components/commercial_charts.py`, `src/ui/assets/styles.css`, `tests/ui/test_charts.py`.
+  - *Depende de:* `V5-S1`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. Regra de Teto de Linhas (`commercial_charts.py` já tem 396L)**:
+      - Criar [`src/ui/components/apriori_charts.py`](./src/ui/components/apriori_charts.py) (< 250L) para abrigar `apriori_rules_scatter` e `white_space_heatmap_v2` (ou extrair `white_space_heatmap` de `commercial_charts.py` para `apriori_charts.py`, mantendo re-export em `commercial_charts.py` se necessário).
+    - **2. Melhorias no Heatmap `Família × Segmento RFM`**:
+      - **Ordenação lógica dos 9 Segmentos RFM no eixo X**: `["Campeões", "Fiéis", "Promissores", "Novos Clientes", "Precisam de Atenção", "Em Risco", "Não Pode Perder", "Hibernando", "Perdidos"]` (incluindo somente os presentes ou mantendo os 9 estágios em ordem de valor/ciclo).
+      - **Texto em 2 linhas por célula**: `format_brl(rev, compact=True, decimals=1)` + `<br>{n_lojas} lojas`, com **contraste adaptativo** via `annotations` (`#FFFFFF` em células intensas, `#0F172A` ou `tokens["text"]` em células claras/vazias, compatível com Light e Dark Mode).
+      - **Hover rico**: `Família`, `Segmento RFM`, `Potencial Receita (R$)`, `Margem Est. (R$)`, `Lojistas Elegíveis (N)` e `Lift Médio (x)`.
+      - **Zero corte visual**: remover `yaxis_title` redundante (`yaxis={"title": None, "automargin": True}`) e usar `xaxis={"title": None, "tickangle": -25, "automargin": True}` — eliminando o corte `"Família Recomendad"` visto no print.
+    - **3. Novo Gráfico de Bolhas `apriori_rules_scatter(rules_df, *, rule_level="sku", theme_mode="light")`**:
+      - **Eixo X**: `Suporte (%)` (`support_pct`) — frequência do combo nas cestas.
+      - **Eixo Y**: `Confiança (%)` (`confidence_pct`) — probabilidade condicional `P(Leva B | Já compra A)`.
+      - **Cor & Tamanho da Bolha**: `Lift` (`lift`), com escala térmica/teal destacando regras fortes (`Lift > 1,0x`) e linha horizontal/nota de referência de sinergia (`Lift = 1,0x`).
+      - **Rótulos diretos**: anotar de forma limpa os Top 3–5 combos (`A → B · Lift X.XXx`) sem poluição, e hover didático: `"<b>Se compra:</b> X<br><b>Ofertar:</b> Y<br>Suporte: A% (N cestas)<br>Confiança: B%<br>Lift: Cx"`.
+    - **4. Fix de Contraste Dark Mode (`src/ui/assets/styles.css`)**:
+      - Estilizar `[data-testid="stDownloadButton"] button` e `[data-testid="stButton"] button` com `background-color: var(--kyb-card-bg) !important;`, `color: var(--kyb-text) !important;`, `border: 1px solid var(--kyb-border) !important;`, `border-radius: 8px !important;` e hover com `border-color: var(--kyb-teal) !important; color: var(--kyb-teal) !important;`.
+  - *DoD:* `apriori_charts.py` e `commercial_charts.py` `< 400` linhas; zero `iterrows()`; testes em `tests/ui/test_charts.py` validam `white_space_heatmap` e `apriori_rules_scatter` nos modos `light` e `dark`.
+
+#### 🎨 Orquestração UI, KPIs Sem Duplicação & Exploração Livre (`V`)
+
+- [x] **V5-V2** *(VIRTUS-FORT-APRIORI-04)* — **Redesenho da Página `2. Fortaleza` (`4_simulator.py`): KPIs Exclusivos, Filtro RFM Livre (`Todos`) e Tabelas com `Segmento RFM` + `Apriori` Visíveis**: Orquestrar o layout final PowerBI na Aba 1 e Aba 2 sem KPIs duplicados e com total transparência das regras Apriori e dos segmentos RFM.
+  - *Avaliação:* 🎯 ⭐⭐⭐⭐⭐ · 💰 ⭐⭐⭐⭐⭐ · 🚀 ⭐⭐⭐⭐⭐ · ⚙️ ⭐⭐⭐⭐⭐ *(🟢 Baixa)* · **Prioridade: P1**
+  - *Arquivos:* `src/ui/components/commercial_sections.py`, `src/ui/components/justice_sections.py`, `src/ui/pages/4_simulator.py`, `tests/ui/test_fortitude_page.py`, `tests/ui/test_pages_smoke.py`.
+  - *Depende de:* `V5-S1`, `V5-V1`
+  - *Especificação Técnica Mastigada (Anti-Alucinação):*
+    - **1. 5 KPI Cards da Aba 1 (`render_commercial_cross_sell_kpis` — Zero Duplicação com Aba 2)**:
+      1. `Potencial White Space`: `format_brl(white_space_potential_revenue_brl, compact=True)` | rodapé: `Lacuna média: R$ X,X mil / loja`.
+      2. `Margem Incremental Estimada`: `format_brl(white_space_potential_margin_brl, compact=True)` | rodapé: `Margem média do mix: XX,X%`.
+      3. `Confiança & Suporte (Apriori)`: `f"{apriori_avg_confidence_pct:.1f}%"` | rodapé: `f"Suporte médio: {apriori_avg_support_pct:.1f}% · {apriori_rules_count} regras"`.
+      4. `Alavancagem Máx. (Lift)`: `f"{apriori_max_lift:.2f}x"` | rodapé: `Lift > 1,0x confirma sinergia real`.
+      5. `Cobertura de Oportunidades`: `f"{white_space_eligible_customers} lojas"` | rodapé: `f"{white_space_total_offers} ofertas · Mix {avg_families_per_customer:.1f}/{total_catalog_families}"`.
+    - **2. Remoção de Duplicação na Aba 2 (`render_justice_kpi_cards` em `justice_sections.py`)**:
+      - Substituir o KPI 4 (`Oportunidade White Space`, já presente na Aba 1) por **`Clientes Vampiros (<15% MC)`** (`comm_dto.kpis.vampire_customers_count`, rodapé explicando contas de alto volume com margem comprimida), mantendo `Positivação de Carteira` exclusivamente na Aba 2!
+    - **3. Controles Exploratórios Inline (Sem Sub-Abas — Guardando `st.tabs == 1`)**:
+      - No gráfico Apriori (`col_r`): `st.radio("Visão Apriori", options=["sku", "family"], format_func=..., horizontal=True, label_visibility="collapsed")` alternando entre **Regras por Produto (SKU)** e **Regras por Família (Linha)** com legenda didática de 1 linha explicando *Suporte*, *Confiança* e *Lift*.
+      - Na seção da tabela (`col_bl`): `st.selectbox("Segmento RFM", options=["Todos", ...9 segmentos...], index=0)` + `st.selectbox("Família Recomendada", options=["Todas", ...], index=0)` **sempre iniciando em `Todos` / `Todas`** para exploração livre sem pré-filtro!
+    - **4. Tabelas Limpas com `Segmento RFM` Visível e Sem Corte Horizontal**:
+      - **Aba 1 (`render_white_space_deals_table`)**: exibir `Lojista`, `Segmento RFM` (com badge/cor sutil por segmento via `style.map`), `Regra Apriori (Compra → Oferta)`, `Suporte`, `Confiança`, `Lift`, `Potencial (R$)` e `WhatsApp` (`Chamar`), tudo calibrado para caber sem corte em 1080p (`height=185`).
+      - **Aba 1 (`col_br`)**: exibir micro-tabela das **Top 5 Regras Apriori** (`Regra`, `Sup. %`, `Conf. %`, `Lift`) acima do resumo dinâmico `Plano de Expansão Comercial` + os 2 botões de exportação (`.xlsx` e `.csv`) já corrigidos no Dark Mode.
+      - **Aba 2 (`render_critical_customers_table`)**: incluir a coluna `rfm_segment` (`Segmento RFM`) em `target_cols` para também explicitar o segmento na aba de Risco/Churn.
+    - **5. Sincronia de Testes & Documentação**:
+      - Atualizar `tests/ui/test_fortitude_page.py` verificando `Confiança & Suporte (Apriori)`, `Alavancagem Máx. (Lift)`, `Clientes Vampiros`, presença de `Segmento RFM` na tabela, seletores iniciando em `Todos` e alternância de visão SKU/Família sem exceção.
+      - Garantir aprovação de `test_powerbi_single_page_tabs_and_no_nested_subtabs` em `tests/ui/test_pages_smoke.py`.
+  - *DoD:* `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `0` arquivos `> 400` linhas em `src/`, `uv run pytest -q` (incluindo `tests/ui` com `BypassSandbox: true`) 100% verdes, e validação visual em Light e Dark Mode sem botões lavados nem texto cortado.
+
+---
+
 ## 📌 Achados & Observações Técnicas da Remodelagem
 
 - `[2026-11-06]` (`V1-S1`) `src/services/executive_service.py` atingiu 494 linhas e `src/ui/pages/1_executive.py` atingiu 441 linhas após a inclusão do demonstrativo mensal na `M3-S3` — resolvido estruturalmente nas tarefas `V1-S1` e `V1-V1` com a extração de `src/ui/components/prudence_sections.py`.
@@ -428,10 +534,18 @@ flowchart LR
 - `[2026-11-09]` (`Virtus Architecture`) Aprovada a remodelagem estratégica das 4 páginas da aplicação para o framework de governança **Virtus** (**1. Prudência**, **2. Fortaleza**, **3. Justiça**, **4. Temperança**), mantendo os caminhos físicos dos 4 módulos em `src/ui/pages/` e reordenando a apresentação via `st.navigation` em `src/ui/app.py`.
 - `[2026-11-10]` (`Cockpit 1080p / ABC-XYZ`) Identificada perda de contexto executivo por rolagem de página vertical em monitores 1080p e distorção na Matriz ABC/XYZ (93,7% dos produtos em Z por corte teórico $CV \le 1.0$ versus mediana empírica $2,21$). Resolvido na tarefa `V2-V2`: adoção do padrão Cockpit 1080p sem scroll (DAR em 3 faixas: Topo 18%, Meio 45% com gráficos `height=280`, Base 37% com tabelas de scroll interno `height=210`), eliminação de títulos duplicados no Plotly (`title=None`) e recalibração dos cortes XYZ ($X \le 1,50$ e $Y \le 2,50$) equilibrando a matriz em 18% X / 44% Y / 38% Z.
 - `[2026-11-12]` (`Auditoria Geral v0.4.3 → Onda V4`) Auditoria completa de documentação e código identificou 9 pontos de saneamento estruturados na **Onda V4 (`V4-D1`, `V4-S1`, `V4-V1`, `V4-I1`, `V4-I2`)**: (1) reconciliação das especificações de `M4-V1` e `M4-V2` no `TASKS.md` para não sobrescreverem as páginas Virtus de Temperança e Fortaleza; (2) propagação do filtro global de período (`period_preset`, `selected_month`) para Temperança e Justiça; (3) auto-registro de views Parquet em `DuckDBRepository.query()` quando `data/kyberna.duckdb` não existir; (4) alinhamento de `VISION.md` §6 (`MC_liq %`), `fortitude_service.py` (`monthly_net * fixed_cost_pct`) e `simulator.py` + inclusão do 3º slider (`_what_if_cost`); (5) adoção de `render_cockpit_header()`, títulos das 4 Virtudes em `app.py`, `title=None` em `charts.py`/`commercial_charts.py` e remoção de emojis/funções mortas; (6) divisão dos 6 arquivos $> 400$ linhas em `src/etl/`, `src/ml/` e `src/cli.py`; (7) eliminação de literais SQL hard-coded em `temperance_queries.py`; e (8) fixture auto-bootstrap em `tests/conftest.py`.
+- `[2026-11-17]` (`Diagnóstico 2. Fortaleza → Onda V5`) Revisão visual e de código sobre **2. Fortaleza · Visão Comercial (`4_simulator.py`)** identificou que: (1) `build_white_space_mart()` descartava `rules_df` sem persistir `Suporte`, `Confiança` e `Lift`, levando `white_space_queries.py` a exibir um proxy falso (`item_affinity_score * 1.5`) e `' - Sortimento A'`; (2) `rfm_segment` vinha nas queries SQL das Abas 1 e 2, mas era omitido de `target_cols` em `justice_sections.py`; (3) o KPI de lojas elegíveis na Aba 1 contava apenas o recorte `LIMIT 50` (44 lojas) e repetia `Oportunidade White Space` e `Positivação` com a Aba 2; e (4) o Dark Mode apresentava botões de download sem contraste e corte do título do eixo Y no heatmap. Estruturado na **Onda V5 (`V5-D1`, `V5-S1`, `V5-V1`, `V5-V2`)**.
 
 ---
 
 ## 📝 Registro Histórico de Mudanças (Changelog da Refatoração)
+
+- **v0.5.4-fortaleza-apriori** *(Onda V5 100% Concluída ✅: `V5-D1`, `V5-S1`, `V5-V1`, `V5-V2`)*:
+  - **[2026-11-18] Conclusão de `V5-V2` (`VIRTUS-FORT-APRIORI-04` — Encerramento da Onda V5)**: Orquestração completa da Página **2. Fortaleza** ([`4_simulator.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/pages/4_simulator.py), [`commercial_sections.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/components/commercial_sections.py), [`justice_sections.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/components/justice_sections.py) e [`export_bar.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/components/export_bar.py)) com 5 KPIs exclusivos na Aba 1 (`Confiança & Suporte`, `Alavancagem Máx. (Lift)`, `Cobertura de Oportunidades` real) e substituição do KPI duplicado na Aba 2 por `Clientes Vampiros (<15% MC)`; integração de `white_space_heatmap_v2` e `apriori_rules_scatter` com alternador inline `sku`/`family`; filtros livres (`Segmento RFM = "Todos"`, `Família = "Todas"`); tabela limpa com `Segmento RFM`, `Regra Apriori`, `Suporte`, `Confiança`, `Lift`, `Potencial` e `WhatsApp`; micro-tabela Top 5 Regras; e exportação `.xlsx` com aba `Regras_Apriori`. Validação: `ruff format --check`, `ruff check .`, `mypy src` (`121` arquivos), `0` arquivos `> 400` linhas em `src/` e `uv run pytest tests/ui/test_fortitude_page.py tests/ui/test_pages_smoke.py -q` (`6 passed in 13.62s`).
+  - **[2026-11-18] Conclusão de `V5-V1` (`VIRTUS-FORT-APRIORI-03`)**: Criação de [`apriori_charts.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/components/apriori_charts.py) (preservando [`commercial_charts.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/components/commercial_charts.py) em 396L) com `white_space_heatmap_v2` (9 segmentos RFM em ordem lógica, células em 2 linhas `R$ + lojas`, contraste adaptativo Light/Dark e `automargin` sem corte no eixo Y) e `apriori_rules_scatter` (`Suporte % × Confiança %` dimensionado/colorido por `Lift` com rótulos nas Top 3 regras); estilização de `[data-testid="stDownloadButton"]` e `[data-testid="stButton"]` no Dark Mode em [`styles.css`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ui/assets/styles.css); e testes em [`tests/ui/test_charts.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/tests/ui/test_charts.py). Validação: `ruff format --check`, `ruff check .`, `mypy src` (`121` arquivos), `0` arquivos `> 400` linhas em `src/` e `uv run pytest tests/ui/test_charts.py -q` (`5 passed in 0.91s`).
+  - **[2026-11-18] Conclusão de `V5-S1` (`VIRTUS-FORT-APRIORI-02`)**: Evolução de [`dto.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/services/dto.py) (`CommercialKpisDTO` com cobertura integral e métricas Apriori + `apriori_rules_df` em `CommercialPageDTO`), novas queries reais em [`white_space_queries.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/services/white_space_queries.py) (`query_apriori_rules_data`, `query_white_space_coverage_kpis` sem teto `LIMIT 50`, remoção do proxy `item_affinity_score * 1.5` e de `' - Sortimento A'`, preservação de `commercial_queries.py` em 396L), orquestração em [`commercial_service.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/services/commercial_service.py) e exportação Excel/CSV enriquecida com aba `Regras_Apriori` em [`export_service.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/services/export_service.py). Validação: `ruff format --check` (`5` arquivos), `ruff check .`, `mypy src` (`120` arquivos), `0` arquivos `> 400` linhas em `src/` e `uv run pytest tests/services/test_commercial_service.py -q` (`10 passed in 5.90s`).
+  - **[2026-11-18] Conclusão de `V5-D1` (`VIRTUS-FORT-APRIORI-01`)**: Persistência de `gold.mart_apriori_rules` (e Parquet ZSTD) com regras reais em 2 níveis (`family`: `42` regras, `max_lift=1.04x`, `conf` até `75.26%`; `sku`: `26` regras, `max_lift=1.40x`, `conf` até `33.57%`) via [`apriori_mart.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ml/apriori_mart.py), [`white_space_apriori.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ml/white_space_apriori.py) e [`white_space.py`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/ml/white_space.py); contratos [`GoldAprioriRulesSchema`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/etl/contracts.py) e [`GoldWhiteSpaceSchema`](file:///c:/Users/Micro/Empresa/PROJETOS/Kyberna/src/etl/gold_contracts.py) enriquecido com `best_rule_antecedent`, `recommended_anchor_sku`, `apriori_support`, `apriori_confidence` e `apriori_lift` (`700` recomendações no `c1_toys`). Validação: `uv run kyberna ml white-space --scenario c1_toys` (`4.009s`), `ruff check .`, `ruff format --check` (`7` arquivos), `mypy src` (`120` arquivos), `0` arquivos `> 400` linhas em `src/` e `uv run pytest tests/ml/test_white_space.py -q` (`8 passed in 5.94s`).
+  - **[2026-11-17] Planejamento da Onda V5 (`2. Fortaleza · Apriori Explicável + RFM Explícito`)**: Inclusão das especificações detalhadas de `V5-D1` (`mart_apriori_rules` em nível família e SKU + enriquecimento de `mart_white_space`), `V5-S1` (queries reais em `white_space_queries.py`, fim do teto `LIMIT 50` nos KPIs e exportação Excel enriquecida), `V5-V1` (Heatmap `Família × 9 Segmentos RFM` aprimorado, gráfico de bolhas Apriori `Suporte × Confiança × Lift` em `apriori_charts.py` e fix CSS Dark Mode de botões) e `V5-V2` (KPIs sem duplicação entre Abas 1 e 2, exploração livre por qualquer Segmento RFM iniciando em `Todos`, tabelas sem corte horizontal e `Segmento RFM` explícito nas Abas 1 e 2).
 
 - **v0.4.4-qa-virtus** *(Onda V4 100% Concluída: V4-D1, V4-S1, V4-V1, V4-I1 e V4-I2)*:
   - **[2026-11-13] Conclusão de V4-I2 (`VIRTUS-QA-TEST` — Encerramento da Onda V4)**:

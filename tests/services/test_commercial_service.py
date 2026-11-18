@@ -204,3 +204,54 @@ def test_justice_service_innovations(repo: DuckDBRepository) -> None:
     assert dto.kpis.attention_customers > 0
     assert dto.kpis.avg_ltv_brl > 0
     assert "estimated_ltv_brl" in dto.rfm_summary_df.columns
+
+
+def test_apriori_real_metrics_coverage_and_excel_export(repo: DuckDBRepository) -> None:
+    """Valida V5-S1: regras Apriori reais, cobertura sem LIMIT 50, RFM e aba Regras_Apriori no Excel."""
+    import io
+    import zipfile
+
+    from src.services.export_service import generate_commercial_action_excel
+    from src.services.white_space_queries import (
+        query_apriori_rules_data,
+        query_white_space_coverage_kpis,
+    )
+
+    rules_df = query_apriori_rules_data(repo, scenario_id="c1_toys")
+    assert not rules_df.empty
+    assert {"rule_level", "support_pct", "confidence_pct", "lift", "rule_label"}.issubset(
+        set(rules_df.columns)
+    )
+    assert {"family", "sku"}.issubset(set(rules_df["rule_level"].unique()))
+
+    cov = query_white_space_coverage_kpis(repo, scenario_id="c1_toys")
+    assert int(cov["white_space_eligible_customers"]) > 50
+    assert int(cov["white_space_total_offers"]) >= int(cov["white_space_eligible_customers"])
+
+    dto = build_commercial_dashboard(repo, scenario_id="c1_toys")
+    assert not dto.apriori_rules_df.empty
+    assert dto.kpis.white_space_eligible_customers == int(cov["white_space_eligible_customers"])
+    assert dto.kpis.apriori_rules_count == len(dto.apriori_rules_df)
+    assert dto.kpis.apriori_max_lift >= 1.0
+    assert dto.kpis.apriori_avg_confidence_pct > 0.0
+    assert dto.kpis.apriori_avg_support_pct > 0.0
+
+    deals = dto.top_white_space_deals_df
+    assert {
+        "rfm_segment",
+        "best_rule_antecedent",
+        "apriori_support_pct",
+        "apriori_confidence_pct",
+        "apriori_lift",
+    }.issubset(set(deals.columns))
+    assert not deals["recommended_top_sku"].astype(str).str.contains("Sortimento A").any()
+
+    excel_bytes = generate_commercial_action_excel(
+        dto.priority_risk_df.head(10),
+        deals.head(10),
+        "Brinquedos",
+        apriori_rules_df=dto.apriori_rules_df,
+    )
+    with zipfile.ZipFile(io.BytesIO(excel_bytes)) as zf:
+        workbook_xml = zf.read("xl/workbook.xml").decode("utf-8")
+    assert "Regras_Apriori" in workbook_xml

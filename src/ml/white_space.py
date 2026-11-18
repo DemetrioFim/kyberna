@@ -11,6 +11,11 @@ from src.core.logging import get_logger
 from src.core.paths import get_duckdb_path, gold_snapshot_path
 from src.core.types import ScenarioId
 from src.etl.contracts import GoldWhiteSpaceSchema, validate_contract
+from src.ml.apriori_mart import (
+    build_apriori_rules_mart_df,
+    match_best_apriori_rule,
+    persist_apriori_rules_mart,
+)
 from src.ml.features import resolve_as_of_date
 from src.ml.white_space_apriori import (
     DEFAULT_SCENARIO,
@@ -18,6 +23,7 @@ from src.ml.white_space_apriori import (
     compute_apriori_rules,
     compute_item_affinity_scores,
     compute_lookalike_scores,
+    compute_sku_apriori_rules,
     load_white_space_config,
 )
 from src.ml.white_space_backtest import evaluate_white_space_backtest
@@ -31,6 +37,7 @@ __all__ = [
     "compute_apriori_rules",
     "compute_item_affinity_scores",
     "compute_lookalike_scores",
+    "compute_sku_apriori_rules",
     "compute_white_space_recommendations",
     "evaluate_white_space_backtest",
     "generate_recommendation_pitch",
@@ -79,6 +86,7 @@ def compute_white_space_recommendations(
     family_margins: dict[str, float],
     rules_df: pd.DataFrame,
     churn_probs: dict[str, float],
+    sku_rules_df: pd.DataFrame | None = None,
     all_families: Sequence[str] | None = None,
     top_k: int = 3,
     item_weight: float = 0.40,
@@ -90,14 +98,10 @@ def compute_white_space_recommendations(
     cust_totals = customer_totals_df.set_index("customer_id")
     families = list(all_families) if all_families is not None else list(active_bought_matrix.columns)
 
-    avg_lift_by_consequent: dict[str, float] = {}
-    if not rules_df.empty:
-        mean_series = rules_df.groupby("consequent_family")["lift"].mean()
-        avg_lift_by_consequent = {str(k): float(v) for k, v in mean_series.items()}
-
     rows: list[dict[str, Any]] = []
 
     for cid in active_bought_matrix.index:
+        active_fams = {str(f) for f in active_bought_matrix.columns if active_bought_matrix.loc[cid, f] == 1}
         c_size = (
             str(cust_meta.loc[cid, "size"])
             if cid in cust_meta.index and "size" in cust_meta.columns
@@ -176,14 +180,16 @@ def compute_white_space_recommendations(
             pot_cm = round(pot_rev * margin_rate, 2)
 
             _anchor_id, anchor_name = anchor_skus.get(fam, ("SKU-PADRAO", f"Linha Principal {fam}"))
-            lift_val = avg_lift_by_consequent.get(fam)
+            ant_label, ap_sup, ap_conf, ap_lift = match_best_apriori_rule(
+                fam, active_fams, rules_df, sku_rules_df
+            )
 
             exp_text, pitch_text = generate_recommendation_pitch(
                 family=fam,
                 anchor_name=anchor_name,
                 peer_penetration=c_info["peer_penetration_pct"],
-                confidence_score=c_info["opportunity_score"],
-                lift=lift_val,
+                confidence_score=ap_conf if ap_conf > 0 else c_info["opportunity_score"],
+                lift=ap_lift,
                 customer_size=c_size,
                 region=c_region,
                 potential_brl=pot_rev,
@@ -205,6 +211,11 @@ def compute_white_space_recommendations(
                     "churn_probability": round(float(p_churn), 4),
                     "potential_revenue_brl": pot_rev,
                     "potential_margin_brl": pot_cm,
+                    "best_rule_antecedent": ant_label,
+                    "recommended_anchor_sku": anchor_name,
+                    "apriori_support": round(ap_sup, 4),
+                    "apriori_confidence": round(ap_conf, 4),
+                    "apriori_lift": round(ap_lift, 2),
                     "explanation_text": exp_text,
                     "action_pitch": pitch_text,
                     "snapshot_date": datetime.now().strftime("%Y-%m-%d"),
@@ -287,6 +298,17 @@ def build_white_space_mart(  # noqa: PLR0915
         min_sup = float(cfg.get("apriori_min_support", 0.03))
         min_conf = float(cfg.get("apriori_min_confidence", 0.15))
         rules_df, anchor_skus = compute_apriori_rules(sales_df, min_support=min_sup, min_confidence=min_conf)
+        sku_rules_df = compute_sku_apriori_rules(
+            sales_df,
+            min_support=float(cfg.get("sku_min_support", 0.005)),
+            min_confidence=float(cfg.get("sku_min_confidence", 0.10)),
+            min_lift=float(cfg.get("sku_min_lift", 1.05)),
+            max_rules=int(cfg.get("sku_max_rules", 150)),
+        )
+        rules_all_df = build_apriori_rules_mart_df(
+            rules_df, sku_rules_df, scenario_id=scenario_id, as_of_date=resolved_date
+        )
+        persist_apriori_rules_mart(con, rules_all_df, scenario_id=scenario_id)
 
         act_days = int(cfg.get("active_window_days", 180))
         act_share = float(cfg.get("min_active_share", 0.05))
@@ -326,6 +348,7 @@ def build_white_space_mart(  # noqa: PLR0915
             family_margins=family_margins,
             rules_df=rules_df,
             churn_probs=churn_map,
+            sku_rules_df=sku_rules_df,
             top_k=top_k,
             item_weight=w_item,
             lookalike_weight=w_look,

@@ -22,6 +22,10 @@ from src.services.dto import (
     CommercialPageDTO,
 )
 from src.services.executive_service import get_top_margin_drivers
+from src.services.white_space_queries import (
+    query_apriori_rules_data,
+    query_white_space_coverage_kpis,
+)
 from src.ui.formatting import format_brl
 
 logger = get_logger(__name__)
@@ -124,7 +128,31 @@ def build_commercial_dashboard(
         risk_status=risk_status,
         rfm_segment=rfm_segment,
     )
-    kpis = CommercialKpisDTO(**kpis_raw)
+    ws_cov = query_white_space_coverage_kpis(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        sales_reps=sales_reps,
+        families=families,
+    )
+    apriori_rules_df = query_apriori_rules_data(repo, scenario_id, families=families)
+    apriori_stats: dict[str, float | int] = {
+        "apriori_rules_count": 0,
+        "apriori_max_lift": 0.0,
+        "apriori_avg_confidence_pct": 0.0,
+        "apriori_avg_support_pct": 0.0,
+    }
+    if not apriori_rules_df.empty:
+        sku_sub = apriori_rules_df[apriori_rules_df["rule_level"] == "sku"]
+        stat_df = sku_sub if not sku_sub.empty else apriori_rules_df
+        apriori_stats = {
+            "apriori_rules_count": len(apriori_rules_df),
+            "apriori_max_lift": round(float(apriori_rules_df["lift"].max()), 2),
+            "apriori_avg_confidence_pct": round(float(stat_df["confidence_pct"].mean()), 1),
+            "apriori_avg_support_pct": round(float(stat_df["support_pct"].mean()), 2),
+        }
+    kpis = CommercialKpisDTO(**kpis_raw, **ws_cov, **apriori_stats)
 
     priority_df = query_priority_risk_customers(
         repo,
@@ -213,6 +241,7 @@ def build_commercial_dashboard(
         rfm_summary_df=rfm_df,
         white_space_matrix_df=ws_matrix_df,
         rep_performance_df=rep_df,
+        apriori_rules_df=apriori_rules_df,
         cycle_funnel_df=cycle_funnel_df,
         top_white_space_deals_df=top_ws_deals_df,
         champions_df=top_gen_c,

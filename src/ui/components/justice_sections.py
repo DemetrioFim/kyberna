@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import pandas as pd
 import streamlit as st
 
 from src.core.scenarios import ScenarioLabels
@@ -57,15 +58,15 @@ def render_justice_kpi_cards(dto: CommercialPageDTO, customer_plural: str) -> No
         )
 
     with c4:
+        vamp_cnt = dto.kpis.vampire_customers_count
         render_kpi_card(
-            title="Oportunidade White Space",
-            value=format_brl(dto.kpis.white_space_potential_revenue_brl, compact=True),
-            subfooter_left=f"Margem: {format_brl(dto.kpis.white_space_potential_margin_brl, compact=True)}",
-            accent="teal",
+            title="Clientes Vampiros (<15% MC)",
+            value=f"{format_int(vamp_cnt)} contas",
+            subfooter_left="Alto volume com margem comprimida",
+            accent="alert_neg" if vamp_cnt > 0 else "green",
             help_text=(
-                "Potencial de venda incremental (cross-sell) mapeado via afinidade transacional "
-                "e clusters de clientes semelhantes (lookalike).<br><br>"
-                "<strong>No rodapé:</strong> Margem líquida estimada no sortimento ausente."
+                f"{customer_plural} com faturamento relevante (> R$ 15 mil), mas margem de "
+                "contribuição líquida abaixo de 15% por excesso de descontos ou frete."
             ),
         )
 
@@ -234,6 +235,7 @@ def render_critical_customers_table(dto: CommercialPageDTO, customer_label: str)
     )
     target_cols = [
         "customer_name",
+        "rfm_segment",
         "state",
         "sales_rep_name",
         "risk_status",
@@ -248,6 +250,7 @@ def render_critical_customers_table(dto: CommercialPageDTO, customer_label: str)
 
     cust_cfg: dict[str, Any] = {
         "customer_name": st.column_config.TextColumn(customer_label),
+        "rfm_segment": st.column_config.TextColumn("Segmento RFM", width="small"),
         "state": st.column_config.TextColumn("UF", width="small"),
         "sales_rep_name": st.column_config.TextColumn("RCA"),
         "risk_status": st.column_config.TextColumn("Status", width="small"),
@@ -271,46 +274,75 @@ def render_critical_customers_table(dto: CommercialPageDTO, customer_label: str)
     )
 
 
-def render_white_space_deals_table(dto: CommercialPageDTO, customer_label: str) -> None:
-    """Renderiza a tabela de oportunidades White Space com link direto WhatsApp e scroll interno."""
-    if dto.top_white_space_deals_df.empty:
+def _style_rfm_segment(val: object) -> str:
+    """Destaca visualmente o segmento RFM sem privilegiar um único grupo."""
+    seg = str(val)
+    if seg in ("Campeões", "Fiéis"):
+        return "color: #0D9488; font-weight: 600;"
+    if seg in ("Em Risco", "Não Pode Perder", "Perdidos"):
+        return "color: #D1495B; font-weight: 600;"
+    if seg in ("Promissores", "Novos Clientes"):
+        return "color: #C9A227; font-weight: 600;"
+    return "font-weight: 500;"
+
+
+def render_white_space_deals_table(
+    source: CommercialPageDTO | pd.DataFrame,
+    customer_label: str,
+) -> None:
+    """Renderiza oportunidades de Cross-Sell com Segmento RFM, Apriori (Suporte/Conf/Lift) e WhatsApp."""
+    raw_df = source if isinstance(source, pd.DataFrame) else source.top_white_space_deals_df
+    if raw_df.empty:
         st.info("Nenhuma oportunidade White Space mapeada no recorte selecionado.")
         return
     df = attach_whatsapp_links(
-        dto.top_white_space_deals_df,
+        raw_df,
         pitch_col="action_pitch",
         fallback_pitch="Sugestão de ampliação de mix",
     )
+    ants = (
+        df["best_rule_antecedent"].astype(str).tolist()
+        if "best_rule_antecedent" in df.columns
+        else df["recommended_family"].astype(str).tolist()
+    )
+    fams = df["recommended_family"].astype(str).tolist()
+    df["apriori_rule_view"] = [f"{ant[:18]} → {fam}" for ant, fam in zip(ants, fams, strict=False)]
+
     target_cols = [
         "customer_name",
-        "recommended_family",
-        "anchor_sku_name",
-        "recommended_top_sku",
+        "rfm_segment",
+        "apriori_rule_view",
+        "apriori_support_pct",
+        "apriori_confidence_pct",
+        "apriori_lift",
         "potential_revenue_brl",
-        "affinity_lift",
-        "action_pitch",
         "whatsapp_link",
     ]
     cols = [c for c in target_cols if c in df.columns]
     deals_df = df[cols].copy()
 
     col_cfg: dict[str, Any] = {
-        "customer_name": st.column_config.TextColumn(customer_label),
-        "recommended_family": st.column_config.TextColumn("Família Ausente"),
-        "anchor_sku_name": st.column_config.TextColumn("Perfil / Âncora"),
-        "recommended_top_sku": st.column_config.TextColumn("SKU Recomendado"),
-        "potential_revenue_brl": st.column_config.NumberColumn("Potencial", format="R$ %,.2f"),
-        "affinity_lift": st.column_config.NumberColumn("Lift Afinidade", format="%.2fx"),
-        "action_pitch": st.column_config.TextColumn("Argumento Comercial (Pitch)", width="large"),
+        "customer_name": st.column_config.TextColumn(customer_label, width="medium"),
+        "rfm_segment": st.column_config.TextColumn("Segmento RFM", width="small"),
+        "apriori_rule_view": st.column_config.TextColumn("Regra Apriori (Compra → Oferta)", width="medium"),
+        "apriori_support_pct": st.column_config.NumberColumn("Suporte", format="%.2f%%", width="small"),
+        "apriori_confidence_pct": st.column_config.NumberColumn("Confiança", format="%.1f%%", width="small"),
+        "apriori_lift": st.column_config.NumberColumn("Lift", format="%.2fx", width="small"),
+        "potential_revenue_brl": st.column_config.NumberColumn("Potencial", format="R$ %,.0f", width="small"),
         "whatsapp_link": st.column_config.LinkColumn(
             "WhatsApp",
             display_text="Chamar",
             width="small",
-            help="Abre conversa pré-preenchida no WhatsApp Web/App.",
+            help="Abre conversa pré-preenchida no WhatsApp Web/App com o pitch e SKU âncora.",
         ),
     }
+    styled = (
+        deals_df.style.map(_style_rfm_segment, subset=["rfm_segment"])
+        if "rfm_segment" in deals_df.columns
+        else deals_df
+    )
     st.dataframe(
-        deals_df,
+        styled,
         use_container_width=True,
         hide_index=True,
         height=185,

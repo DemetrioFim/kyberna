@@ -25,6 +25,7 @@ __all__ = [
     "BronzeSalesSchema",
     "DataContractError",
     "GoldAbcXyzSchema",
+    "GoldAprioriRulesSchema",
     "GoldCustomerRiskSchema",
     "GoldDimProductSchema",
     "GoldFactSalesSchema",
@@ -246,6 +247,36 @@ class GoldDimProductSchema(pa.DataFrameModel):
 # Camada Gold: Star Schema e Marts Analíticos (Modularizados em gold_contracts.py)
 # ==============================================================================
 # (Schemas re-exportados no topo do arquivo a partir de src.etl.gold_contracts)
+
+
+# ==============================================================================
+# Contrato Apriori Gold (adicionado em V5-D1 mantendo gold_contracts.py < 400L)
+# ==============================================================================
+class GoldAprioriRulesSchema(pa.DataFrameModel):
+    """Contrato das regras de associação Apriori (Família e SKU) em `mart_apriori_rules`."""
+
+    scenario_id: str = Field(isin=VALID_SCENARIO_IDS, nullable=False)
+    as_of_date: str = Field(nullable=False)
+    rule_level: str = Field(isin=["family", "sku"], nullable=False)
+    antecedent_id: str = Field(nullable=False)
+    antecedent_name: str = Field(nullable=False)
+    antecedent_family: str = Field(nullable=False)
+    consequent_id: str = Field(nullable=False)
+    consequent_name: str = Field(nullable=False)
+    consequent_family: str = Field(nullable=False)
+    total_baskets: int = Field(ge=1, nullable=False)
+    antecedent_baskets: int = Field(ge=1, nullable=False)
+    consequent_baskets: int = Field(ge=1, nullable=False)
+    pair_baskets: int = Field(ge=1, nullable=False)
+    support: float = Field(ge=0.0, le=1.0001, nullable=False)
+    confidence: float = Field(ge=0.0, le=1.0001, nullable=False)
+    lift: float = Field(ge=0.0, nullable=False)
+    leverage: float = Field(nullable=False)
+    snapshot_date: str = Field(nullable=False)
+
+    class Config:
+        strict = False
+        coerce = True
 
 
 # ==============================================================================

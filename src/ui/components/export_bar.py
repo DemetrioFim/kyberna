@@ -16,12 +16,18 @@ def render_commercial_export_bar(
     *,
     scenario_id: str,
     scenario_name: str,
+    apriori_rules_df: pd.DataFrame | None = None,
 ) -> None:
     """Renderiza barra compacta de ação em 1 clique para download Excel (por RCA) e CSV BR."""
     has_data = not risk_df.empty or not white_space_df.empty
 
     if has_data:
-        excel_bytes = generate_commercial_action_excel(risk_df, white_space_df, scenario_name)
+        excel_bytes = generate_commercial_action_excel(
+            risk_df,
+            white_space_df,
+            scenario_name,
+            apriori_rules_df=apriori_rules_df,
+        )
         risk_export = attach_whatsapp_links(
             risk_df,
             pitch_col="top_opportunity_pitch",

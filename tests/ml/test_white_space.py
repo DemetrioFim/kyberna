@@ -7,11 +7,12 @@ import pandas as pd
 import pytest
 
 from src.core.paths import get_duckdb_path, gold_snapshot_path
-from src.etl.contracts import GoldWhiteSpaceSchema, validate_contract
+from src.etl.contracts import GoldAprioriRulesSchema, GoldWhiteSpaceSchema, validate_contract
 from src.ml.white_space import (
     build_customer_family_matrices,
     build_white_space_mart,
     compute_apriori_rules,
+    compute_sku_apriori_rules,
     compute_white_space_recommendations,
     evaluate_white_space_backtest,
     load_white_space_config,
@@ -317,11 +318,95 @@ def test_white_space_mart_contract_and_persistence() -> None:
         assert parquet_path.exists()
         assert parquet_path.stat().st_size > 0
 
-        # 4. Tabela deve existir no DuckDB
+        # 4. Tabela deve existir no DuckDB com métricas Apriori reais e SKU âncora
         row_cnt = con.execute("SELECT COUNT(*) FROM gold.mart_white_space").fetchone()
         assert row_cnt is not None and row_cnt[0] == len(df)
+        assert not df["recommended_anchor_sku"].str.contains("Sortimento A").any()
+        assert (df["apriori_confidence"] > 0).any()
+        assert (df["apriori_lift"] >= 1.0).any()
+
+        # 5. mart_apriori_rules persistido com níveis family e sku
+        apriori_df = con.execute("SELECT * FROM gold.mart_apriori_rules").df()
+        assert not apriori_df.empty
+        validate_contract(apriori_df, GoldAprioriRulesSchema, layer="Gold (mart_apriori_rules)")
+        assert {"family", "sku"}.issubset(set(apriori_df["rule_level"].unique()))
+        apriori_parquet = gold_snapshot_path(scenario="c1_toys", table="mart_apriori_rules")
+        assert apriori_parquet.exists() and apriori_parquet.stat().st_size > 0
     finally:
         con.close()
+
+
+def test_compute_sku_apriori_rules_metrics() -> None:
+    """Valida mineração Apriori em nível SKU (Suporte, Confiança, Lift e Leverage exatos)."""
+    rows: list[dict[str, object]] = []
+    # 10 cestas: 4 têm SKU-A + SKU-B; 1 tem só SKU-A; 1 tem só SKU-B; 4 têm SKU-C
+    # P(A)=0.5, P(B)=0.5, P(A&B)=0.4 -> Conf(A->B)=0.8, Lift(A->B)=1.6, Lev=0.4-0.25=0.15
+    for idx in range(1, 11):
+        if idx <= 4:
+            rows.append(
+                {
+                    "basket_id": f"B{idx}",
+                    "order_id": f"O{idx}A",
+                    "product_id": "SKU-A",
+                    "product_name": "Produto A",
+                    "family": "Pelúcias",
+                    "gross_revenue": 100.0,
+                }
+            )
+            rows.append(
+                {
+                    "basket_id": f"B{idx}",
+                    "order_id": f"O{idx}B",
+                    "product_id": "SKU-B",
+                    "product_name": "Produto B",
+                    "family": "Quebra-Cabeças",
+                    "gross_revenue": 120.0,
+                }
+            )
+        elif idx == 5:
+            rows.append(
+                {
+                    "basket_id": f"B{idx}",
+                    "order_id": f"O{idx}A",
+                    "product_id": "SKU-A",
+                    "product_name": "Produto A",
+                    "family": "Pelúcias",
+                    "gross_revenue": 100.0,
+                }
+            )
+        elif idx == 6:
+            rows.append(
+                {
+                    "basket_id": f"B{idx}",
+                    "order_id": f"O{idx}B",
+                    "product_id": "SKU-B",
+                    "product_name": "Produto B",
+                    "family": "Quebra-Cabeças",
+                    "gross_revenue": 120.0,
+                }
+            )
+        else:
+            rows.append(
+                {
+                    "basket_id": f"B{idx}",
+                    "order_id": f"O{idx}C",
+                    "product_id": "SKU-C",
+                    "product_name": "Produto C",
+                    "family": "Linha Escolar",
+                    "gross_revenue": 80.0,
+                }
+            )
+
+    sku_rules = compute_sku_apriori_rules(
+        pd.DataFrame(rows), min_support=0.1, min_confidence=0.5, min_lift=1.1
+    )
+    assert len(sku_rules) == 2
+    r_ab = sku_rules[sku_rules["antecedent_id"] == "SKU-A"].iloc[0]
+    assert r_ab["support"] == pytest.approx(0.4, abs=1e-4)
+    assert r_ab["confidence"] == pytest.approx(0.8, abs=1e-4)
+    assert r_ab["lift"] == pytest.approx(1.6, abs=1e-2)
+    assert r_ab["leverage"] == pytest.approx(0.15, abs=1e-4)
+    assert int(r_ab["pair_baskets"]) == 4
 
 
 def test_evaluate_white_space_backtest_lift() -> None:

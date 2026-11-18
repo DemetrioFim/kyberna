@@ -127,6 +127,14 @@ class CommercialKpisDTO(BaseModel):
     attention_revenue_brl: float = 0.0
     avg_ltv_brl: float = 0.0
     vampire_customers_count: int = 0
+    white_space_eligible_customers: int = 0
+    white_space_total_offers: int = 0
+    avg_families_per_customer: float = 0.0
+    total_catalog_families: int = 7
+    apriori_rules_count: int = 0
+    apriori_max_lift: float = 0.0
+    apriori_avg_confidence_pct: float = 0.0
+    apriori_avg_support_pct: float = 0.0
 
 
 class CommercialPageDTO(BaseModel):
@@ -142,6 +150,7 @@ class CommercialPageDTO(BaseModel):
     rfm_summary_df: pd.DataFrame
     white_space_matrix_df: pd.DataFrame
     rep_performance_df: pd.DataFrame
+    apriori_rules_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     cycle_funnel_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     top_white_space_deals_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     champions_df: pd.DataFrame = Field(default_factory=pd.DataFrame)

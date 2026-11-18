@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Sequence
 from datetime import date
+from itertools import combinations
 from typing import Any, Final
 
 import numpy as np
@@ -31,13 +33,27 @@ def load_white_space_config() -> dict[str, Any]:
     return {}
 
 
-def compute_apriori_rules(  # noqa: PLR0912
+def _resolve_basket_column(orders_items_df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
+    """Identifica ou deriva a coluna de cesta (pedido ou cliente+dia) para mineração Apriori."""
+    df_baskets = orders_items_df.copy()
+    if "basket_id" in df_baskets.columns:
+        return df_baskets, "basket_id"
+    fam_per_order = df_baskets.groupby("order_id")["family"].nunique()
+    if (fam_per_order > 1).any():
+        return df_baskets, "order_id"
+    if "customer_id" in df_baskets.columns and "date" in df_baskets.columns:
+        df_baskets["basket_id"] = df_baskets["customer_id"].astype(str) + "_" + df_baskets["date"].astype(str)
+        return df_baskets, "basket_id"
+    return df_baskets, "order_id"
+
+
+def compute_apriori_rules(
     orders_items_df: pd.DataFrame,
     *,
     min_support: float = 0.03,
     min_confidence: float = 0.15,
 ) -> tuple[pd.DataFrame, dict[str, tuple[str, str]]]:
-    """Minera regras de associação Apriori A => B em nível de cestas/pedidos e identifica o SKU Âncora."""
+    """Minera regras de associação Apriori A => B em nível de cestas/famílias e identifica o SKU Âncora."""
     if orders_items_df.empty:
         return pd.DataFrame(), {}
 
@@ -50,65 +66,48 @@ def compute_apriori_rules(  # noqa: PLR0912
         top_row = group.iloc[0]
         anchor_skus[str(fam)] = (str(top_row["product_id"]), str(top_row["product_name"]))
 
-    df_baskets = orders_items_df.copy()
-    if "basket_id" in df_baskets.columns:
-        basket_col = "basket_id"
-    else:
-        fam_per_order = df_baskets.groupby("order_id")["family"].nunique()
-        if (fam_per_order > 1).any():
-            basket_col = "order_id"
-        elif "customer_id" in df_baskets.columns and "date" in df_baskets.columns:
-            df_baskets["basket_id"] = (
-                df_baskets["customer_id"].astype(str) + "_" + df_baskets["date"].astype(str)
-            )
-            basket_col = "basket_id"
-        else:
-            basket_col = "order_id"
-
+    df_baskets, basket_col = _resolve_basket_column(orders_items_df)
     baskets = df_baskets.groupby(basket_col)["family"].unique().reset_index()
     total_orders = len(baskets)
     if total_orders == 0:
         return pd.DataFrame(), anchor_skus
 
-    fam_counts: dict[str, int] = {}
+    fam_counts: Counter[str] = Counter()
+    pair_counts: Counter[tuple[str, str]] = Counter()
     for itemset in baskets["family"]:
-        for fam in itemset:
-            fam_counts[str(fam)] = fam_counts.get(str(fam), 0) + 1
-
-    fam_support = {fam: count / total_orders for fam, count in fam_counts.items()}
-
-    pair_counts: dict[tuple[str, str], int] = {}
-    for itemset in baskets["family"]:
-        items = sorted(str(f) for f in itemset)
-        for i in range(len(items)):
-            for j in range(i + 1, len(items)):
-                p1, p2 = items[i], items[j]
-                pair_counts[(p1, p2)] = pair_counts.get((p1, p2), 0) + 1
-                pair_counts[(p2, p1)] = pair_counts.get((p2, p1), 0) + 1
+        items = sorted({str(f) for f in itemset})
+        fam_counts.update(items)
+        for p1, p2 in combinations(items, 2):
+            pair_counts[(p1, p2)] += 1
+            pair_counts[(p2, p1)] += 1
 
     rules: list[dict[str, Any]] = []
     for (ant, con), pair_cnt in pair_counts.items():
         sup_pair = pair_cnt / total_orders
         if sup_pair < min_support:
             continue
-
-        sup_ant = fam_support.get(ant, 0.0)
-        sup_con = fam_support.get(con, 0.0)
-        if sup_ant <= 0 or sup_con <= 0:
+        ant_cnt = fam_counts.get(ant, 0)
+        con_cnt = fam_counts.get(con, 0)
+        if ant_cnt <= 0 or con_cnt <= 0:
             continue
-
+        sup_ant = ant_cnt / total_orders
+        sup_con = con_cnt / total_orders
         confidence = sup_pair / sup_ant
         if confidence < min_confidence:
             continue
-
         lift = confidence / sup_con
         rules.append(
             {
                 "antecedent_family": ant,
                 "consequent_family": con,
+                "total_baskets": total_orders,
+                "antecedent_baskets": ant_cnt,
+                "consequent_baskets": con_cnt,
+                "pair_baskets": pair_cnt,
                 "support": round(sup_pair, 4),
                 "confidence": round(confidence, 4),
                 "lift": round(lift, 2),
+                "leverage": round(sup_pair - sup_ant * sup_con, 4),
             }
         )
 
@@ -117,6 +116,86 @@ def compute_apriori_rules(  # noqa: PLR0912
         rules_df = rules_df.sort_values(by="confidence", ascending=False).reset_index(drop=True)
 
     return rules_df, anchor_skus
+
+
+def compute_sku_apriori_rules(
+    orders_items_df: pd.DataFrame,
+    *,
+    min_support: float = 0.005,
+    min_confidence: float = 0.10,
+    min_lift: float = 1.05,
+    max_rules: int = 150,
+) -> pd.DataFrame:
+    """Minera regras Apriori produto a produto (SKU) com Suporte, Confiança e Lift reais."""
+    if orders_items_df.empty:
+        return pd.DataFrame()
+
+    df_baskets, basket_col = _resolve_basket_column(orders_items_df)
+    sku_meta_df = df_baskets[["product_id", "product_name", "family"]].drop_duplicates("product_id")
+    sku_meta = {
+        str(pid): (str(pname), str(fam))
+        for pid, pname, fam in zip(
+            sku_meta_df["product_id"], sku_meta_df["product_name"], sku_meta_df["family"], strict=False
+        )
+    }
+    baskets = df_baskets.groupby(basket_col)["product_id"].unique()
+    total_baskets = len(baskets)
+    if total_baskets == 0:
+        return pd.DataFrame()
+
+    item_counts: Counter[str] = Counter()
+    pair_counts: Counter[tuple[str, str]] = Counter()
+    for itemset in baskets:
+        items = sorted({str(pid) for pid in itemset})
+        item_counts.update(items)
+        for p1, p2 in combinations(items, 2):
+            pair_counts[(p1, p2)] += 1
+            pair_counts[(p2, p1)] += 1
+
+    rules: list[dict[str, Any]] = []
+    for (ant_id, con_id), pair_cnt in pair_counts.items():
+        sup_pair = pair_cnt / total_baskets
+        if sup_pair < min_support:
+            continue
+        ant_cnt = item_counts.get(ant_id, 0)
+        con_cnt = item_counts.get(con_id, 0)
+        if ant_cnt <= 0 or con_cnt <= 0:
+            continue
+        sup_ant = ant_cnt / total_baskets
+        sup_con = con_cnt / total_baskets
+        confidence = sup_pair / sup_ant
+        lift = confidence / sup_con
+        if confidence < min_confidence or lift < min_lift:
+            continue
+        ant_name, ant_fam = sku_meta.get(ant_id, (ant_id, "Outros"))
+        con_name, con_fam = sku_meta.get(con_id, (con_id, "Outros"))
+        rules.append(
+            {
+                "antecedent_id": ant_id,
+                "antecedent_name": ant_name,
+                "antecedent_family": ant_fam,
+                "consequent_id": con_id,
+                "consequent_name": con_name,
+                "consequent_family": con_fam,
+                "total_baskets": total_baskets,
+                "antecedent_baskets": ant_cnt,
+                "consequent_baskets": con_cnt,
+                "pair_baskets": pair_cnt,
+                "support": round(sup_pair, 4),
+                "confidence": round(confidence, 4),
+                "lift": round(lift, 2),
+                "leverage": round(sup_pair - sup_ant * sup_con, 4),
+            }
+        )
+
+    if not rules:
+        return pd.DataFrame()
+    return (
+        pd.DataFrame(rules)
+        .sort_values(by=["lift", "confidence", "support"], ascending=False)
+        .head(max_rules)
+        .reset_index(drop=True)
+    )
 
 
 def build_customer_family_matrices(
