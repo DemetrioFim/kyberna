@@ -23,11 +23,16 @@ from src.ui.formatting import format_brl
 logger = get_logger(__name__)
 
 
-def build_temperance_headline(kpis: TemperanceKpisDTO) -> tuple[str, str]:
+def build_temperance_headline(
+    kpis: TemperanceKpisDTO,
+    *,
+    is_scoped: bool = False,
+) -> tuple[str, str]:
     """Gera a manchete executiva dinâmica e contextualizada para a Tela de Temperança."""
     erosion_str = format_brl(kpis.total_commercial_erosion_brl, compact=True, decimals=1)
     excess_str = format_brl(kpis.excess_discount_brl, compact=True, decimals=1)
     locked_str = format_brl(kpis.locked_capital_brl, compact=True, decimals=1)
+    wh_prefix = "No armazém corporativo (escopo global)" if is_scoped else "No armazém"
 
     if kpis.excess_discount_brl > 0 or kpis.locked_capital_brl > 0:
         title = (
@@ -38,7 +43,7 @@ def build_temperance_headline(kpis: TemperanceKpisDTO) -> tuple[str, str]:
             f"A sangria comercial totaliza <b>{erosion_str}</b> "
             f"({kpis.total_commercial_erosion_pct:.1f}% da receita bruta), "
             f"sendo <b>{excess_str}</b> concedidos acima do teto estipulado para o porte dos lojistas. "
-            f"No armazém, <b>{kpis.locked_skus_count} SKUs</b> acumulam mais de 120 dias de cobertura "
+            f"{wh_prefix}, <b>{kpis.locked_skus_count} SKUs</b> acumulam mais de 120 dias de cobertura "
             f"({locked_str} travados), enquanto <b>{kpis.stockout_risk_skus_count} SKUs da Curva A</b> "
             f"enfrentam risco iminente de desabastecimento."
         )
@@ -56,11 +61,13 @@ def build_temperance_prescription(
     kpis: TemperanceKpisDTO,
     violations_df: pd.DataFrame,
     locked_df: pd.DataFrame,
+    *,
+    is_scoped: bool = False,
 ) -> tuple[str, str, float | None]:
     """Elabora a recomendação prescritiva acionável quantificada em R$ de estancamento de sangrias."""
     recoverable_discount = kpis.excess_discount_brl * 0.70
     recoverable_inventory = kpis.locked_capital_brl * 0.25
-    total_impact = recoverable_discount + recoverable_inventory
+    total_impact = recoverable_discount if is_scoped else recoverable_discount + recoverable_inventory
 
     impact_str = format_brl(total_impact, compact=True, decimals=1)
     disc_impact_str = format_brl(recoverable_discount, compact=True, decimals=1)
@@ -71,6 +78,13 @@ def build_temperance_prescription(
         top_names = violations_df.head(3)["rep_name"].tolist()
         top_reps = f"com foco imediato nas carteiras de <b>{', '.join(top_names)}</b>"
 
+    inv_item_title = (
+        f"Desmobilização de Estoque — Armazém Global "
+        f"({inv_impact_str} destraváveis adicionais fora do recorte)"
+        if is_scoped
+        else f"Desmobilização de Estoque ({inv_impact_str} destraváveis)"
+    )
+
     title = f"Veredito de Temperança: Recuperação Estimada de {impact_str} no Caixa Operacional"
     html = (
         f"<p>A auditoria analítica identificou duas alavancas prioritárias para estancar sangrias:</p>"
@@ -78,7 +92,7 @@ def build_temperance_prescription(
         f"<li><b>Corte de Descontos Fora de Tabela ({disc_impact_str} recuperáveis)</b>: "
         f"Impor trava sistêmica para concessões acima do teto de porte (P=3%, M=6.5%, G=10.5%), "
         f"{top_reps}.</li>"
-        f"<li><b>Desmobilização de Estoque ({inv_impact_str} destraváveis)</b>: "
+        f"<li><b>{inv_item_title}</b>: "
         f"Campanha de liquidação em lotes fechados para os <b>{kpis.locked_skus_count} SKUs >120d</b>, "
         f"revertendo caixa para ressuprimento dos <b>{kpis.stockout_risk_skus_count} SKUs Curva A</b>.</li>"
         f"</ol>"
@@ -157,12 +171,20 @@ def build_temperance_dashboard(
         families=families,
     )
 
-    # 6. Manchete e Prescrição
-    headline_title, headline_text = build_temperance_headline(kpis)
+    # 6. Manchete e Prescrição (sinalizando escopo global do armazém se houver filtro)
+    is_scoped = (
+        regiao != "Todas"
+        or uf != "Todas"
+        or bool(sales_reps)
+        or start_date_key is not None
+        or end_date_key is not None
+    )
+    headline_title, headline_text = build_temperance_headline(kpis, is_scoped=is_scoped)
     presc_title, presc_html, presc_impact = build_temperance_prescription(
         kpis,
         violations_reps_df,
         locked_inv_df,
+        is_scoped=is_scoped,
     )
 
     return TemperancePageDTO(

@@ -12,6 +12,7 @@ from src.services.inventory_dto import (
     SkuForecastSeriesDTO,
 )
 from src.services.inventory_queries import (
+    query_forecast_30d_rollup,
     query_forecast_sku_options,
     query_inventory_position,
     query_sku_forecast_series,
@@ -27,6 +28,7 @@ def build_inventory_dashboard(
     """Agrega posição prescritiva de estoque, treemap de capital travado e opções de forecast."""
     position_df = query_inventory_position(repo, scenario_id, families=families)
     sku_options_df = query_forecast_sku_options(repo, scenario_id, families=families)
+    fc_rollup = query_forecast_30d_rollup(repo, scenario_id, families=families)
 
     if position_df.empty:
         return InventoryPageDTO(
@@ -40,6 +42,10 @@ def build_inventory_dashboard(
                 suggested_order_boxes_total=0,
                 healthy_skus_count=0,
                 attention_skus_count=0,
+                stockout_curve_a_skus_count=0,
+                stockout_curve_a_revenue_brl=0.0,
+                forecast_30d_units_total=int(fc_rollup["forecast_30d_units_total"]),
+                forecast_30d_revenue_brl=float(fc_rollup["forecast_30d_revenue_brl"]),
             ),
             position_df=position_df,
             stockout_df=pd.DataFrame(),
@@ -72,6 +78,8 @@ def build_inventory_dashboard(
     )
 
     locked_capital_total = float(treemap_df["locked_capital_brl"].sum()) if not treemap_df.empty else 0.0
+    curve_a_rup_mask = (position_df["stock_status"] == "Ruptura Iminente") & (position_df["abc_class"] == "A")
+    curve_a_rup_df = position_df.loc[curve_a_rup_mask]
     kpis = InventoryKpisDTO(
         total_stock_value_brl=float(position_df["stock_value_brl"].sum()),
         locked_capital_brl=locked_capital_total,
@@ -85,6 +93,12 @@ def build_inventory_dashboard(
         else 0,
         healthy_skus_count=int((position_df["stock_status"] == "Saudável").sum()),
         attention_skus_count=int((position_df["stock_status"] == "Atenção (Excesso Moderado)").sum()),
+        stockout_curve_a_skus_count=len(curve_a_rup_df),
+        stockout_curve_a_revenue_brl=round(float(curve_a_rup_df["protected_revenue_brl"].sum()), 2)
+        if not curve_a_rup_df.empty
+        else 0.0,
+        forecast_30d_units_total=int(fc_rollup["forecast_30d_units_total"]),
+        forecast_30d_revenue_brl=float(fc_rollup["forecast_30d_revenue_brl"]),
     )
 
     return InventoryPageDTO(

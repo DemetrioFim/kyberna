@@ -34,12 +34,26 @@ def test_build_inventory_dashboard_reconciliation(repo: DuckDBRepository) -> Non
     assert dto.kpis.locked_capital_brl > 0.0
     assert dto.kpis.locked_skus_count > 0
     assert dto.kpis.stockout_risk_skus_count > 0
+    assert 0 < dto.kpis.stockout_curve_a_skus_count < dto.kpis.stockout_risk_skus_count
+    assert 0.0 < dto.kpis.stockout_curve_a_revenue_brl <= dto.kpis.protected_revenue_brl
+    assert dto.kpis.forecast_30d_units_total > 0
+    assert 500_000.0 < dto.kpis.forecast_30d_revenue_brl < 2_500_000.0
     assert dto.kpis.protected_revenue_brl > 0.0
     assert dto.kpis.suggested_order_boxes_total > 0
 
     # Reconciliação estrita exigida pelo DoD de M4-V1
     treemap_sum = float(dto.treemap_df["locked_capital_brl"].sum())
     assert treemap_sum == pytest.approx(dto.kpis.locked_capital_brl, abs=1e-6)
+
+
+def test_forecast_30d_rollup_and_family_filter(repo: DuckDBRepository) -> None:
+    """Valida rollup de 30 dias do StatsForecast e redução proporcional ao filtrar por família."""
+    full_dto = build_inventory_dashboard(repo, scenario_id="c1_toys")
+    first_family = str(full_dto.position_df["family"].iloc[0])
+    filtered = build_inventory_dashboard(repo, scenario_id="c1_toys", families=[first_family])
+
+    assert 0 < filtered.kpis.forecast_30d_units_total < full_dto.kpis.forecast_30d_units_total
+    assert 0.0 < filtered.kpis.forecast_30d_revenue_brl < full_dto.kpis.forecast_30d_revenue_brl
 
 
 def test_build_inventory_dashboard_family_filter(repo: DuckDBRepository) -> None:

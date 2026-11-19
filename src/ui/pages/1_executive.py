@@ -123,9 +123,11 @@ def _render_tab_inventory(
     temp_dto: TemperancePageDTO,
     inv_dto: InventoryPageDTO,
     theme_mode: str,
+    *,
+    is_scoped: bool = False,
 ) -> None:
     """Aba 2: Estoque, Ruptura & Capital Travado."""
-    render_admin_inventory_kpis(temp_dto, inv_dto)
+    render_admin_inventory_kpis(temp_dto, inv_dto, is_scoped=is_scoped)
     col_l, col_r = st.columns([1.0, 1.0])
     with col_l:
         section_header(
@@ -243,6 +245,17 @@ def render_page() -> None:
         custom_end_date=state.custom_end_date,
     )
     inv_dto = cached_inventory_dashboard(state.scenario_id, families=state.families)
+    is_inv_scoped = (
+        state.regiao != "Todas"
+        or state.uf != "Todas"
+        or bool(state.sales_reps)
+        or state.period_preset != "all"
+    )
+    rup_a_cnt = (
+        inv_dto.kpis.stockout_curve_a_skus_count
+        if inv_dto.kpis.stockout_curve_a_skus_count > 0
+        else temp_dto.kpis.stockout_risk_skus_count
+    )
 
     render_cockpit_header(
         title="Visão Administrativa & Operações",
@@ -250,8 +263,9 @@ def render_page() -> None:
         headline_title="Governança de Portfólio, Estoques & Alçadas",
         headline_text=(
             f"<b>{len(exec_dto.abc_xyz_skus_df)} SKUs</b> ativos | "
-            f"<b>{inv_dto.kpis.stockout_risk_skus_count} SKUs</b> em ruptura iminente e "
-            f"<b>{format_brl(temp_dto.kpis.locked_capital_brl, compact=True)}</b> imobilizados (>120d)."
+            f"<b>{rup_a_cnt} SKUs Curva A</b> em ruptura "
+            f"({inv_dto.kpis.stockout_risk_skus_count} abaixo ROP) e "
+            f"<b>{format_brl(inv_dto.kpis.locked_capital_brl, compact=True)}</b> imobilizados (>120d)."
         ),
         as_of_date_label=exec_dto.as_of_date_label,
         help_text=(
@@ -270,7 +284,7 @@ def render_page() -> None:
     with tab_port:
         _render_tab_portfolio(exec_dto, temp_dto, inv_dto, state.theme_mode)
     with tab_inv:
-        _render_tab_inventory(temp_dto, inv_dto, state.theme_mode)
+        _render_tab_inventory(temp_dto, inv_dto, state.theme_mode, is_scoped=is_inv_scoped)
     with tab_fc:
         _render_tab_forecast_policy(state, exec_dto, temp_dto, inv_dto)
 

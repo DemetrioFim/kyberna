@@ -107,7 +107,9 @@ def query_raw_kpis(
         ROUND(COALESCE(SUM(f.freight_amount), 0), 2) AS freight_amount,
         ROUND(COALESCE(SUM(f.contribution_margin), 0), 2) AS contribution_margin,
         ROUND(COALESCE(SUM(f.boxes), 0), 2) AS total_boxes,
-        COALESCE(SUM(f.units), 0) AS total_units
+        COALESCE(SUM(f.units), 0) AS total_units,
+        MIN(f.date_key) AS min_date_key,
+        MAX(f.date_key) AS max_date_key
     FROM gold.fact_sales f
     {joins_sql}
     {where_sql}

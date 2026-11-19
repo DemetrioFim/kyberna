@@ -241,3 +241,45 @@ def test_prudence_service_innovations(repo: DuckDBRepository) -> None:
     res_disc = simulate_quick_what_if(dto.kpis, discount_change_pp=5.0)
     assert res_disc["margin_delta_brl"] < 0.0
     assert res_disc["breakeven_volume_pct"] > 0.0
+
+
+def test_historic_all_pop_vs_yoy_and_quarterly_run_rate(repo: DuckDBRepository) -> None:
+    """Valida fim do descompasso 24m vs 12m em Histórico Completo e diferenciação real PoP vs YoY."""
+    min_d, max_d = fetch_date_bounds(repo, "c1_toys")
+    b_pop = resolve_period_bounds("all", comparison_mode="pop", min_date=min_d, max_date=max_d)
+    b_yoy = resolve_period_bounds("all", comparison_mode="yoy", min_date=min_d, max_date=max_d)
+
+    assert b_pop.start_date_key is None
+    assert b_yoy.start_date_key is None
+    assert "YoY" in b_yoy.comparison_label
+    assert "YoY" not in b_pop.comparison_label
+
+    dto_pop = build_executive_dashboard(
+        repo,
+        scenario_id="c1_toys",
+        start_date_key=b_pop.start_date_key,
+        end_date_key=b_pop.end_date_key,
+        comp_start_date_key=b_pop.comparison_start_date_key,
+        comp_end_date_key=b_pop.comparison_end_date_key,
+        comparison_mode="pop",
+        period_label=b_pop.period_label,
+        comparison_label=b_pop.comparison_label,
+    )
+    dto_yoy = build_executive_dashboard(
+        repo,
+        scenario_id="c1_toys",
+        start_date_key=b_yoy.start_date_key,
+        end_date_key=b_yoy.end_date_key,
+        comp_start_date_key=b_yoy.comparison_start_date_key,
+        comp_end_date_key=b_yoy.comparison_end_date_key,
+        comparison_mode="yoy",
+        period_label=b_yoy.period_label,
+        comparison_label=b_yoy.comparison_label,
+    )
+
+    assert dto_pop.kpis.gross_revenue == pytest.approx(19793467.67, abs=0.02)
+    assert dto_yoy.kpis.gross_revenue == pytest.approx(19793467.67, abs=0.02)
+    assert dto_pop.kpis.gross_revenue_delta_pct is None
+    assert dto_yoy.kpis.gross_revenue_delta_pct == pytest.approx(-1.8, abs=0.2)
+    assert dto_pop.kpis.revenue_pacing_pct < 120.0
+    assert 2_000_000.0 < dto_pop.kpis.projected_quarter_revenue_brl < 3_500_000.0

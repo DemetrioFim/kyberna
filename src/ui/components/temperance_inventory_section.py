@@ -43,13 +43,19 @@ def render_locked_inventory_table(dto: TemperancePageDTO) -> None:
         f"Liquidação de 25% libera {format_brl(dto.kpis.locked_capital_brl * 0.25)} no caixa."
     )
     if not dto.locked_inventory_df.empty:
+        val_col = (
+            "locked_capital_brl"
+            if "locked_capital_brl" in dto.locked_inventory_df.columns
+            else "stock_value_brl"
+        )
+        val_label = "Capital Excedente (R$)" if val_col == "locked_capital_brl" else "Valor em Estoque (R$)"
         cols_locked = [
             "product_id",
             "product_name",
             "family",
             "stock_units",
             "stock_boxes",
-            "stock_value_brl",
+            val_col,
             "coverage_days",
             "cell",
             "action_prescription",
@@ -61,7 +67,7 @@ def render_locked_inventory_table(dto: TemperancePageDTO) -> None:
             "Família",
             "Unidades",
             "Caixas Master",
-            "Valor em Estoque (R$)",
+            val_label,
             "Cobertura (dias)",
             "Célula",
             "Prescrição Operacional",
@@ -71,7 +77,7 @@ def render_locked_inventory_table(dto: TemperancePageDTO) -> None:
                 {
                     "Unidades": _fmt_int,
                     "Caixas Master": _fmt_boxes,
-                    "Valor em Estoque (R$)": _fmt_brl,
+                    val_label: _fmt_brl,
                     "Cobertura (dias)": _fmt_days,
                 }
             ),

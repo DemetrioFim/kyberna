@@ -75,13 +75,13 @@ def render_temperance_kpi_cards(
 
     with c5:
         rup_skus_a = (
-            inv_dto.kpis.stockout_risk_skus_count
-            if inv_dto is not None and inv_dto.kpis.stockout_risk_skus_count > 0
+            inv_dto.kpis.stockout_curve_a_skus_count
+            if inv_dto is not None and inv_dto.kpis.stockout_curve_a_skus_count > 0
             else kpis.stockout_risk_skus_count
         )
         rup_rev = (
-            inv_dto.kpis.protected_revenue_brl
-            if inv_dto is not None and inv_dto.kpis.protected_revenue_brl > 0.0
+            inv_dto.kpis.stockout_curve_a_revenue_brl
+            if inv_dto is not None and inv_dto.kpis.stockout_curve_a_revenue_brl > 0.0
             else kpis.stockout_risk_revenue_brl
         )
         render_kpi_card(
@@ -99,6 +99,8 @@ def render_temperance_mix_kpis(
     comm_dto: CommercialPageDTO,
     temp_dto: TemperancePageDTO,
     inv_dto: InventoryPageDTO,
+    *,
+    is_scoped: bool = False,
 ) -> None:
     """Renderiza os 5 KPIs integrados 360 (Financeiro + Comercial + Admin) da Aba 1."""
     ek = exec_dto.kpis
@@ -106,7 +108,10 @@ def render_temperance_mix_kpis(
     ck = comm_dto.kpis
     tk = temp_dto.kpis
     ik = inv_dto.kpis
-    rup_skus = ik.stockout_risk_skus_count if ik.stockout_risk_skus_count > 0 else tk.stockout_risk_skus_count
+    rup_skus_a = (
+        ik.stockout_curve_a_skus_count if ik.stockout_curve_a_skus_count > 0 else tk.stockout_risk_skus_count
+    )
+    scope_suffix = " · Global" if is_scoped else ""
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
@@ -139,9 +144,12 @@ def render_temperance_mix_kpis(
         render_kpi_card(
             title="[Admin] Capital Travado",
             value=format_brl(tk.locked_capital_brl, compact=True, decimals=1),
-            subfooter_left=f"Ruptura Curva A: {rup_skus} SKUs",
+            subfooter_left=f"Ruptura Curva A: {rup_skus_a} SKUs{scope_suffix}",
             accent="gold",
-            help_text="Capital parado em estoque >120d confrontado com SKUs em ruptura iminente.",
+            help_text=(
+                "Capital excedente parado em estoque >120d confrontado com SKUs Curva A em ruptura iminente "
+                "(posição corporativa do armazém)."
+            ),
         )
     with c5:
         render_kpi_card(

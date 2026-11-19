@@ -191,6 +191,7 @@ def build_executive_dashboard(
     end_date_key: int | None = None,
     comp_start_date_key: int | None = None,
     comp_end_date_key: int | None = None,
+    comparison_mode: Literal["pop", "yoy"] = "pop",
     period_label: str = "01/01/2023 a 31/12/2024 (24 Meses)",
     comparison_label: str = "Histórico Global Consolidado",
     as_of_date_label: str = "31/12/2024",
@@ -207,6 +208,7 @@ def build_executive_dashboard(
         end_date_key=end_date_key,
         comp_start_date_key=comp_start_date_key,
         comp_end_date_key=comp_end_date_key,
+        comparison_mode=comparison_mode,
     )
     waterfall_df = build_waterfall_steps(kpis)
     monthly_trend_df = get_monthly_margin_trend(
@@ -279,7 +281,7 @@ def build_executive_dashboard(
         f"Faturamento de <strong>{format_brl(kpis.gross_revenue, compact=True)}</strong> gerou "
         f"<strong>{format_brl(kpis.contribution_margin, compact=True)}</strong> em Margem Líquida "
         f"(<strong>{kpis.contribution_margin_pct:.1f}%</strong>). "
-        f"Ritmo atual atinge <strong>{kpis.revenue_pacing_pct:.1f}% da meta</strong> com projeção de "
+        f"Ritmo atual atinge <strong>{kpis.revenue_pacing_pct:.1f}% da meta</strong> com ritmo trimestral de "
         f"<strong>{format_brl(kpis.projected_quarter_revenue_brl, compact=True)}</strong>."
     )
 

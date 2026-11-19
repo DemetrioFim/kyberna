@@ -17,6 +17,10 @@ class InventoryKpisDTO(BaseModel):
     suggested_order_boxes_total: int
     healthy_skus_count: int
     attention_skus_count: int
+    stockout_curve_a_skus_count: int = 0
+    stockout_curve_a_revenue_brl: float = 0.0
+    forecast_30d_units_total: int = 0
+    forecast_30d_revenue_brl: float = 0.0
 
 
 class SkuForecastSeriesDTO(BaseModel):

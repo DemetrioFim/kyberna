@@ -151,7 +151,13 @@ def render_page() -> None:
     )
 
     with tab_mix:
-        render_temperance_mix_kpis(exec_dto, fort_dto, comm_dto, temp_dto, inv_dto)
+        is_inv_scoped = (
+            state.regiao != "Todas"
+            or state.uf != "Todas"
+            or bool(state.sales_reps)
+            or state.period_preset != "all"
+        )
+        render_temperance_mix_kpis(exec_dto, fort_dto, comm_dto, temp_dto, inv_dto, is_scoped=is_inv_scoped)
         col_l, col_r = st.columns([1.0, 1.0])
         with col_l:
             section_header(

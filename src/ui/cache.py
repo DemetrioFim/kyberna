@@ -102,6 +102,7 @@ def cached_executive_dashboard(
         end_date_key=bounds.end_date_key,
         comp_start_date_key=bounds.comparison_start_date_key,
         comp_end_date_key=bounds.comparison_end_date_key,
+        comparison_mode=comparison_mode,
         period_label=bounds.period_label,
         comparison_label=bounds.comparison_label,
         as_of_date_label=bounds.as_of_date_label,

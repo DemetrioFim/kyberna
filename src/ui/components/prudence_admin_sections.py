@@ -85,51 +85,67 @@ def render_admin_portfolio_kpis(exec_dto: ExecutivePageDTO, inv_dto: InventoryPa
         )
 
 
-def render_admin_inventory_kpis(temp_dto: TemperancePageDTO, inv_dto: InventoryPageDTO) -> None:
+def render_admin_inventory_kpis(
+    temp_dto: TemperancePageDTO,
+    inv_dto: InventoryPageDTO,
+    *,
+    is_scoped: bool = False,
+) -> None:
     """Renderiza os 5 KPIs da Aba 2 (Estoque, Ruptura & Capital Travado) de Prudência."""
     t_k = temp_dto.kpis
     i_k = inv_dto.kpis
-    rup_skus = (
-        i_k.stockout_risk_skus_count if i_k.stockout_risk_skus_count > 0 else t_k.stockout_risk_skus_count
+    locked_cap = i_k.locked_capital_brl if i_k.locked_capital_brl > 0 else t_k.locked_capital_brl
+    locked_cnt = i_k.locked_skus_count if i_k.locked_skus_count > 0 else t_k.locked_skus_count
+    rup_a_skus = (
+        i_k.stockout_curve_a_skus_count
+        if i_k.stockout_curve_a_skus_count > 0
+        else t_k.stockout_risk_skus_count
     )
     prot_rev = i_k.protected_revenue_brl if i_k.protected_revenue_brl > 0 else t_k.stockout_risk_revenue_brl
     stock_total_str = format_brl(i_k.total_stock_value_brl, compact=True, decimals=1)
+    scope_suffix = " · Armazém global" if is_scoped else ""
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         render_kpi_card(
             title="Capital Travado (>120d)",
-            value=format_brl(t_k.locked_capital_brl, compact=True, decimals=1),
-            subfooter_left=f"Estoque total: {stock_total_str}",
+            value=format_brl(locked_cap, compact=True, decimals=1),
+            subfooter_left=f"Estoque total: {stock_total_str}{scope_suffix}",
             accent="gold",
-            help_text="Capital imobilizado a custo contábil em SKUs cuja cobertura excede 120 dias de giro.",
+            help_text=(
+                "Capital imobilizado a custo contábil no estoque excedente acima de 120 dias de cobertura "
+                "(posição corporativa do armazém)."
+            ),
         )
     with c2:
         render_kpi_card(
             title="SKUs Imobilizados (>120d)",
-            value=f"{format_int(t_k.locked_skus_count)} SKUs",
+            value=f"{format_int(locked_cnt)} SKUs",
             subfooter_left=f"Saudáveis: {format_int(i_k.healthy_skus_count)} SKUs",
-            accent="alert_warn" if t_k.locked_skus_count > 0 else "green",
+            accent="alert_warn" if locked_cnt > 0 else "green",
             help_text="Quantidade de SKUs com excesso crônico de cobertura, exigindo campanhas de saldo.",
         )
     with c3:
         render_kpi_card(
             title="Ruptura Iminente (Curva A)",
-            value=f"{format_int(rup_skus)} SKUs",
-            subfooter_left=f"Em atenção: {format_int(i_k.attention_skus_count)} SKUs",
+            value=f"{format_int(rup_a_skus)} SKUs",
+            subfooter_left=f"Total abaixo ROP: {format_int(i_k.stockout_risk_skus_count)} SKUs",
             accent="alert_neg",
             help_text=(
-                "SKUs essenciais com estoque abaixo do Ponto de Pedido (Lead Time + Estoque de Segurança)."
+                "SKUs de Curva A com estoque abaixo do Ponto de Pedido (Lead Time + Estoque de Segurança). "
+                "O rodapé indica o total de todas as curvas (A/B/C) abaixo do ROP."
             ),
         )
     with c4:
+        curva_a_rev = format_brl(i_k.stockout_curve_a_revenue_brl, compact=True, decimals=1)
         render_kpi_card(
             title="Receita Protegida (Ruptura)",
             value=format_brl(prot_rev, compact=True, decimals=1),
-            subfooter_left="Receita 30d em risco de falta",
+            subfooter_left=f"Curva A: {curva_a_rev}",
             accent="alert_neg",
             help_text=(
-                "Faturamento potencial preservado nos próximos 30 dias ao executar o ressuprimento imediato."
+                "Faturamento potencial preservado nos próximos 30 dias ao executar o ressuprimento imediato "
+                "de todos os itens abaixo do ROP."
             ),
         )
     with c5:
@@ -150,7 +166,6 @@ def render_admin_demand_policy_kpis(
     inv_dto: InventoryPageDTO,
 ) -> None:
     """Renderiza os 5 KPIs da Aba 3 (Demanda 30d & Conformidade de Alçadas) de Prudência."""
-    e_k = exec_dto.kpis
     t_k = temp_dto.kpis
     sku_fc_cnt = len(inv_dto.sku_options_df)
     anom_cnt = len(exec_dto.anomalies_df) if exec_dto.anomalies_df is not None else 0
@@ -159,11 +174,12 @@ def render_admin_demand_policy_kpis(
     with c1:
         render_kpi_card(
             title="Projeção de Demanda (30d)",
-            value=format_brl(e_k.projected_quarter_revenue_brl, compact=True, decimals=1),
-            subfooter_left=f"Pacing meta: {e_k.revenue_pacing_pct:.1f}%",
+            value=format_brl(inv_dto.kpis.forecast_30d_revenue_brl, compact=True, decimals=2),
+            subfooter_left=f"{format_int(inv_dto.kpis.forecast_30d_units_total)} un previstas (30d)",
             accent="teal",
             help_text=(
-                "Ritmo projetado de faturamento para fechamento de ciclo com base na janela selecionada."
+                "Soma da demanda prevista pelo StatsForecast nos próximos 30 dias valorizada a preço de "
+                "lista para os SKUs filtrados."
             ),
         )
     with c2:

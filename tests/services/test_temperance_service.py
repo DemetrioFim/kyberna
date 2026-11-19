@@ -6,6 +6,7 @@ from src.core.paths import get_duckdb_path
 from src.db.duckdb_repo import DuckDBRepository
 from src.services.dto import TemperancePageDTO
 from src.services.executive_service import build_executive_dashboard
+from src.services.inventory_service import build_inventory_dashboard
 from src.services.temperance_queries import (
     query_commercial_erosion_waterfall,
     query_discount_policy_violations,
@@ -50,11 +51,11 @@ def test_temperance_kpis_aggregation(repo: DuckDBRepository) -> None:
     # Custo de prazo esticado (>30d)
     assert kpis.financial_term_leak_brl > 100_000.0
 
-    # Estoque imobilizado e risco de ruptura
+    # Estoque imobilizado e risco de ruptura (SSOT em gold.mart_inventory_position)
     assert kpis.total_stock_value_brl > 300_000.0
-    assert kpis.locked_capital_brl > 45_000.0
-    assert kpis.locked_skus_count == 59
-    assert kpis.stockout_risk_skus_count > 0
+    assert kpis.locked_capital_brl > 20_000.0
+    assert kpis.locked_skus_count == 47
+    assert kpis.stockout_risk_skus_count == 84
     assert kpis.stockout_risk_revenue_brl > 0.0
 
 
@@ -114,21 +115,38 @@ def test_temperance_inventory_details(repo: DuckDBRepository) -> None:
     """Valida as tabelas operacionais de estoque imobilizado e risco de ruptura."""
     df_locked, df_stockout, df_abc = query_temperance_inventory_details(repo, scenario_id="c1_toys")
 
-    # Itens travados (>120d)
-    assert len(df_locked) == 59
+    # Itens travados (>120d) segundo SSOT mart_inventory_position
+    assert len(df_locked) == 47
     assert (df_locked["coverage_days"] > 120.0).all()
-    assert (df_locked["stock_value_brl"] > 0).all()
+    assert (df_locked["locked_capital_brl"] > 0).all()
     assert "action_prescription" in df_locked.columns
 
-    # Risco de ruptura na Curva A/B
+    # Risco de ruptura na Curva A/B (abaixo do ROP com ordem sugerida)
     assert not df_stockout.empty
-    assert (df_stockout["coverage_days"] <= df_stockout["lead_time_days"]).all()
     assert (df_stockout["suggested_order_boxes"] >= 1).all()
     assert (df_stockout["revenue_at_risk_brl"] > 0).all()
 
     # Matriz ABC/XYZ
     assert not df_abc.empty
     assert len(df_abc) <= 9
+
+
+def test_temperance_and_inventory_ssot_exact_reconciliation(repo: DuckDBRepository) -> None:
+    """Garante zero divergência de estoque entre Temperança, Prudência e escopo global filtrado."""
+    temp_dto = build_temperance_dashboard(repo, scenario_id="c1_toys")
+    inv_dto = build_inventory_dashboard(repo, scenario_id="c1_toys")
+
+    assert temp_dto.kpis.locked_capital_brl == pytest.approx(inv_dto.kpis.locked_capital_brl, abs=1e-2)
+    assert temp_dto.kpis.locked_skus_count == inv_dto.kpis.locked_skus_count
+    assert temp_dto.kpis.stockout_risk_skus_count == inv_dto.kpis.stockout_curve_a_skus_count
+
+    # Quando há filtro regional/temporal, o Veredito separa desconto do recorte vs. armazém global
+    temp_scoped = build_temperance_dashboard(repo, scenario_id="c1_toys", regiao="Sudeste")
+    assert "escopo global" in temp_scoped.headline_text
+    assert temp_scoped.prescription_impact_brl == pytest.approx(
+        round(temp_scoped.kpis.excess_discount_brl * 0.70, 2),
+        abs=0.05,
+    )
 
 
 def test_temperance_dashboard_full_payload_and_prescriptions(repo: DuckDBRepository) -> None:

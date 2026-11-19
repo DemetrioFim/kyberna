@@ -327,14 +327,31 @@ def resolve_period_bounds(
         result = _build_custom_range_bounds(custom_start, custom_end, eff_max, mode)
     else:
         total_months = (eff_max.year - eff_min.year) * 12 + (eff_max.month - eff_min.month) + 1
+        if mode == "yoy" and eff_max.year > eff_min.year:
+            prev_year = eff_max.year - 1
+            comp_start = date(prev_year, 1, 1)
+            comp_end = (
+                date(prev_year, 12, 31) if eff_max == date(eff_max.year, 12, 31) else shift_years(eff_max, -1)
+            )
+            comp_start_key: int | None = date_to_key(comp_start)
+            comp_end_key: int | None = date_to_key(comp_end)
+            comp_label = f"Ano {eff_max.year} vs. {prev_year} (YoY · Base 12m)"
+        elif mode == "yoy":
+            comp_start_key = None
+            comp_end_key = None
+            comp_label = "Histórico Global Consolidado (sem ano anterior)"
+        else:
+            comp_start_key = None
+            comp_end_key = None
+            comp_label = f"Histórico Global Consolidado ({total_months}m · sem PoP)"
         result = PeriodBounds(
             preset="all",
             start_date_key=None,
             end_date_key=None,
-            comparison_start_date_key=None,
-            comparison_end_date_key=None,
+            comparison_start_date_key=comp_start_key,
+            comparison_end_date_key=comp_end_key,
             period_label=f"{fmt_br(eff_min)} a {fmt_br(eff_max)} ({total_months} Meses)",
-            comparison_label="Histórico Global Consolidado",
+            comparison_label=comp_label,
             as_of_date_label=fmt_br(eff_max),
         )
     return result

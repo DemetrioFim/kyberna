@@ -89,7 +89,7 @@ def render_prudence_kpis(dto: ExecutivePageDTO, customer_plural: str) -> None:
             accent=cust_accent,
             help_text=(
                 f"Quantidade de {customer_plural.lower()} distintos com pedido faturado.<br><br>"
-                f"<strong>Projeção 30d:</strong> "
+                f"<strong>Ritmo Trimestral (90d):</strong> "
                 f"{format_brl(dto.kpis.projected_quarter_revenue_brl, compact=True)}."
             ),
         )

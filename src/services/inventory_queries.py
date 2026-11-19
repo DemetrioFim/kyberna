@@ -12,6 +12,7 @@ from src.db.repository import DataRepository
 logger = get_logger(__name__)
 
 __all__ = [
+    "query_forecast_30d_rollup",
     "query_forecast_sku_options",
     "query_inventory_position",
     "query_sku_forecast_series",
@@ -162,3 +163,39 @@ def query_sku_forecast_series(
     except Exception as exc:
         logger.warning("Erro ao consultar série de forecast para %s (%s): %s", product_id, scenario_id, exc)
         return pd.DataFrame()
+
+
+def query_forecast_30d_rollup(
+    repo: DataRepository,
+    scenario_id: ScenarioId,
+    *,
+    families: Sequence[str] = (),
+) -> dict[str, float | int]:
+    """Soma unidades e faturamento previsto (30d) a preço de lista em `gold.mart_forecast_30d`."""
+    fam_clause, fam_params = _build_family_clause(families, alias="fc")
+    params: list[Any] = [scenario_id, *fam_params]
+    sql = f"""
+    SELECT
+        COALESCE(SUM(fc.forecast_units), 0.0) AS forecast_30d_units_total,
+        COALESCE(
+            SUM(fc.forecast_units * COALESCE(pos.unit_list_price, p.base_unit_price, 0.0)),
+            0.0
+        ) AS forecast_30d_revenue_brl
+    FROM gold.mart_forecast_30d fc
+    LEFT JOIN gold.mart_inventory_position pos
+      ON fc.scenario_id = pos.scenario_id AND fc.product_id = pos.product_id
+    LEFT JOIN gold.dim_product p
+      ON fc.product_id = p.product_id
+    WHERE fc.scenario_id = ? AND fc.record_type = 'forecast' {fam_clause}
+    """
+    try:
+        df = repo.query(sql, params=params)
+        if not df.empty:
+            r0 = df.iloc[0]
+            return {
+                "forecast_30d_units_total": round(float(r0["forecast_30d_units_total"])),
+                "forecast_30d_revenue_brl": round(float(r0["forecast_30d_revenue_brl"]), 2),
+            }
+    except Exception as exc:
+        logger.warning("Rollup de forecast 30d indisponível para %s: %s", scenario_id, exc)
+    return {"forecast_30d_units_total": 0, "forecast_30d_revenue_brl": 0.0}
