@@ -103,7 +103,7 @@ def render_prudence_anomalies_section(dto: ExecutivePageDTO) -> None:
         )
         return
 
-    records = dto.anomalies_df.head(2).to_dict(orient="records")
+    records = dto.anomalies_df.head(3).to_dict(orient="records")
     cols = st.columns(len(records))
     for col, row in zip(cols, records, strict=False):
         sev = str(row.get("severity", "Média"))

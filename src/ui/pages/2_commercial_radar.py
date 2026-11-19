@@ -84,6 +84,7 @@ def _render_tab_dre(
         st.plotly_chart(
             waterfall_margin(exec_dto.waterfall_df, theme_mode=state.theme_mode),
             use_container_width=True,
+            theme=None,
         )
     with col_r:
         section_header(
@@ -98,6 +99,7 @@ def _render_tab_dre(
                 target_margin_pct=exec_dto.kpis.margin_target_pct,
             ),
             use_container_width=True,
+            theme=None,
         )
 
     col_bl, col_br = st.columns([1.3, 1.0])
@@ -134,6 +136,7 @@ def _render_tab_cash_cycle(
         st.plotly_chart(
             build_cycle_comparison_chart(fort_dto.cycle_components_df, theme_mode=theme_mode),
             use_container_width=True,
+            theme=None,
         )
     with col_r:
         section_header(
@@ -144,6 +147,7 @@ def _render_tab_cash_cycle(
         st.plotly_chart(
             build_breakeven_curve_chart(fort_dto.breakeven_curve_df, fort_dto.kpis, theme_mode=theme_mode),
             use_container_width=True,
+            theme=None,
         )
 
     col_bl, col_br = st.columns([1.15, 1.0])
@@ -169,11 +173,16 @@ def _render_tab_aging(
     with col_l:
         section_header(
             "Exposição por Faixa de Aging (Atraso)",
-            "Distribuição de risco de carteira por buckets de atraso no ciclo",
+            "Buckets de atraso no ciclo de recompra (proxy comportamental de inadimplência)",
+            help_text=(
+                "Proxy comportamental calculado pela razão entre dias sem compra e o ciclo médio "
+                "de recompra de cada conta (até integração com títulos a receber via ERP)."
+            ),
         )
         st.plotly_chart(
             build_aging_buckets_chart(fort_dto.aging_buckets_df, theme_mode=theme_mode),
             use_container_width=True,
+            theme=None,
         )
     with col_r:
         section_header(
@@ -183,12 +192,18 @@ def _render_tab_aging(
         st.plotly_chart(
             build_concentration_chart(fort_dto.customer_concentration_df, theme_mode=theme_mode),
             use_container_width=True,
+            theme=None,
         )
 
     col_bl, col_br = st.columns([1.05, 1.0])
     with col_bl:
         section_header(
-            "Auditoria de Vencimentos (Aging List)", "Priorização financeira para cobrança/resgate"
+            "Auditoria de Vencimentos (Aging List · Ciclo)",
+            "Priorização de cobrança/resgate por atraso sobre o ciclo médio de recompra",
+            help_text=(
+                "Ordena clientes com maior atraso relativo ao ciclo histórico de recompra "
+                "(proxy comportamental pré-ERP)."
+            ),
         )
         render_aging_customers_table(fort_dto)
     with col_br:

@@ -164,7 +164,7 @@ def render_page() -> None:
                 "Erosão Comercial & Operacional por Alavanca",
                 "Decomposição das deduções entre faturamento de tabela e lucro líquido",
             )
-            st.plotly_chart(fig_erosion, use_container_width=True)
+            st.plotly_chart(fig_erosion, use_container_width=True, theme=None)
         with col_r:
             section_header(
                 "Elasticidade-Preço & Sensibilidade por Família (β)",
@@ -174,7 +174,7 @@ def render_page() -> None:
                     "de volume; use estes coeficientes na aba Simulador What-If."
                 ),
             )
-            st.plotly_chart(fig_elasticity, use_container_width=True)
+            st.plotly_chart(fig_elasticity, use_container_width=True, theme=None)
 
         col_bl, col_br = st.columns([1.25, 1.0])
         with col_bl:

@@ -3,8 +3,44 @@ from __future__ import annotations
 import pandas as pd
 import plotly.graph_objects as go
 
+from src.ui.components.executive_charts import quadrant_scatter
 from src.ui.formatting import format_brl
 from src.ui.theme import get_theme_tokens
+
+__all__ = ["dual_trend", "family_margin_chart", "quadrant_scatter", "waterfall_margin"]
+
+_WATERFALL_KEY_MAP: dict[str, str] = {
+    "gross_revenue": "Fat.<br>Bruto",
+    "discount": "Desc.",
+    "net_price_revenue": "Rec.<br>Faturada",
+    "taxes": "Impostos",
+    "net_revenue": "Rec.<br>Líquida",
+    "cogs": "CPV",
+    "commission": "Comiss.",
+    "freight": "Frete<br>CIF",
+    "contribution_margin": "Margem<br>Contr.",
+}
+
+_WATERFALL_LABEL_MAP: dict[str, str] = {
+    "Faturamento Bruto": "Fat.<br>Bruto",
+    "(-) Descontos Concedidos": "Desc.",
+    "(=) Receita Faturada": "Rec.<br>Faturada",
+    "(-) Impostos (ICMS/PIS/COFINS)": "Impostos",
+    "(=) Receita Líquida": "Rec.<br>Líquida",
+    "(-) Custo Mercadoria (CPV)": "CPV",
+    "(-) Comissões Comerciais": "Comiss.",
+    "(-) Frete de Entrega CIF": "Frete<br>CIF",
+    "(=) Margem de Contribuição": "Margem<br>Contr.",
+    "1. Faturamento Bruto": "1. Fat.<br>Bruto",
+    "2. Descontos Comerciais": "2. Desc.",
+    "3. Receita Faturada": "3. Rec.<br>Faturada",
+    "4. Impostos (ICMS/PIS/COFINS)": "4. Impostos",
+    "5. Receita Líquida": "5. Rec.<br>Líquida",
+    "6. CPV (Custo Mercadoria)": "6. CPV",
+    "7. Comissões RCA": "7. Comiss.",
+    "8. Frete CIF Expedição": "8. Frete<br>CIF",
+    "9. Margem Contribuição": "9. Margem<br>Contrib.",
+}
 
 
 def waterfall_margin(
@@ -35,18 +71,13 @@ def waterfall_margin(
     else:
         hover_extra = ["Subtotal / Base" if m != "relative" else "Dedução" for m in steps_df["measure"]]
 
-    short_x_map = {
-        "1. Faturamento Bruto": "1. Fat.<br>Bruto",
-        "2. Descontos Comerciais": "2. Desc.",
-        "3. Receita Faturada": "3. Rec.<br>Faturada",
-        "4. Impostos (ICMS/PIS/COFINS)": "4. Impostos",
-        "5. Receita Líquida": "5. Rec.<br>Líquida",
-        "6. CPV (Custo Mercadoria)": "6. CPV",
-        "7. Comissões RCA": "7. Comiss.",
-        "8. Frete CIF Expedição": "8. Frete<br>CIF",
-        "9. Margem Contribuição": "9. Margem<br>Contrib.",
-    }
-    x_labels = [short_x_map.get(str(lbl), str(lbl)) for lbl in steps_df["label"].tolist()]
+    if "step_key" in steps_df.columns:
+        x_labels = [
+            _WATERFALL_KEY_MAP.get(str(k), _WATERFALL_LABEL_MAP.get(str(lbl), str(lbl)))
+            for k, lbl in zip(steps_df["step_key"], steps_df["label"], strict=False)
+        ]
+    else:
+        x_labels = [_WATERFALL_LABEL_MAP.get(str(lbl), str(lbl)) for lbl in steps_df["label"].tolist()]
 
     fig = go.Figure(
         go.Waterfall(
@@ -72,9 +103,9 @@ def waterfall_margin(
         template=template_name,
         title=None,
         showlegend=False,
-        height=245,
-        margin={"l": 16, "r": 16, "t": 22, "b": 24},
-        xaxis={"tickangle": 0, "tickfont": {"size": 10}},
+        height=250,
+        margin={"l": 16, "r": 16, "t": 22, "b": 34},
+        xaxis={"tickangle": 0, "tickfont": {"size": 10}, "automargin": True},
         yaxis={"showgrid": False, "showticklabels": False, "title": ""},
         waterfallgap=0.25,
     )
@@ -158,11 +189,15 @@ def dual_trend(
     m_max = float(monthly_df["margin_pct"].max())
     y2_low = min(15.0, m_min - 3.0)
     y2_high = max(35.0, m_max + 3.0)
+    max_gross = float(monthly_df["gross_revenue"].max())
+    yaxis_cfg: dict[str, object] = {"title": "Faturamento (R$)", "side": "left", "showgrid": True}
+    if max_gross > 0.0:
+        yaxis_cfg["range"] = [0.0, max_gross * 1.15]
 
     fig.update_layout(
         template=template_name,
         title=None,
-        yaxis={"title": "Faturamento (R$)", "side": "left", "showgrid": True},
+        yaxis=yaxis_cfg,
         yaxis2={
             "title": "Margem (%)",
             "side": "right",
@@ -228,146 +263,5 @@ def family_margin_chart(
         margin={"l": 16, "r": 24, "t": 14, "b": 18},
         xaxis={"title": "Margem de Contribuição (R$)", "range": [0, max_x]},
         yaxis={"title": None},
-    )
-    return fig
-
-
-def quadrant_scatter(
-    df: pd.DataFrame,
-    x_col: str,
-    y_col: str,
-    *,
-    label_col: str,
-    size_col: str | None = None,
-    x_title: str | None = None,
-    y_title: str | None = None,
-    theme_mode: str = "light",
-) -> go.Figure:
-    """Gera gráfico de dispersão em 4 quadrantes com cortes nas medianas e coloração por quadrante."""
-    tokens = get_theme_tokens(theme_mode)
-    template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
-
-    if df.empty:
-        fig = go.Figure()
-        fig.update_layout(template=template_name, title="Sem dados para o quadrante")
-        return fig
-
-    med_x = float(df[x_col].median())
-    med_y = float(df[y_col].median())
-
-    # Coloração temática dos 4 quadrantes
-    x_vals = df[x_col].to_numpy()
-    y_vals = df[y_col].to_numpy()
-
-    c_star = tokens.get("positive", "#0d9488")
-    c_vol_no_margin = tokens.get("negative", "#e11d48")
-    c_margin_no_vol = tokens.get("brass_500", "#0284c7")
-    c_warning = tokens.get("warning", "#f59e0b")
-
-    point_colors = [
-        c_star
-        if (x >= med_x and y >= med_y)
-        else c_vol_no_margin
-        if (x >= med_x and y < med_y)
-        else c_margin_no_vol
-        if (x < med_x and y >= med_y)
-        else c_warning
-        for x, y in zip(x_vals, y_vals, strict=False)
-    ]
-
-    marker_kwargs: dict[str, object] = {
-        "color": point_colors,
-        "opacity": 0.90,
-        "line": {"width": 1, "color": tokens.get("border_subtle", "#e2e8f0")},
-    }
-    if size_col and size_col in df.columns:
-        max_s = float(df[size_col].max())
-        marker_kwargs["size"] = df[size_col]
-        marker_kwargs["sizemode"] = "area"
-        marker_kwargs["sizeref"] = 2.0 * max_s / (36.0**2) if max_s > 0 else 1.0
-        marker_kwargs["sizemin"] = 8
-    else:
-        marker_kwargs["size"] = 12
-
-    extreme_idxs: set[object] = {
-        df[x_col].idxmax(),
-        df[y_col].idxmin(),
-        df[y_col].idxmax(),
-    }
-    if size_col and size_col in df.columns:
-        extreme_idxs.add(df[size_col].idxmax())
-
-    display_labels = [
-        str(lbl)[:18] if idx in extreme_idxs else ""
-        for idx, lbl in zip(df.index, df[label_col], strict=False)
-    ]
-
-    scatter_trace = go.Scatter(
-        x=df[x_col],
-        y=df[y_col],
-        mode="markers+text",
-        text=display_labels,
-        textposition="top center",
-        textfont={"size": 10, "color": tokens["text_primary"]},
-        customdata=df[label_col],
-        marker=marker_kwargs,
-        hovertemplate=(
-            f"<b>%{{customdata}}</b><br>{x_col}: %{{x:,.2f}}<br>{y_col}: %{{y:,.1f}}%<br><extra></extra>"
-        ),
-    )
-
-    fig = go.Figure(data=[scatter_trace])
-
-    # Linhas de quadrante nas medianas
-    fig.add_vline(x=med_x, line_dash="dash", line_color=tokens["chart_zero_line"], opacity=0.8)
-    fig.add_hline(y=med_y, line_dash="dash", line_color=tokens["chart_zero_line"], opacity=0.8)
-
-    # Rótulos em pt-BR
-    axis_pt_br: dict[str, str] = {
-        "gross_revenue": "Faturamento Bruto (R$)",
-        "revenue": "Faturamento Bruto (R$)",
-        "net_revenue": "Receita Líquida (R$)",
-        "contribution_margin": "Margem de Contribuição (R$)",
-        "margin_pct": "Margem Líquida (%)",
-        "avg_discount_pct": "Desconto Médio (%)",
-        "revenue_at_risk_brl": "Risco de Carteira (R$)",
-        "positivation_pct": "Positivação (%)",
-    }
-    final_x_title = x_title or axis_pt_br.get(x_col, x_col.replace("_", " ").title())
-    final_y_title = y_title or axis_pt_br.get(y_col, y_col.replace("_", " ").title())
-
-    # Anotações sutis de cada quadrante
-    text_color = tokens.get("text_muted", "#64748b")
-    quadrant_labels = (
-        (0.98, 0.98, "right", "top", "Estrela", "Alto Vol. · Alta Margem"),
-        (0.98, 0.02, "right", "bottom", "Volume sem Margem", "Alto Vol. · Baixa Margem"),
-        (0.02, 0.98, "left", "top", "Margem sem Volume", "Baixo Vol. · Alta Margem"),
-        (0.02, 0.02, "left", "bottom", "Atenção", "Baixo Vol. · Baixa Margem"),
-    )
-    annotations = [
-        go.layout.Annotation(
-            xref="paper",
-            yref="paper",
-            x=qx,
-            y=qy,
-            xanchor=x_anchor,
-            yanchor=y_anchor,
-            text=f"<b>{q_title}</b><br><span style='font-size:10px;'>{q_sub}</span>",
-            showarrow=False,
-            opacity=0.62,
-            font={"size": 11, "color": text_color},
-        )
-        for qx, qy, x_anchor, y_anchor, q_title, q_sub in quadrant_labels
-    ]
-
-    fig.update_layout(
-        template=template_name,
-        title=None,
-        xaxis_title=final_x_title,
-        yaxis_title=final_y_title,
-        annotations=annotations,
-        showlegend=False,
-        height=245,
-        margin={"l": 24, "r": 24, "t": 14, "b": 28},
     )
     return fig

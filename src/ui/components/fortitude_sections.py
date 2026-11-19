@@ -46,7 +46,10 @@ def render_fortitude_kpi_cards(dto: FortitudePageDTO) -> None:
         render_kpi_card(
             title="Break-Even Mensal",
             value=f"Dia {k.breakeven_day_of_month}",
-            subfooter_left=f"Meta: {format_brl(k.breakeven_revenue_brl, compact=True, decimals=1)}/mês",
+            subfooter_left=(
+                f"Fat. mín.: {format_brl(k.breakeven_revenue_brl, compact=True, decimals=1)} | "
+                f"Fixo: {format_brl(k.fixed_costs_monthly_brl, compact=True, decimals=1)}"
+            ),
             delta_html=f"Folga operacional: {slack_days}d",
             accent="teal" if k.breakeven_day_of_month <= 22 else "alert_warn",
             help_text=(

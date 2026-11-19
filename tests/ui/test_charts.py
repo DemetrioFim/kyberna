@@ -167,3 +167,120 @@ def test_white_space_heatmap_v2_and_apriori_scatter_light_dark() -> None:
     # DataFrames vazios não lançam erro
     assert len(white_space_heatmap_v2(pd.DataFrame()).data) == 0
     assert len(apriori_rules_scatter(pd.DataFrame()).data) == 0
+
+
+def test_waterfall_short_x_map_covers_all_steps() -> None:
+    """Garante 9/9 casamentos dos rótulos curtos no eixo X do Waterfall DRE real."""
+    from src.services.dto import ExecutiveKpisDTO
+    from src.services.waterfall_steps import build_waterfall_steps
+
+    kpis = ExecutiveKpisDTO(
+        gross_revenue=1_000_000.0,
+        discount_amount=80_000.0,
+        net_price_revenue=920_000.0,
+        tax_amount=160_000.0,
+        net_revenue=760_000.0,
+        cogs=430_000.0,
+        commission_amount=46_000.0,
+        freight_amount=12_000.0,
+        contribution_margin=272_000.0,
+        contribution_margin_pct=27.2,
+        total_orders=500,
+        active_customers=80,
+        avg_ticket=2000.0,
+        total_boxes=1200.0,
+        total_units=15000,
+    )
+    steps_df = build_waterfall_steps(kpis)
+    fig = waterfall_margin(steps_df, theme_mode="light")
+    x_labels = [str(lbl) for lbl in fig.data[0].x]
+
+    assert len(x_labels) == 9
+    assert all(not lbl.startswith(("(-)", "(=)")) for lbl in x_labels)
+    assert all(len(lbl.replace("<br>", " ")) <= 16 for lbl in x_labels)
+
+
+def test_rfm_treemap_colorbar_title_is_pt_br() -> None:
+    """Garante colorbar 'Margem %' e prefixo R$ no Treemap RFM."""
+    from src.ui.components.commercial_charts import rfm_treemap
+
+    rfm_df = pd.DataFrame(
+        [
+            {
+                "rfm_segment": "Campeões",
+                "customer_count": 40,
+                "gross_revenue": 500_000.0,
+                "contribution_margin": 140_000.0,
+                "margin_pct": 28.0,
+                "avg_ticket": 1250.0,
+                "estimated_ltv_brl": 18_000.0,
+            },
+            {
+                "rfm_segment": "Fiéis",
+                "customer_count": 30,
+                "gross_revenue": 300_000.0,
+                "contribution_margin": 75_000.0,
+                "margin_pct": 25.0,
+                "avg_ticket": 950.0,
+                "estimated_ltv_brl": 12_000.0,
+            },
+        ]
+    )
+    fig = rfm_treemap(rfm_df, theme_mode="light")
+    assert fig.layout.coloraxis.colorbar.title.text == "Margem %"
+    assert "R$" in str(fig.data[0].texttemplate)
+
+
+def test_quadrant_scatter_hover_uses_pt_br_titles() -> None:
+    """Garante títulos amigáveis pt-BR no hover e anotações com fundo sólido no Quadrante."""
+    reps_df = pd.DataFrame(
+        [
+            {"sales_rep_name": "RCA Alfa", "gross_revenue": 400_000.0, "margin_pct": 31.0, "risk": 10_000.0},
+            {"sales_rep_name": "RCA Beta", "gross_revenue": 900_000.0, "margin_pct": 21.0, "risk": 50_000.0},
+            {"sales_rep_name": "RCA Gama", "gross_revenue": 250_000.0, "margin_pct": 24.0, "risk": 15_000.0},
+        ]
+    )
+    fig = quadrant_scatter(
+        reps_df,
+        x_col="gross_revenue",
+        y_col="margin_pct",
+        label_col="sales_rep_name",
+        size_col="risk",
+    )
+    hover = str(fig.data[0].hovertemplate)
+    assert "gross_revenue" not in hover
+    assert "margin_pct" not in hover
+    assert "Faturamento Bruto (R$)" in hover
+    assert "Margem Líquida (%)" in hover
+    assert fig.data[0].mode == "markers"
+
+
+def test_tornado_chart_customdata_labels() -> None:
+    """Valida traços Adverso (customdata=+5% CMV) e Favorável (-5% CMV) no gráfico Tornado."""
+    from src.services.dto import ExecutiveKpisDTO, SimulationBaseline, SimulationLevers
+    from src.services.simulator import simulate
+    from src.ui.components.simulator_charts import tornado_sensitivity_chart
+
+    kpis = ExecutiveKpisDTO(
+        gross_revenue=1_000_000.0,
+        discount_amount=80_000.0,
+        net_price_revenue=920_000.0,
+        tax_amount=160_000.0,
+        net_revenue=760_000.0,
+        cogs=430_000.0,
+        commission_amount=46_000.0,
+        freight_amount=12_000.0,
+        contribution_margin=272_000.0,
+        contribution_margin_pct=27.2,
+        total_orders=500,
+        active_customers=80,
+        avg_ticket=2000.0,
+        total_boxes=1200.0,
+        total_units=15000,
+    )
+    res = simulate(SimulationBaseline.from_executive_kpis(kpis, beta_elasticity=-1.2), SimulationLevers())
+    fig = tornado_sensitivity_chart(res.tornado_df, theme_mode="dark")
+
+    assert len(fig.data) == 2
+    assert "+5% CMV" in list(fig.data[0].customdata)
+    assert "-5% CMV" in list(fig.data[1].customdata)

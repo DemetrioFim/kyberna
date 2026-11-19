@@ -38,9 +38,13 @@ def _fmt_boxes(x: object) -> str:
 
 def render_locked_inventory_table(dto: TemperancePageDTO) -> None:
     """Renderiza a tabela de SKUs com capital imobilizado com scroll interno."""
-    st.caption(
-        f"Imobilização: {format_brl(dto.kpis.locked_capital_brl)} em {dto.kpis.locked_skus_count} SKUs · "
-        f"Liquidação de 25% libera {format_brl(dto.kpis.locked_capital_brl * 0.25)} no caixa."
+    st.markdown(
+        '<div style="font-size:0.82rem; color:var(--kyb-text-muted); margin-bottom:0.25rem;">'
+        f"Imobilização: <strong>{format_brl(dto.kpis.locked_capital_brl)}</strong> em "
+        f"{dto.kpis.locked_skus_count} SKUs · Liquidação de 25% libera "
+        f"<strong>{format_brl(dto.kpis.locked_capital_brl * 0.25)}</strong> no caixa."
+        "</div>",
+        unsafe_allow_html=True,
     )
     if not dto.locked_inventory_df.empty:
         val_col = (
@@ -224,7 +228,7 @@ def render_sku_forecast_fragment(
         f"**{format_int(round(fc_dto.forecast_30d_total_units))} un**"
     )
     fig = forecast_band_chart(fc_dto.series_df, theme_mode=theme_mode)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, theme=None)
 
 
 def render_locked_capital_treemap_tab(
@@ -238,4 +242,4 @@ def render_locked_capital_treemap_tab(
         f"distribuído em **{inv_dto.kpis.locked_skus_count} SKUs**."
     )
     fig = locked_capital_treemap(inv_dto.treemap_df, theme_mode=theme_mode)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, theme=None)

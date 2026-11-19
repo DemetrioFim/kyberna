@@ -149,7 +149,7 @@ def white_space_heatmap_v2(
 
             if val > 0.0:
                 val_txt = format_brl(val, compact=True, decimals=1).replace("R$ ", "")
-                cell_txt = f"<b>{val_txt}</b><br><span style='font-size:9px'>{cnt} lojas</span>"
+                cell_txt = f"<b>{val_txt}</b><br><span style='font-size:8px'>{cnt} lojas</span>"
                 font_color = "#FFFFFF" if (val / max_z) >= 0.42 else tokens["text_primary"]
             else:
                 cell_txt = "-"
@@ -161,7 +161,7 @@ def white_space_heatmap_v2(
                     "y": fam,
                     "text": cell_txt,
                     "showarrow": False,
-                    "font": {"size": 10, "color": font_color},
+                    "font": {"size": 9.5, "color": font_color},
                 }
             )
             hover_row.append(
@@ -190,6 +190,8 @@ def white_space_heatmap_v2(
             colorscale=colorscale,
             showscale=False,
             hoverongaps=False,
+            xgap=1,
+            ygap=2,
         )
     )
     fig.update_layout(
@@ -198,7 +200,7 @@ def white_space_heatmap_v2(
         annotations=annotations,
         xaxis={"title": None, "tickangle": -25, "automargin": True},
         yaxis={"title": None, "automargin": True},
-        height=255,
+        height=275,
         margin={"l": 12, "r": 12, "t": 10, "b": 24},
     )
     return fig
@@ -263,12 +265,14 @@ def apriori_rules_scatter(
         )
     )
 
-    # Anota apenas as Top 3 regras para evitar poluição visual
+    # Anota apenas as Top 3 regras com vetores distintos e fundo sólido (anti-colisão)
+    offsets = [(38, -28), (-46, 22), (46, 26)]
     annotations: list[dict[str, object]] = []
     for idx in range(min(3, len(sub))):
         row = sub.iloc[idx]
         short_ant = str(row["antecedent_name"])[:16]
         short_con = str(row["consequent_name"])[:16]
+        ax_off, ay_off = offsets[idx % len(offsets)]
         annotations.append(
             {
                 "x": float(row["support_pct"]),
@@ -276,8 +280,12 @@ def apriori_rules_scatter(
                 "text": f"{short_ant} → {short_con} ({float(row['lift']):.2f}x)",
                 "showarrow": True,
                 "arrowhead": 0,
-                "ax": 0,
-                "ay": -18 - (idx % 2) * 12,
+                "arrowcolor": tokens["text_muted"],
+                "ax": ax_off,
+                "ay": ay_off,
+                "bgcolor": tokens["surface_card"],
+                "bordercolor": tokens["border_subtle"],
+                "borderpad": 2,
                 "font": {"size": 9, "color": tokens["text_primary"]},
             }
         )

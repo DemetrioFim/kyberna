@@ -198,3 +198,23 @@ def test_simulate_apply_elasticity_toggle_and_curves_latency() -> None:
     )
     assert len(res.tornado_df) == 5
     assert list(res.tornado_df["swing_brl"]) == sorted(res.tornado_df["swing_brl"], reverse=True)
+
+
+def test_tornado_sensitivity_sign_semantics() -> None:
+    """Garante low_delta_brl <= 0 (Adverso/vermelho) e high_delta_brl >= 0 (Favorável/verde)."""
+    baseline = SimulationBaseline.from_executive_kpis(_make_sample_kpis(), beta_elasticity=-1.2)
+    res = simulate(baseline, SimulationLevers())
+    df = res.tornado_df
+
+    assert len(df) == 5
+    assert {"adverse_label", "favorable_label"}.issubset(df.columns)
+    assert (df["low_delta_brl"] <= 0.0).all()
+    assert (df["high_delta_brl"] >= 0.0).all()
+
+    by_driver = df.set_index("driver")
+    assert by_driver.loc["Custo / CMV (±5%)", "adverse_label"] == "+5% CMV"
+    assert by_driver.loc["Custo / CMV (±5%)", "favorable_label"] == "-5% CMV"
+    assert by_driver.loc["Desconto (±2 p.p.)", "adverse_label"] == "+2 p.p. desc."
+    assert by_driver.loc["Desconto (±2 p.p.)", "favorable_label"] == "-2 p.p. desc."
+    assert by_driver.loc["Comissão (±1 p.p.)", "adverse_label"] == "+1 p.p. comiss."
+    assert by_driver.loc["Comissão (±1 p.p.)", "favorable_label"] == "-1 p.p. comiss."

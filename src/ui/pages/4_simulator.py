@@ -82,6 +82,7 @@ def _render_tab_cross_sell(
         st.plotly_chart(
             white_space_heatmap_v2(comm_dto.white_space_matrix_df, theme_mode=theme_mode),
             use_container_width=True,
+            theme=None,
         )
     with col_r:
         section_header(
@@ -109,6 +110,7 @@ def _render_tab_cross_sell(
                 theme_mode=theme_mode,
             ),
             use_container_width=True,
+            theme=None,
         )
         st.caption("Suporte = freq. conjunta · Confiança = prob. P(B|A) · Lift > 1,0x = sinergia real.")
 
@@ -216,6 +218,7 @@ def _render_tab_risk_opportunities(
         st.plotly_chart(
             cycle_delay_scatter(comm_dto.priority_risk_df, theme_mode=theme_mode),
             use_container_width=True,
+            theme=None,
         )
     with col_r:
         section_header(
@@ -226,6 +229,7 @@ def _render_tab_risk_opportunities(
         st.plotly_chart(
             rfm_treemap(comm_dto.rfm_summary_df, theme_mode=theme_mode),
             use_container_width=True,
+            theme=None,
         )
 
     col_bl, col_br = st.columns([1.35, 1.0])
@@ -244,6 +248,7 @@ def _render_tab_risk_opportunities(
             st.plotly_chart(
                 cycle_health_funnel_chart(comm_dto.cycle_funnel_df, theme_mode=theme_mode),
                 use_container_width=True,
+                theme=None,
             )
         else:
             st.info("Sem dados de funil no filtro atual.")
@@ -276,7 +281,7 @@ def _render_tab_sales_reps(
                 size_col="revenue_at_risk_brl",
                 theme_mode=theme_mode,
             )
-            st.plotly_chart(fig_quad, use_container_width=True)
+            st.plotly_chart(fig_quad, use_container_width=True, theme=None)
         else:
             st.info("Nenhum dado de representantes disponível no filtro atual.")
     with col_r:
@@ -288,6 +293,7 @@ def _render_tab_sales_reps(
         st.plotly_chart(
             render_violations_rep_chart(temp_dto.policy_violations_by_rep_df, theme_mode=theme_mode),
             use_container_width=True,
+            theme=None,
         )
 
     col_bl, col_br = st.columns([1.35, 1.0])

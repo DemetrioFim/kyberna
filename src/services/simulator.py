@@ -148,29 +148,28 @@ def _compute_tornado_sensitivity(
     )
     vol_deltas = vol_res["margin_1"] - margin_0
 
-    rows = [
-        {"driver": "Preço (±5%)", "low_delta_brl": float(deltas[0]), "high_delta_brl": float(deltas[1])},
-        {
-            "driver": "Desconto (±2 p.p.)",
-            "low_delta_brl": float(deltas[2]),
-            "high_delta_brl": float(deltas[3]),
-        },
-        {
-            "driver": "Custo / CMV (±5%)",
-            "low_delta_brl": float(deltas[4]),
-            "high_delta_brl": float(deltas[5]),
-        },
-        {
-            "driver": "Comissão (±1 p.p.)",
-            "low_delta_brl": float(deltas[6]),
-            "high_delta_brl": float(deltas[7]),
-        },
-        {
-            "driver": "Volume (±5%)",
-            "low_delta_brl": float(vol_deltas[0]),
-            "high_delta_brl": float(vol_deltas[1]),
-        },
+    raw_drivers = [
+        ("Preço (±5%)", float(deltas[0]), "-5% preço", float(deltas[1]), "+5% preço"),
+        ("Desconto (±2 p.p.)", float(deltas[2]), "-2 p.p. desc.", float(deltas[3]), "+2 p.p. desc."),
+        ("Custo / CMV (±5%)", float(deltas[4]), "-5% CMV", float(deltas[5]), "+5% CMV"),
+        ("Comissão (±1 p.p.)", float(deltas[6]), "-1 p.p. comiss.", float(deltas[7]), "+1 p.p. comiss."),
+        ("Volume (±5%)", float(vol_deltas[0]), "-5% vol.", float(vol_deltas[1]), "+5% vol."),
     ]
+    rows: list[dict[str, object]] = []
+    for driver, d_a, lbl_a, d_b, lbl_b in raw_drivers:
+        if d_a <= d_b:
+            low_val, adv_lbl, high_val, fav_lbl = d_a, lbl_a, d_b, lbl_b
+        else:
+            low_val, adv_lbl, high_val, fav_lbl = d_b, lbl_b, d_a, lbl_a
+        rows.append(
+            {
+                "driver": driver,
+                "low_delta_brl": low_val,
+                "high_delta_brl": high_val,
+                "adverse_label": adv_lbl,
+                "favorable_label": fav_lbl,
+            }
+        )
     tornado_df = pd.DataFrame(rows)
     tornado_df["low_delta_brl"] = tornado_df["low_delta_brl"].round(2)
     tornado_df["high_delta_brl"] = tornado_df["high_delta_brl"].round(2)

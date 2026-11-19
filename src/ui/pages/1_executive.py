@@ -81,7 +81,11 @@ def _render_tab_portfolio(
         matrix_df = temp_dto.abc_xyz_summary_df.copy()
         if not matrix_df.empty and "recommended_policy" not in matrix_df.columns:
             matrix_df["recommended_policy"] = matrix_df["policy"]
-        st.plotly_chart(abc_xyz_heatmap(matrix_df, theme_mode=theme_mode), use_container_width=True)
+        st.plotly_chart(
+            abc_xyz_heatmap(matrix_df, theme_mode=theme_mode),
+            use_container_width=True,
+            theme=None,
+        )
         st.markdown(
             "<div style='font-size:0.72rem; color:var(--kyb-text-muted); line-height:1.35; "
             "margin-top:-0.35rem; padding:0.2rem 0.45rem; background:var(--kyb-card-bg); "
@@ -99,6 +103,7 @@ def _render_tab_portfolio(
         st.plotly_chart(
             family_margin_chart(exec_dto.abc_xyz_skus_df, theme_mode=theme_mode),
             use_container_width=True,
+            theme=None,
         )
 
     col_bl, col_br = st.columns([1.35, 1.0])
@@ -143,7 +148,9 @@ def _render_tab_inventory(
             help_text="Evidencia onde a margem operacional escapa antes de chegar ao caixa.",
         )
         st.plotly_chart(
-            erosion_breakdown_chart(temp_dto.kpis, theme_mode=theme_mode), use_container_width=True
+            erosion_breakdown_chart(temp_dto.kpis, theme_mode=theme_mode),
+            use_container_width=True,
+            theme=None,
         )
 
     col_bl, col_br = st.columns([1.05, 1.0])
@@ -193,6 +200,7 @@ def _render_tab_forecast_policy(
                 temp_dto.policy_violations_by_family_df, theme_mode=state.theme_mode
             ),
             use_container_width=True,
+            theme=None,
         )
 
     col_bl, col_br = st.columns([1.05, 1.0])

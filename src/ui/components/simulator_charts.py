@@ -118,26 +118,32 @@ def tornado_sensitivity_chart(
 
     # Inverter ordem para que o driver de maior swing fique no topo do gráfico horizontal
     df = tornado_df.sort_values("swing_brl", ascending=True).reset_index(drop=True)
+    adv_labels = df["adverse_label"].tolist() if "adverse_label" in df.columns else ["Adverso"] * len(df)
+    fav_labels = (
+        df["favorable_label"].tolist() if "favorable_label" in df.columns else ["Favorável"] * len(df)
+    )
 
     fig = go.Figure()
     fig.add_trace(
         go.Bar(
             y=df["driver"],
             x=df["low_delta_brl"],
+            customdata=adv_labels,
             orientation="h",
             name="Cenário Adverso",
             marker_color=tokens["negative"],
-            hovertemplate="<b>%{y}</b><br>Adverso: %{x:+,.0f} R$<extra></extra>",
+            hovertemplate="<b>%{y}</b><br>Cenário Adverso (%{customdata}): %{x:+,.0f} R$<extra></extra>",
         )
     )
     fig.add_trace(
         go.Bar(
             y=df["driver"],
             x=df["high_delta_brl"],
+            customdata=fav_labels,
             orientation="h",
             name="Cenário Favorável",
             marker_color=tokens["positive"],
-            hovertemplate="<b>%{y}</b><br>Favorável: %{x:+,.0f} R$<extra></extra>",
+            hovertemplate="<b>%{y}</b><br>Cenário Favorável (%{customdata}): %{x:+,.0f} R$<extra></extra>",
         )
     )
 
@@ -183,6 +189,8 @@ def elasticity_family_chart(elasticity_df: pd.DataFrame, *, theme_mode: str = "l
             hovertemplate="<b>%{y}</b><br>Elasticidade β: %{x:.2f}<extra></extra>",
         )
     )
+    min_beta = float(df["beta_hat"].min()) if not df.empty else -1.5
+    x_min = min(min_beta * 1.52, -1.65)
     fig.add_vline(
         x=-1.0,
         line_width=1.5,
@@ -190,14 +198,16 @@ def elasticity_family_chart(elasticity_df: pd.DataFrame, *, theme_mode: str = "l
         line_color=tokens["warning"],
         annotation_text="Limiar Elástico (-1.0)",
         annotation_position="top left",
+        annotation_bgcolor=tokens["surface_card"],
+        annotation_borderpad=2,
         annotation_font_color=tokens["warning"],
     )
     fig.update_layout(
         template=template_name,
         title=None,
         height=245,
-        margin={"l": 16, "r": 58, "t": 18, "b": 16},
-        xaxis_title="Elasticidade-Preço (β)",
-        yaxis_title=None,
+        margin={"l": 16, "r": 24, "t": 24, "b": 16},
+        xaxis={"title": "Elasticidade-Preço (β)", "range": [x_min, 0.08]},
+        yaxis={"title": None, "automargin": True},
     )
     return fig

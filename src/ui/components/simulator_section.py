@@ -159,7 +159,7 @@ def _render_scenario_comparator(
     with c_save:
         if st.button("Salvar Cenário", key="sim_save_btn", use_container_width=True):
             entry = {
-                "Cenário": f"C{len(saved) + 1} · {scope_label[:16]}",
+                "Cenário": f"C{len(saved) + 1} · {scope_label}",
                 "Preço (%)": f"{price_pct:+.1f}%",
                 "Desc. (pp)": f"{discount_pp:+.1f}",
                 "CMV (%)": f"{cost_pct:+.1f}%",
@@ -178,6 +178,7 @@ def _render_scenario_comparator(
     if st.session_state.saved_simulations:
         st.dataframe(
             pd.DataFrame(st.session_state.saved_simulations),
+            column_config={"Cenário": st.column_config.TextColumn("Cenário", width="medium")},
             use_container_width=True,
             hide_index=True,
             height=120,
@@ -257,6 +258,17 @@ def render_what_if_quick_fragment(dto: ExecutivePageDTO, *, theme_mode: str = "l
     )
     res = simulate(baseline, levers)
 
+    if str(selected_scope) != _ALL_FAMILIES_OPT:
+        with c_ctrl:
+            st.markdown(
+                "<div style='font-size:0.74rem; color:var(--kyb-text-muted); margin-top:0.2rem;'>"
+                f"Elasticidade β de <strong>{selected_scope}</strong> aplicada sobre a base atual "
+                f"(<strong>{format_brl(res.gross_revenue_0)}</strong>); filtre a família na barra lateral "
+                "para simular apenas sua receita."
+                "</div>",
+                unsafe_allow_html=True,
+            )
+
     with kpi_slot:
         _render_simulator_kpis(res, dto.kpis.contribution_margin_pct)
 
@@ -276,9 +288,19 @@ def render_what_if_quick_fragment(dto: ExecutivePageDTO, *, theme_mode: str = "l
         st.plotly_chart(
             profit_curve_chart(res, float(price_delta), theme_mode=theme_mode),
             use_container_width=True,
+            theme=None,
         )
+        if abs(res.optimal_price_change_pct) >= 24.9:
+            st.markdown(
+                "<div style='font-size:0.73rem; color:var(--kyb-text-muted); margin-top:-0.25rem;'>"
+                f"Ótimo matemático no teto da grade (<strong>{res.optimal_price_change_pct:+.0f}%</strong>): "
+                "validar teto competitivo de mercado antes de reajustar."
+                "</div>",
+                unsafe_allow_html=True,
+            )
     with c_chart_r:
         st.plotly_chart(
             tornado_sensitivity_chart(res.tornado_df, theme_mode=theme_mode),
             use_container_width=True,
+            theme=None,
         )

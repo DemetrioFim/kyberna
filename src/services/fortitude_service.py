@@ -101,7 +101,7 @@ def build_fortitude_headline(kpis: FortitudeKpisDTO) -> tuple[str, str]:
 
     if kpis.monthly_gross_revenue_brl <= 0.0:
         return (
-            "Fortaleza · Recorte sem movimentação nos últimos 12 meses",
+            "Justiça Financeira · Recorte sem movimentação nos últimos 12 meses",
             "Nenhuma venda faturada encontrada para a combinação de filtros atual. "
             "Amplie a seleção regional ou de famílias para mensurar o ciclo financeiro.",
         )
@@ -145,7 +145,7 @@ def build_fortitude_prescription(kpis: FortitudeKpisDTO) -> tuple[str, str, floa
     ncg_release_10d = max(0.0, daily_net * 10.0)
     top5_risk_level = "Elevada (> 35%)" if kpis.top5_customers_share_pct > 35.0 else "Controlada (≤ 35%)"
 
-    title = "Veredito da Fortaleza: Blindagem de Caixa e Redução da NCG"
+    title = "Veredito de Justiça Financeira: Blindagem de Caixa e Redução da NCG"
     html = (
         f"<p>Cada <b>10 dias</b> reduzidos entre estoque excessivo (PME {kpis.pme_days:.0f}d) e "
         f"dilatação de prazo comercial (PMR {kpis.pmr_days:.0f}d) liberam "

@@ -62,6 +62,8 @@ def test_fortitude_dashboard_kpis_and_invariants(repo: DuckDBRepository) -> None
     assert not dto.family_concentration_df.empty
     assert not dto.aging_customers_df.empty
     assert dto.prescription_impact_brl is not None and dto.prescription_impact_brl > 0.0
+    assert "Fortaleza" not in dto.prescription_title
+    assert "Justiça Financeira" in dto.prescription_title
 
 
 def test_fortitude_breakeven_curve_monotonic_transition() -> None:

@@ -51,7 +51,6 @@ def cycle_delay_scatter(
             hoverinfo="skip",
         )
     )
-
     fig.add_trace(
         go.Scatter(
             x=line_x,
@@ -62,7 +61,6 @@ def cycle_delay_scatter(
             hoverinfo="skip",
         )
     )
-
     fig.add_trace(
         go.Scatter(
             x=line_x,
@@ -183,6 +181,7 @@ def rfm_treemap(
     fig.update_layout(
         template=template_name,
         title=None,
+        coloraxis_colorbar={"title": "Margem %", "thickness": 12},
         height=245,
         margin={"l": 10, "r": 10, "t": 10, "b": 10},
     )
@@ -195,7 +194,8 @@ def rfm_treemap(
     hovertemplate += "<extra></extra>"
 
     fig.update_traces(
-        textinfo="label+value+percent root",
+        texttemplate="<b>%{label}</b><br>R$ %{value:,.0f}<br>%{percentRoot:.1%}",
+        textposition="middle center",
         hovertemplate=hovertemplate,
     )
     return fig

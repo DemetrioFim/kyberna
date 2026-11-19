@@ -152,12 +152,23 @@ def render_temperance_mix_kpis(
             ),
         )
     with c5:
+        rec_val = (
+            temp_dto.prescription_impact_brl
+            if temp_dto.prescription_impact_brl is not None
+            else tk.excess_discount_brl
+        )
         render_kpi_card(
-            title="[Síntese] Erosão Recuperável",
-            value=format_brl(tk.total_commercial_erosion_brl, compact=True, decimals=1),
-            subfooter_left=f"Fora do teto: {format_brl(tk.excess_discount_brl, compact=True, decimals=1)}",
+            title="[Síntese] Ganho Recuperável",
+            value=format_brl(rec_val, compact=True, decimals=1),
+            subfooter_left=(
+                f"Fora teto: {format_brl(tk.excess_discount_brl, compact=True, decimals=1)} · "
+                f"Deduções: {format_brl(tk.total_commercial_erosion_brl, compact=True, decimals=1)}"
+            ),
             accent="alert_neg",
-            help_text="Total de vazamentos comerciais e logísticos passíveis de contenção executiva.",
+            help_text=(
+                "Ganho imediato reconciliado com o Veredito Integrado (estancamento de descontos "
+                "acima do teto de política + liquidação parcial de estoque parado >120d)."
+            ),
         )
 
 

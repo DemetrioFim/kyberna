@@ -29,7 +29,7 @@ def test_temperance_page_full_render() -> None:
     assert "[Finanças] Ciclo & NCG" in all_markdown
     assert "[Comercial] Risco vs. Mix" in all_markdown
     assert "[Admin] Capital Travado" in all_markdown
-    assert "[Síntese] Erosão Recuperável" in all_markdown
+    assert "[Síntese] Ganho Recuperável" in all_markdown
     assert "Elasticidade-Preço & Sensibilidade por Família" in all_markdown
     assert "Veredito Integrado de Temperança" in all_markdown
 

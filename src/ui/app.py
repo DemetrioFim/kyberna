@@ -39,9 +39,9 @@ def inject_custom_css(theme_mode: str) -> None:
         css_content = css_path.read_text(encoding="utf-8")
         tokens = get_theme_tokens(theme_mode)
 
-        # Força aplicação dos tokens do tema ativo no root
         dynamic_vars = f"""
         :root {{
+            color-scheme: {"dark" if theme_mode == "dark" else "light"};
             --kyb-bg: {tokens["bg_primary"]};
             --kyb-sidebar-bg: {tokens["sidebar_bg"]};
             --kyb-card-bg: {tokens["surface_card"]};
@@ -56,7 +56,39 @@ def inject_custom_css(theme_mode: str) -> None:
             --kyb-warn: {tokens["warning"]};
         }}
         """
-        st.markdown(f"<style>{css_content}\n{dynamic_vars}</style>", unsafe_allow_html=True)
+        dark_only_css = ""
+        if theme_mode == "dark":
+            dark_only_css = """
+            :root {
+                --gdg-bg-cell: #131B26;
+                --gdg-bg-cell-medium: #16202E;
+                --gdg-bg-header: #0D131D;
+                --gdg-bg-header-has-focus: #16202E;
+                --gdg-text-dark: #F1F5F9;
+                --gdg-text-medium: #CBD5E1;
+                --gdg-text-header: #F1F5F9;
+                --gdg-border-color: #222F3E;
+            }
+            [data-testid="stDataFrame"] {
+                background-color: var(--kyb-card-bg) !important;
+                border: 1px solid var(--kyb-border) !important;
+                border-radius: 8px !important;
+                overflow: hidden !important;
+            }
+            [data-testid="stDataFrame"] canvas {
+                filter: invert(0.91) hue-rotate(180deg) contrast(0.96) brightness(0.98);
+            }
+            [data-testid="stElementToolbar"],
+            [data-testid="stElementToolbar"] button {
+                background-color: var(--kyb-card-bg) !important;
+                color: var(--kyb-text) !important;
+                border-color: var(--kyb-border) !important;
+            }
+            """
+        st.markdown(
+            f"<style>{css_content}\n{dynamic_vars}\n{dark_only_css}</style>",
+            unsafe_allow_html=True,
+        )
 
 
 inject_custom_css(state.theme_mode)

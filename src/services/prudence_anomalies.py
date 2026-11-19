@@ -27,11 +27,17 @@ def query_prudence_anomalies(
         joins_f.append("JOIN gold.dim_product p ON f.product_id = p.product_id")
     sql_fam = f"""
     SELECT p.family, SUM(f.gross_revenue) AS gross,
-           ROUND(SUM(f.discount_amount) / NULLIF(SUM(f.gross_revenue), 0) * 100.0, 1) AS disc_pct
+           ROUND(SUM(f.discount_amount) / NULLIF(SUM(f.gross_revenue), 0) * 100.0, 1) AS disc_pct,
+           ROUND(
+               SUM(f.gross_revenue)
+               * GREATEST((SUM(f.discount_amount) / NULLIF(SUM(f.gross_revenue), 0) * 100.0) - 5.0, 1.0)
+               / 100.0,
+               2
+           ) AS excess_brl
     FROM gold.fact_sales f
     {" ".join(joins_f)}
     {where_sql}
-    GROUP BY p.family HAVING SUM(f.gross_revenue) > 20000 ORDER BY disc_pct DESC LIMIT 1
+    GROUP BY p.family HAVING SUM(f.gross_revenue) > 20000 ORDER BY excess_brl DESC LIMIT 1
     """
     try:
         df_fam = repo.query(sql_fam, params)
@@ -114,4 +120,11 @@ def query_prudence_anomalies(
             }
         )
 
+    severity_order = {"Crítica": 0, "Alta": 1, "Média": 2, "Baixa": 3}
+    anomalies.sort(
+        key=lambda item: (
+            severity_order.get(str(item.get("severity", "Baixa")), 9),
+            -float(item.get("impact_brl", 0.0)),
+        )
+    )
     return pd.DataFrame(anomalies)

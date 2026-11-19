@@ -207,13 +207,29 @@ div[data-testid="stSliderThumbValue"] {
 }
 
 /* Selectbox / BaseWeb Dropdowns */
+[data-testid="stSelectbox"] div[data-baseweb="select"],
+[data-testid="stMultiSelect"] div[data-baseweb="select"],
 div[data-baseweb="select"],
+[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+[data-testid="stMultiSelect"] div[data-baseweb="select"] > div,
 div[data-baseweb="select"] > div,
 div[data-baseweb="select"] > div:first-child,
 div[data-baseweb="select"] > div > div,
 div[data-baseweb="select"] [role="combobox"],
 div[data-baseweb="select"] input,
+div[data-baseweb="base-input"],
+div[data-baseweb="base-input"] input,
 div[data-baseweb="select"] * {
+  background: var(--kyb-input-bg) !important;
+  background-color: var(--kyb-input-bg) !important;
+  color: var(--kyb-text) !important;
+}
+
+section[data-testid="stSidebar"] div[data-baseweb="select"],
+section[data-testid="stSidebar"] div[data-baseweb="select"] > div,
+section[data-testid="stSidebar"] div[data-baseweb="select"] span,
+section[data-testid="stSidebar"] div[data-baseweb="select"] div {
+  background: var(--kyb-input-bg) !important;
   background-color: var(--kyb-input-bg) !important;
   color: var(--kyb-text) !important;
 }
@@ -802,10 +818,20 @@ button[data-baseweb="tab"]:hover p {
   color: var(--kyb-text-muted) !important;
 }
 
-/* Ícones SVG na Sidebar */
+/* Ícones SVG na Sidebar (sem preencher tooltips stroke-only '?') */
 [data-testid="stSidebar"] svg {
-  fill: var(--kyb-text) !important;
   color: var(--kyb-text) !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stTooltipIcon"] svg {
+  display: none !important;
+}
+
+[data-testid="stSidebar"] div[data-testid="stTooltipIcon"] > button,
+[data-testid="stSidebar"] button[data-testid="stTooltipHoverTarget"] {
+  background-color: rgba(31, 122, 140, 0.14) !important;
+  border: 1px solid rgba(31, 122, 140, 0.3) !important;
+  color: var(--kyb-teal) !important;
 }
 
 /* Tags de Multiselect */

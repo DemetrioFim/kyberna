@@ -283,3 +283,5 @@ def test_historic_all_pop_vs_yoy_and_quarterly_run_rate(repo: DuckDBRepository) 
     assert dto_yoy.kpis.gross_revenue_delta_pct == pytest.approx(-1.8, abs=0.2)
     assert dto_pop.kpis.revenue_pacing_pct < 120.0
     assert 2_000_000.0 < dto_pop.kpis.projected_quarter_revenue_brl < 3_500_000.0
+    assert len(dto_pop.anomalies_df) == 3
+    assert dto_pop.anomalies_df.iloc[0]["severity"] == "Crítica"
