@@ -336,10 +336,12 @@ def render_white_space_deals_table(
             help="Abre conversa pré-preenchida no WhatsApp Web/App com o pitch e SKU âncora.",
         ),
     }
+    total_rows = len(deals_df)
+    view_df = deals_df.head(200)
     styled = (
-        deals_df.style.map(_style_rfm_segment, subset=["rfm_segment"])
-        if "rfm_segment" in deals_df.columns
-        else deals_df
+        view_df.style.map(_style_rfm_segment, subset=["rfm_segment"])
+        if "rfm_segment" in view_df.columns
+        else view_df
     )
     st.dataframe(
         styled,
@@ -348,3 +350,11 @@ def render_white_space_deals_table(
         height=185,
         column_config={k: v for k, v in col_cfg.items() if k in cols},
     )
+    if total_rows > 200:
+        st.markdown(
+            "<div style='font-size:0.72rem; color:var(--kyb-text-muted); margin-top:-0.25rem;'>"
+            f"Exibindo Top 200 de {total_rows} ofertas ordenadas por potencial; "
+            "exporte .xlsx/.csv para a lista completa."
+            "</div>",
+            unsafe_allow_html=True,
+        )

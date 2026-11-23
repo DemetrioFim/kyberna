@@ -441,3 +441,34 @@ def test_evaluate_white_space_backtest_lift() -> None:
         assert res["lift_over_baseline"] >= 2.0
     finally:
         con.close()
+
+
+def test_match_best_apriori_rule_prefers_positive_lift() -> None:
+    """Garante que regra sinérgica (lift > 1.0) vence regra popular com lift < 1.0."""
+    from src.ml.apriori_mart import match_best_apriori_rule
+
+    family_rules = pd.DataFrame(
+        [
+            {
+                "antecedent_family": "Pelúcias",
+                "consequent_family": "Linha Escolar",
+                "support": 0.12,
+                "confidence": 0.80,
+                "lift": 0.99,
+            },
+            {
+                "antecedent_family": "Brinquedos de Madeira",
+                "consequent_family": "Linha Escolar",
+                "support": 0.05,
+                "confidence": 0.25,
+                "lift": 1.15,
+            },
+        ]
+    )
+    ant, _sup, _conf, lift = match_best_apriori_rule(
+        "Linha Escolar",
+        {"Pelúcias", "Brinquedos de Madeira"},
+        family_rules,
+    )
+    assert ant == "Brinquedos de Madeira"
+    assert lift == pytest.approx(1.15, abs=1e-4)

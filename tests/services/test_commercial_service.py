@@ -255,3 +255,23 @@ def test_apriori_real_metrics_coverage_and_excel_export(repo: DuckDBRepository) 
     with zipfile.ZipFile(io.BytesIO(excel_bytes)) as zf:
         workbook_xml = zf.read("xl/workbook.xml").decode("utf-8")
     assert "Regras_Apriori" in workbook_xml
+
+
+def test_white_space_deals_reconcile_kpi_and_prefer_positive_lift(repo: DuckDBRepository) -> None:
+    """Garante reconciliação integral da Diretriz Cross-Sell (>200 ofertas) com KPIs e Lift > 1.0."""
+    dto = build_commercial_dashboard(repo, scenario_id="c1_toys")
+    deals = dto.top_white_space_deals_df
+
+    assert len(deals) > 200
+    assert deals["potential_revenue_brl"].sum() == pytest.approx(
+        dto.kpis.white_space_potential_revenue_brl, abs=1.0
+    )
+    assert deals["potential_margin_brl"].sum() == pytest.approx(
+        dto.kpis.white_space_potential_margin_brl, abs=1.0
+    )
+    # Verifica que não há ofertas recomendadas com Lift < 1.0 quando há alternativa sinérgica no mart
+    rules_family = dto.apriori_rules_df[dto.apriori_rules_df["rule_level"] == "family"]
+    fams_with_pos_lift = set(rules_family.loc[rules_family["lift"] > 1.0, "consequent_name"].astype(str))
+    deals_in_pos_fams = deals[deals["recommended_family"].astype(str).isin(fams_with_pos_lift)]
+    if not deals_in_pos_fams.empty:
+        assert (deals_in_pos_fams["apriori_lift"] > 1.0).all()

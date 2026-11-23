@@ -95,14 +95,15 @@ def render_fortitude_kpi_cards(dto: FortitudePageDTO) -> None:
     with c5:
         risk_accent: KpiAccent = "alert_neg" if k.at_risk_portfolio_pct >= 20.0 else "alert_warn"
         render_kpi_card(
-            title="Carteira em Risco (>1,5x)",
+            title="Receita Líq. em Atraso (>1,5x)",
             value=format_brl(k.at_risk_portfolio_brl, compact=True, decimals=1),
-            subfooter_left=f"{k.at_risk_portfolio_pct:.1f}% da base",
+            subfooter_left=f"{k.at_risk_portfolio_pct:.1f}% da receita líq. 12m",
             delta_html=f"{k.at_risk_customers_count} clientes em atraso",
             accent=risk_accent,
             help_text=(
-                "Soma da receita anualizada de clientes cujo atraso de recompra ultrapassou 1,5x "
-                "o ciclo médio histórico (buckets Risco 31-60d e Crítico >60d)."
+                "Soma da receita líquida dos últimos 12 meses de clientes cujo atraso de recompra "
+                "ultrapassou 1,5x o ciclo médio (critério contábil de caixa, distinto do potencial "
+                "bruto anualizado exibido em 2. Fortaleza)."
             ),
         )
 

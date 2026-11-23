@@ -79,8 +79,17 @@ def match_best_apriori_rule(
         if sub.empty:
             continue
         active_sub = sub[sub["antecedent_family"].isin(active_families)]
-        chosen_df = active_sub if not active_sub.empty else sub
-        ranked = chosen_df.assign(_score=chosen_df["lift"] * chosen_df["confidence"]).sort_values(
+        active_syn = active_sub[active_sub["lift"] > 1.0]
+        sub_syn = sub[sub["lift"] > 1.0]
+        if not active_syn.empty:
+            pool_df = active_syn
+        elif not sub_syn.empty:
+            pool_df = sub_syn
+        elif not active_sub.empty:
+            pool_df = active_sub
+        else:
+            pool_df = sub
+        ranked = pool_df.assign(_score=pool_df["lift"] * pool_df["confidence"]).sort_values(
             "_score", ascending=False
         )
         top = ranked.iloc[0]

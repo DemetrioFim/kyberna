@@ -235,7 +235,7 @@ def query_top_white_space_deals(
     sales_reps: Sequence[str] = (),
     rfm_segment: str = "Todos",
     families: Sequence[str] = (),
-    limit: int = 200,
+    limit: int = 2500,
 ) -> pd.DataFrame:
     """Consulta oportunidades de Cross-Sell CNPJ a CNPJ com Segmento RFM, SKU Âncora e Apriori reais."""
     where_sql, params = _build_ws_filter_clauses(
