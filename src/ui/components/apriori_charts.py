@@ -265,8 +265,8 @@ def apriori_rules_scatter(
         )
     )
 
-    # Anota apenas as Top 3 regras com vetores distintos e fundo sólido (anti-colisão)
-    offsets = [(38, -28), (-46, 22), (46, 26)]
+    # Anota apenas as Top 3 regras com vetores distintos para a direita e fundo sólido (anti-colisão)
+    offsets = [(78, -4), (62, -36), (82, 24)]
     annotations: list[dict[str, object]] = []
     for idx in range(min(3, len(sub))):
         row = sub.iloc[idx]

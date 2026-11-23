@@ -184,6 +184,12 @@ def _render_tab_aging(
             use_container_width=True,
             theme=None,
         )
+        st.markdown(
+            "<div style='font-size:0.72rem; color:var(--kyb-text-muted); margin-top:-0.25rem;'>"
+            "Proxy comportamental: atraso relativo sobre o ciclo histórico de recompra (pré-ERP)."
+            "</div>",
+            unsafe_allow_html=True,
+        )
     with col_r:
         section_header(
             "Concentração Pareto — Top 10 Clientes",

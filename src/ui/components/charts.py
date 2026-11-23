@@ -89,7 +89,8 @@ def waterfall_margin(
             text=text_values,
             customdata=hover_extra,
             textposition="outside",
-            textfont={"size": 11},
+            textfont={"size": 11, "color": tokens["text_primary"]},
+            outsidetextfont={"size": 11, "color": tokens["text_primary"]},
             cliponaxis=False,
             hovertemplate="<b>%{x}</b><br>Valor: R$ %{y:,.2f}<br>%{customdata}<extra></extra>",
             connector={"line": {"color": tokens["border_subtle"], "width": 1.5, "dash": "dot"}},
@@ -190,22 +191,29 @@ def dual_trend(
     y2_low = min(15.0, m_min - 3.0)
     y2_high = max(35.0, m_max + 3.0)
     max_gross = float(monthly_df["gross_revenue"].max())
-    yaxis_cfg: dict[str, object] = {"title": "Faturamento (R$)", "side": "left", "showgrid": True}
+    yaxis_cfg: dict[str, object] = {
+        "title": {"text": "Faturamento (R$)", "standoff": 8},
+        "side": "left",
+        "showgrid": True,
+        "automargin": True,
+    }
     if max_gross > 0.0:
         yaxis_cfg["range"] = [0.0, max_gross * 1.15]
 
     fig.update_layout(
         template=template_name,
         title=None,
+        xaxis={"automargin": True},
         yaxis=yaxis_cfg,
         yaxis2={
-            "title": "Margem (%)",
+            "title": {"text": "Margem (%)", "standoff": 8},
             "side": "right",
             "overlaying": "y",
             "range": [y2_low, y2_high],
             "tickformat": ".1f",
             "ticksuffix": "%",
             "showgrid": False,
+            "automargin": True,
         },
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1},
         height=245,
@@ -261,7 +269,11 @@ def family_margin_chart(
         title=None,
         height=245,
         margin={"l": 16, "r": 24, "t": 14, "b": 18},
-        xaxis={"title": "Margem de Contribuição (R$)", "range": [0, max_x]},
-        yaxis={"title": None},
+        xaxis={
+            "title": {"text": "Margem de Contribuição (R$)", "standoff": 8},
+            "range": [0, max_x],
+            "automargin": True,
+        },
+        yaxis={"title": None, "automargin": True},
     )
     return fig

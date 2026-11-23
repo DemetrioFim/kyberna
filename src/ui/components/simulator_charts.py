@@ -94,10 +94,10 @@ def profit_curve_chart(
         template=template_name,
         title=None,
         height=260,
-        margin={"l": 12, "r": 12, "t": 16, "b": 12},
+        margin={"l": 16, "r": 12, "t": 16, "b": 16},
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1.0},
-        xaxis_title="Variação de Preço de Tabela (%)",
-        yaxis_title="Margem de Contribuição (R$)",
+        xaxis={"title": {"text": "Variação de Preço de Tabela (%)", "standoff": 8}, "automargin": True},
+        yaxis={"title": {"text": "Margem de Contribuição (R$)", "standoff": 8}, "automargin": True},
     )
     return fig
 
@@ -152,10 +152,10 @@ def tornado_sensitivity_chart(
         title=None,
         height=260,
         barmode="relative",
-        margin={"l": 12, "r": 12, "t": 16, "b": 12},
+        margin={"l": 16, "r": 12, "t": 16, "b": 16},
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1.0},
-        xaxis_title="Impacto na Margem (R$)",
-        yaxis_title=None,
+        xaxis={"title": {"text": "Impacto na Margem (R$)", "standoff": 8}, "automargin": True},
+        yaxis={"title": None, "automargin": True},
     )
     fig.add_vline(x=0.0, line_width=1.2, line_dash="solid", line_color=tokens["chart_zero_line"])
     return fig
@@ -207,7 +207,11 @@ def elasticity_family_chart(elasticity_df: pd.DataFrame, *, theme_mode: str = "l
         title=None,
         height=245,
         margin={"l": 16, "r": 24, "t": 24, "b": 16},
-        xaxis={"title": "Elasticidade-Preço (β)", "range": [x_min, 0.08]},
+        xaxis={
+            "title": {"text": "Elasticidade-Preço (β)", "standoff": 8},
+            "range": [x_min, 0.08],
+            "automargin": True,
+        },
         yaxis={"title": None, "automargin": True},
     )
     return fig

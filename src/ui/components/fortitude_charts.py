@@ -158,7 +158,7 @@ def build_aging_buckets_chart(
         height=245,
         margin={"l": 12, "r": 24, "t": 16, "b": 18},
         xaxis={"showgrid": False, "showticklabels": False, "title": "", "range": [0, max_x]},
-        yaxis={"title": ""},
+        yaxis={"title": "", "automargin": True},
     )
     return fig
 
@@ -200,6 +200,6 @@ def build_concentration_chart(
         height=245,
         margin={"l": 12, "r": 20, "t": 16, "b": 16},
         xaxis={"showgrid": False, "showticklabels": False, "title": "", "range": [0, max_x]},
-        yaxis={"title": ""},
+        yaxis={"title": "", "automargin": True},
     )
     return fig

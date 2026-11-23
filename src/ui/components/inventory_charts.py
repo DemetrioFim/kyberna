@@ -118,8 +118,8 @@ def forecast_band_chart(series_df: pd.DataFrame, *, theme_mode: str = "light") -
         height=245,
         margin={"l": 12, "r": 12, "t": 16, "b": 12},
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1.0},
-        yaxis_title="Unidades / Dia",
-        xaxis_title=None,
+        yaxis={"title": {"text": "Unidades / Dia", "standoff": 8}, "automargin": True},
+        xaxis={"title": None, "automargin": True},
         hovermode="x unified",
     )
     return fig
@@ -326,7 +326,7 @@ def erosion_breakdown_chart(kpis: TemperanceKpisDTO, *, theme_mode: str = "light
         title=None,
         height=245,
         margin={"l": 16, "r": 48, "t": 12, "b": 16},
-        xaxis_title="Impacto Financeiro (R$)",
-        yaxis_title=None,
+        xaxis={"title": {"text": "Impacto Financeiro (R$)", "standoff": 8}, "automargin": True},
+        yaxis={"title": None, "automargin": True},
     )
     return fig

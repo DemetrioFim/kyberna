@@ -279,7 +279,8 @@ def render_violations_rep_chart(df: pd.DataFrame, theme_mode: str) -> go.Figure:
     fig.update_layout(
         template=template_name,
         title=None,
-        xaxis={"title": None, "range": [0, max_x]},
+        xaxis={"title": None, "range": [0, max_x], "automargin": True},
+        yaxis={"title": None, "automargin": True},
         margin={"l": 20, "r": 24, "t": 10, "b": 15},
         height=245,
     )

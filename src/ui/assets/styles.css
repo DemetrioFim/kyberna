@@ -206,67 +206,91 @@ div[data-testid="stSliderThumbValue"] {
   font-weight: 700 !important;
 }
 
-/* Selectbox / BaseWeb Dropdowns */
-[data-testid="stSelectbox"] div[data-baseweb="select"],
-[data-testid="stMultiSelect"] div[data-baseweb="select"],
+/* Selectbox / Multiselect (BaseWeb + React Aria Streamlit 1.66+) */
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] * {
+  background: transparent !important;
+  color: var(--kyb-text) !important;
+}
+
+[data-testid="stSelectbox"] > div,
+[data-testid="stSelectbox"] > div > div,
+[data-testid="stSelectbox"] > div > div div,
+[data-testid="stMultiSelect"] > div,
+[data-testid="stMultiSelect"] > div > div,
+[data-testid="stMultiSelect"] > div > div div,
 div[data-baseweb="select"],
-[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
-[data-testid="stMultiSelect"] div[data-baseweb="select"] > div,
 div[data-baseweb="select"] > div,
-div[data-baseweb="select"] > div:first-child,
 div[data-baseweb="select"] > div > div,
 div[data-baseweb="select"] [role="combobox"],
-div[data-baseweb="select"] input,
+[data-testid="stSelectbox"] [role="combobox"],
+[data-testid="stMultiSelect"] [role="combobox"],
+[data-testid="stSelectbox"] input,
+[data-testid="stMultiSelect"] input,
+[data-testid="stSelectbox"] button,
+[data-testid="stMultiSelect"] button,
 div[data-baseweb="base-input"],
-div[data-baseweb="base-input"] input,
-div[data-baseweb="select"] * {
+div[data-baseweb="base-input"] input {
   background: var(--kyb-input-bg) !important;
   background-color: var(--kyb-input-bg) !important;
   color: var(--kyb-text) !important;
+  caret-color: var(--kyb-text) !important;
 }
 
-section[data-testid="stSidebar"] div[data-baseweb="select"],
-section[data-testid="stSidebar"] div[data-baseweb="select"] > div,
-section[data-testid="stSidebar"] div[data-baseweb="select"] span,
-section[data-testid="stSidebar"] div[data-baseweb="select"] div {
-  background: var(--kyb-input-bg) !important;
-  background-color: var(--kyb-input-bg) !important;
+[data-testid="stSelectbox"] span,
+[data-testid="stMultiSelect"] span {
   color: var(--kyb-text) !important;
+  background: transparent !important;
 }
 
+[data-testid="stSelectbox"] > div > div:first-child,
+[data-testid="stMultiSelect"] > div > div:first-child,
 div[data-baseweb="select"] > div {
   border: 1px solid var(--kyb-border) !important;
   border-radius: 8px !important;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+[data-testid="stSelectbox"] > div > div:first-child:hover,
+[data-testid="stSelectbox"] > div > div:first-child:focus-within,
+[data-testid="stMultiSelect"] > div > div:first-child:hover,
+[data-testid="stMultiSelect"] > div > div:first-child:focus-within,
 div[data-baseweb="select"] > div:hover,
 div[data-baseweb="select"] > div:focus-within {
   border-color: var(--kyb-teal) !important;
   box-shadow: 0 0 0 1px var(--kyb-teal) !important;
 }
 
-div[data-baseweb="select"] svg,
-div[data-baseweb="select"] path {
-  fill: var(--kyb-text) !important;
+[data-testid="stSelectbox"] svg,
+[data-testid="stMultiSelect"] svg,
+div[data-baseweb="select"] svg {
   color: var(--kyb-text) !important;
   stroke: var(--kyb-text) !important;
+  fill: none !important;
 }
 
 div[data-baseweb="popover"],
 div[data-baseweb="popover"] > div,
 div[data-baseweb="menu"],
-ul[role="listbox"] {
-  background-color: var(--kyb-input-bg) !important;
+ul[role="listbox"],
+div[role="listbox"],
+body > div [role="listbox"] {
+  background-color: var(--kyb-card-bg) !important;
+  color: var(--kyb-text) !important;
   border: 1px solid var(--kyb-border) !important;
   border-radius: 8px !important;
   box-shadow: var(--kyb-shadow) !important;
 }
 
 li[role="option"],
-div[role="option"] {
+div[role="option"],
+[role="option"] * {
   color: var(--kyb-text) !important;
-  background-color: var(--kyb-input-bg) !important;
+  background-color: transparent !important;
+}
+
+li[role="option"],
+div[role="option"] {
   padding: 0.55rem 0.85rem !important;
   font-size: 0.88rem !important;
 }
@@ -274,8 +298,9 @@ div[role="option"] {
 li[role="option"]:hover,
 li[role="option"][aria-selected="true"],
 div[role="option"]:hover,
-div[role="option"][aria-selected="true"] {
-  background-color: rgba(56, 189, 248, 0.15) !important;
+div[role="option"][aria-selected="true"],
+[role="option"][data-focused="true"] {
+  background-color: rgba(56, 189, 248, 0.16) !important;
   color: var(--kyb-teal) !important;
 }
 
@@ -672,7 +697,7 @@ h6 a {
    Padronização de Todos os Ícones de Informação/Tooltip para .kyb-info-icon
    ============================================================================== */
 
-div[data-testid="stTooltipIcon"] {
+[data-testid="stTooltipIcon"] {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -681,14 +706,14 @@ div[data-testid="stTooltipIcon"] {
   box-shadow: none !important;
   padding: 0 !important;
   margin: 0 0 0 4px !important;
-  width: auto !important;
-  height: auto !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
   vertical-align: middle !important;
 }
 
-div[data-testid="stTooltipIcon"] > button,
+[data-testid="stTooltipIcon"] > button,
 button[data-testid="stTooltipHoverTarget"] {
   display: inline-flex !important;
   align-items: center !important;
@@ -709,7 +734,7 @@ button[data-testid="stTooltipHoverTarget"] {
   vertical-align: middle !important;
 }
 
-div[data-testid="stTooltipIcon"] > button:hover,
+[data-testid="stTooltipIcon"] > button:hover,
 button[data-testid="stTooltipHoverTarget"]:hover {
   background-color: var(--kyb-teal) !important;
   color: var(--kyb-card-bg) !important;
@@ -717,10 +742,11 @@ button[data-testid="stTooltipHoverTarget"]:hover {
   box-shadow: 0 0 0 2px rgba(31, 122, 140, 0.2) !important;
 }
 
-div[data-testid="stTooltipIcon"] svg {
+[data-testid="stTooltipIcon"] svg {
   display: none !important;
 }
 
+[data-testid="stTooltipIcon"] > button::after,
 button[data-testid="stTooltipHoverTarget"]::after {
   content: "ⓘ" !important;
   font-size: 0.72rem !important;
@@ -730,6 +756,7 @@ button[data-testid="stTooltipHoverTarget"]::after {
   font-family: inherit !important;
 }
 
+[data-testid="stTooltipIcon"] > button:hover::after,
 button[data-testid="stTooltipHoverTarget"]:hover::after {
   color: var(--kyb-card-bg) !important;
 }
@@ -818,20 +845,34 @@ button[data-baseweb="tab"]:hover p {
   color: var(--kyb-text-muted) !important;
 }
 
-/* Ícones SVG na Sidebar (sem preencher tooltips stroke-only '?') */
+/* Ícones SVG na Sidebar (exibe ? nativo em azul-petróleo sem fill sólido) */
 [data-testid="stSidebar"] svg {
   color: var(--kyb-text) !important;
 }
 
-[data-testid="stSidebar"] [data-testid="stTooltipIcon"] svg {
-  display: none !important;
+[data-testid="stSidebar"] [data-testid="stTooltipIcon"] {
+  width: auto !important;
+  height: auto !important;
 }
 
-[data-testid="stSidebar"] div[data-testid="stTooltipIcon"] > button,
-[data-testid="stSidebar"] button[data-testid="stTooltipHoverTarget"] {
-  background-color: rgba(31, 122, 140, 0.14) !important;
-  border: 1px solid rgba(31, 122, 140, 0.3) !important;
+[data-testid="stSidebar"] [data-testid="stTooltipIcon"] > button {
+  background: transparent !important;
+  border: none !important;
+  width: 20px !important;
+  height: 20px !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stTooltipIcon"] > button::after {
+  content: none !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stTooltipIcon"] svg {
+  display: block !important;
+  fill: none !important;
+  stroke: var(--kyb-teal) !important;
   color: var(--kyb-teal) !important;
+  width: 16px !important;
+  height: 16px !important;
 }
 
 /* Tags de Multiselect */

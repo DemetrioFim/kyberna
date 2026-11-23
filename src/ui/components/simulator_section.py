@@ -290,10 +290,11 @@ def render_what_if_quick_fragment(dto: ExecutivePageDTO, *, theme_mode: str = "l
             use_container_width=True,
             theme=None,
         )
-        if abs(res.optimal_price_change_pct) >= 24.9:
+        if abs(res.optimal_price_change_pct) >= 0.249:
             st.markdown(
                 "<div style='font-size:0.73rem; color:var(--kyb-text-muted); margin-top:-0.25rem;'>"
-                f"Ótimo matemático no teto da grade (<strong>{res.optimal_price_change_pct:+.0f}%</strong>): "
+                "Ótimo matemático no teto da grade "
+                f"(<strong>{res.optimal_price_change_pct * 100.0:+.0f}%</strong>): "
                 "validar teto competitivo de mercado antes de reajustar."
                 "</div>",
                 unsafe_allow_html=True,

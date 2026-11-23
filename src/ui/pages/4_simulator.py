@@ -308,7 +308,7 @@ def _render_tab_sales_reps(
         render_prescription_box(
             title=f"Diretriz de Performance ({rep_plural})",
             recommendation_html=(
-                "Replicate as práticas dos RCAs <b>Estrela</b>, trave alçadas de desconto acima da "
+                "Replique as práticas dos RCAs <b>Estrela</b>, trave alçadas de desconto acima da "
                 "tabela no quadrante <b>Volume sem Margem</b> e direcione roteiros para clientes em "
                 "<b>Janela Pré-Churn</b>."
             ),

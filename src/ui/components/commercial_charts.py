@@ -127,9 +127,12 @@ def cycle_delay_scatter(
     fig.update_layout(
         template=template_name,
         title=None,
-        xaxis_title="Ciclo Médio Histórico (dias)",
-        yaxis_title="Dias sem Comprar (Recência)",
-        xaxis={"range": [0, cap_x]},
+        xaxis={
+            "title": {"text": "Ciclo Médio Histórico (dias)", "standoff": 8},
+            "range": [0, cap_x],
+            "automargin": True,
+        },
+        yaxis={"title": {"text": "Dias sem Comprar (Recência)", "standoff": 8}, "automargin": True},
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1},
         height=245,
         margin={"l": 24, "r": 24, "t": 28, "b": 28},

@@ -296,7 +296,11 @@ def family_policy_violations_chart(df: pd.DataFrame, *, theme_mode: str = "light
         title=None,
         height=245,
         margin={"l": 16, "r": 64, "t": 12, "b": 16},
-        xaxis={"title": "Excesso Fora do Teto (R$)", "range": [0, max_x]},
-        yaxis_title=None,
+        xaxis={
+            "title": {"text": "Excesso Fora do Teto (R$)", "standoff": 8},
+            "range": [0, max_x],
+            "automargin": True,
+        },
+        yaxis={"title": None, "automargin": True},
     )
     return fig

@@ -69,6 +69,35 @@ def inject_custom_css(theme_mode: str) -> None:
                 --gdg-text-header: #F1F5F9;
                 --gdg-border-color: #222F3E;
             }
+            .stApp,
+            [data-testid="stAppViewContainer"],
+            section[data-testid="stSidebar"] {
+                color-scheme: dark !important;
+                color: var(--kyb-text) !important;
+            }
+            [data-testid="stPlotlyChart"],
+            [data-testid="stPlotlyChart"] > div,
+            [data-testid="stPlotlyChart"] .js-plotly-plot,
+            [data-testid="stPlotlyChart"] .plot-container,
+            [data-testid="stPlotlyChart"] .svg-container {
+                background-color: var(--kyb-card-bg) !important;
+                border-radius: 8px !important;
+            }
+            [data-testid="stPlotlyChart"] svg.main-svg:first-of-type {
+                background-color: #131B26 !important;
+            }
+            [data-testid="stPlotlyChart"] svg.main-svg:not(:first-of-type) {
+                background: transparent !important;
+            }
+            [data-testid="stPlotlyChart"] svg.main-svg rect.bg {
+                fill: #131B26 !important;
+            }
+            [data-testid="stPlotlyChart"] svg.main-svg g.legend rect.bg {
+                fill: transparent !important;
+            }
+            [data-testid="stPlotlyChart"] svg.main-svg text.bartext {
+                fill: #F1F5F9 !important;
+            }
             [data-testid="stDataFrame"] {
                 background-color: var(--kyb-card-bg) !important;
                 border: 1px solid var(--kyb-border) !important;
