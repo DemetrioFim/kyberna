@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from datetime import date, datetime
 from typing import Literal
 
@@ -145,3 +146,40 @@ def get_delta_html(
 
     suffix = f" {label_suffix}" if label_suffix else ""
     return f'<span class="badge {badge_class}">{val_str}{suffix}</span>'
+
+
+def _to_valid_float(value: object) -> float | None:
+    """Converte entrada tabular para float ou retorna None quando nulo/NaN."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        num = float(value)
+        return None if math.isnan(num) or math.isinf(num) else num
+    text = str(value).strip()
+    if not text or text.lower() in {"none", "nan", "nat", "<na>"}:
+        return None
+    try:
+        num = float(text)
+    except ValueError:
+        return None
+    return None if math.isnan(num) or math.isinf(num) else num
+
+
+def fmt_brl_cell(value: object, decimals: int = 2) -> str:
+    """Formata célula numérica de DataFrame em BRL pt-BR (ou '—' para nulos/NaN)."""
+    num = _to_valid_float(value)
+    return "—" if num is None else format_brl(num, compact=False, decimals=decimals)
+
+
+def fmt_pct_cell(value: object, decimals: int = 1, signed: bool = False) -> str:
+    """Formata célula percentual de DataFrame em pt-BR (ou '—' para nulos/NaN)."""
+    num = _to_valid_float(value)
+    return "—" if num is None else format_pct(num, decimals=decimals, signed=signed)
+
+
+def fmt_int_cell(value: object) -> str:
+    """Formata célula inteira de DataFrame com separador pt-BR (ou '—' para nulos/NaN)."""
+    num = _to_valid_float(value)
+    return "—" if num is None else format_int(num)

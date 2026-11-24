@@ -52,9 +52,8 @@ def render_locked_inventory_table(dto: TemperancePageDTO) -> None:
             if "locked_capital_brl" in dto.locked_inventory_df.columns
             else "stock_value_brl"
         )
-        val_label = "Capital Excedente (R$)" if val_col == "locked_capital_brl" else "Valor em Estoque (R$)"
+        val_label = "Excesso (R$)" if val_col == "locked_capital_brl" else "Valor (R$)"
         cols_locked = [
-            "product_id",
             "product_name",
             "family",
             "stock_units",
@@ -66,23 +65,22 @@ def render_locked_inventory_table(dto: TemperancePageDTO) -> None:
         ]
         df_l_show = dto.locked_inventory_df[cols_locked].copy()
         df_l_show.columns = [
-            "Código",
             "Produto",
             "Família",
             "Unidades",
-            "Caixas Master",
+            "Cx Master",
             val_label,
-            "Cobertura (dias)",
+            "Cobertura",
             "Célula",
-            "Prescrição Operacional",
+            "Prescrição",
         ]
         st.dataframe(
             df_l_show.head(15).style.format(
                 {
                     "Unidades": _fmt_int,
-                    "Caixas Master": _fmt_boxes,
+                    "Cx Master": _fmt_boxes,
                     val_label: _fmt_brl,
-                    "Cobertura (dias)": _fmt_days,
+                    "Cobertura": _fmt_days,
                 }
             ),
             use_container_width=True,
@@ -105,7 +103,6 @@ def render_stockout_risk_table(
             f"Ordem sugerida: {format_int(total_boxes)} cx master"
         )
         cols_pos = [
-            "product_id",
             "product_name",
             "family",
             "stock_boxes",
@@ -118,26 +115,25 @@ def render_stockout_risk_table(
         ]
         df_show = inv_dto.stockout_df[cols_pos].copy()
         df_show.columns = [
-            "Código",
             "Produto",
             "Família",
-            "Estoque (cx)",
-            "SS (un)",
-            "ROP (un)",
-            "Cobertura (dias)",
-            "Ordem Sugerida (cx)",
-            "Receita Protegida (R$)",
+            "Est. (cx)",
+            "SS",
+            "ROP",
+            "Cobertura",
+            "Ordem (cx)",
+            "Receita Prot.",
             "Célula",
         ]
         st.dataframe(
             df_show.head(15).style.format(
                 {
-                    "Estoque (cx)": _fmt_boxes,
-                    "SS (un)": _fmt_int,
-                    "ROP (un)": _fmt_int,
-                    "Cobertura (dias)": _fmt_days,
-                    "Ordem Sugerida (cx)": _fmt_int,
-                    "Receita Protegida (R$)": _fmt_brl,
+                    "Est. (cx)": _fmt_boxes,
+                    "SS": _fmt_int,
+                    "ROP": _fmt_int,
+                    "Cobertura": _fmt_days,
+                    "Ordem (cx)": _fmt_int,
+                    "Receita Prot.": _fmt_brl,
                 }
             ),
             use_container_width=True,
@@ -158,7 +154,6 @@ def render_stockout_risk_table(
     )
     if not dto.stockout_risk_df.empty:
         cols_rup = [
-            "product_id",
             "product_name",
             "family",
             "stock_boxes",
@@ -170,24 +165,23 @@ def render_stockout_risk_table(
         ]
         df_r_show = dto.stockout_risk_df[cols_rup].copy()
         df_r_show.columns = [
-            "Código",
             "Produto",
             "Família",
-            "Estoque Atual (cx)",
-            "Cobertura (dias)",
-            "Lead Time (dias)",
-            "Ordem Sugerida (cx)",
-            "Receita em Risco (R$)",
+            "Est. (cx)",
+            "Cobertura",
+            "Lead Time",
+            "Ordem (cx)",
+            "Receita Risco",
             "Célula",
         ]
         st.dataframe(
             df_r_show.head(15).style.format(
                 {
-                    "Estoque Atual (cx)": _fmt_boxes,
-                    "Cobertura (dias)": _fmt_days,
-                    "Lead Time (dias)": _fmt_days_int,
-                    "Ordem Sugerida (cx)": _fmt_int,
-                    "Receita em Risco (R$)": _fmt_brl,
+                    "Est. (cx)": _fmt_boxes,
+                    "Cobertura": _fmt_days,
+                    "Lead Time": _fmt_days_int,
+                    "Ordem (cx)": _fmt_int,
+                    "Receita Risco": _fmt_brl,
                 }
             ),
             use_container_width=True,

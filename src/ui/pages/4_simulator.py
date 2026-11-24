@@ -33,6 +33,7 @@ from src.ui.components.prescription import (
     render_prescription_box,
     section_header,
 )
+from src.ui.components.tables import render_vampire_customers_expander
 from src.ui.components.temperance_sections import render_violations_rep_chart
 from src.ui.formatting import format_brl
 from src.ui.state import AppState, get_app_state
@@ -239,6 +240,7 @@ def _render_tab_risk_opportunities(
             "Lista priorizada por receita em risco e mix complementar com WhatsApp direto",
         )
         render_critical_customers_table(comm_dto, labels.customer)
+        render_vampire_customers_expander(comm_dto.vampires_df, labels.customer)
     with col_br:
         section_header(
             "Funil de Saúde do Ciclo de Recompra",

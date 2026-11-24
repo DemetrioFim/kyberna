@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any
+
 import streamlit as st
 
 from src.services.dto import ExecutivePageDTO
 from src.ui.components.kpi_card import KpiAccent, render_kpi_card
 from src.ui.formatting import (
+    fmt_brl_cell,
+    fmt_int_cell,
+    fmt_pct_cell,
     format_brl,
     format_int,
     format_pct,
@@ -146,7 +152,7 @@ def render_prudence_anomalies_section(dto: ExecutivePageDTO) -> None:
 
 
 def render_monthly_sales_table_section(dto: ExecutivePageDTO) -> None:
-    """Renderiza a tabela detalhada de vendas mês a mês para conferência analítica."""
+    """Renderiza a tabela detalhada de vendas mês a mês em padrão pt-BR sem corte horizontal."""
     if dto.monthly_sales_table_df is None or dto.monthly_sales_table_df.empty:
         return
 
@@ -154,36 +160,32 @@ def render_monthly_sales_table_section(dto: ExecutivePageDTO) -> None:
     rename_map = {
         "month_label": "Mês",
         "orders_count": "Pedidos",
-        "active_customers": "Clientes Ativos",
         "total_units": "Unidades",
-        "total_boxes": "Caixas Master",
-        "gross_revenue": "Fat. Bruto (R$)",
-        "mom_gross_pct": "Δ Fat. MoM %",
-        "discount_amount": "Desconto (R$)",
-        "avg_discount_pct": "Desc. Médio %",
-        "net_revenue": "Receita Líq. (R$)",
-        "contribution_margin": "Margem Contr. (R$)",
-        "margin_pct": "Margem %",
-        "mom_margin_pct": "Δ Margem MoM %",
-        "avg_ticket": "Ticket Médio (R$)",
+        "gross_revenue": "Fat. Bruto",
+        "mom_gross_pct": "Δ MoM",
+        "avg_discount_pct": "Desc. %",
+        "net_revenue": "Receita Líq.",
+        "contribution_margin": "Margem Contr.",
     }
     cols_order = [c for c in rename_map if c in df_view.columns]
     df_display = df_view[cols_order].rename(columns=rename_map)
 
+    fmt_map: dict[Any, str | Callable[[object], str] | None] = {
+        k: fn
+        for k, fn in (
+            ("Pedidos", fmt_int_cell),
+            ("Unidades", fmt_int_cell),
+            ("Fat. Bruto", fmt_brl_cell),
+            ("Δ MoM", lambda v: fmt_pct_cell(v, decimals=1, signed=True)),
+            ("Desc. %", fmt_pct_cell),
+            ("Receita Líq.", fmt_brl_cell),
+            ("Margem Contr.", fmt_brl_cell),
+        )
+        if k in df_display.columns
+    }
     st.dataframe(
-        df_display,
+        df_display.style.format(fmt_map),
         use_container_width=True,
         height=185,
-        column_config={
-            "Fat. Bruto (R$)": st.column_config.NumberColumn("Fat. Bruto", format="R$ %.2f"),
-            "Δ Fat. MoM %": st.column_config.NumberColumn("Δ Fat. MoM", format="%.1f%%"),
-            "Desconto (R$)": st.column_config.NumberColumn("Descontos", format="R$ %.2f"),
-            "Desc. Médio %": st.column_config.NumberColumn("Desc. %", format="%.1f%%"),
-            "Receita Líq. (R$)": st.column_config.NumberColumn("Receita Líq.", format="R$ %.2f"),
-            "Margem Contr. (R$)": st.column_config.NumberColumn("Margem Contr.", format="R$ %.2f"),
-            "Margem %": st.column_config.NumberColumn("Margem %", format="%.1f%%"),
-            "Δ Margem MoM %": st.column_config.NumberColumn("Δ Margem MoM", format="%.1f%%"),
-            "Ticket Médio (R$)": st.column_config.NumberColumn("Ticket Médio", format="R$ %.2f"),
-        },
         hide_index=True,
     )

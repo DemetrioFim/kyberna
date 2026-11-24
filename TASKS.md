@@ -10,8 +10,8 @@ Plataforma B2B de **Decision Intelligence, Governança Corporativa & Prescriptiv
 
 ## 🚀 Status Geral do Desenvolvimento
 
-- **Versão Atual**: `v0.5.3-powerbi-redesign`
-- **Marcos Concluídos**: M1 (Fundação, Ingestão, Silver SQL e Tema UI), M2 (Cenário C1 Brinquedos, Waterfall Financeiro, Auditoria Excel, ABC/XYZ calibrado e Tela 1), **M3 100% Concluído** (`M3-S1`..`M3-S4` RFM/Churn/White Space/RCAs, `M3-V1` Justiça e **`M3-V2` Motor de Ação em 1 Clique**), **M4 100% Concluído** (`M4-D1` Eventos de Preço, `M4-D2` Working Capital & Inventory Snapshot, `M4-S1` Forecast 30d, `M4-S2` Posição Prescritiva de Estoque, `M4-S3` Elasticidade-Preço, `M4-S4` Simulador What-If & Breakeven, `M4-V1` Integração na Página 4 — Temperança e **`M4-V2` Simulador Prescritivo na Página 1 — Prudência**), Ondas Virtus **V1** (Prudência & Justiça), **V2** (Temperança & Cockpit 1080p DAR), **V3** (Página 2 — Fortaleza) e **Onda V4 100% Concluída** (**V4-D1**, **V4-S1**, **V4-V1**, **V4-I1**, **V4-I2**).
+- **Versão Atual**: `v0.5.5-audit-hardening`
+- **Marcos Concluídos**: M1 (Fundação, Ingestão, Silver SQL e Tema UI), M2 (Cenário C1 Brinquedos, Waterfall Financeiro, Auditoria Excel, ABC/XYZ calibrado e Tela 1), **M3 100% Concluído** (`M3-S1`..`M3-S4` RFM/Churn/White Space/RCAs, `M3-V1` Justiça e **`M3-V2` Motor de Ação em 1 Clique**), **M4 100% Concluído** (`M4-D1` Eventos de Preço, `M4-D2` Working Capital & Inventory Snapshot, `M4-S1` Forecast 30d, `M4-S2` Posição Prescritiva de Estoque, `M4-S3` Elasticidade-Preço, `M4-S4` Simulador What-If & Breakeven, `M4-V1` Integração na Página 4 — Temperança e **`M4-V2` Simulador Prescritivo na Página 1 — Prudência**), Ondas Virtus **V1** (Prudência & Justiça), **V2** (Temperança & Cockpit 1080p DAR), **V3** (Página 2 — Fortaleza), **V4** (QA & Modularização), **V5** (Fortaleza Apriori) e **Onda V6 100% Concluída** (`V6-D1`..`V6-I1` — Audit Hardening).
 - **Próximos Focos Imediatos**:
   - **`M5` (`M5-I1`..`M5-I3`)**: Containerização Docker multi-stage, CI no GitHub Actions e deploy Azure Container Apps via Bicep + OIDC (`M5-D1`, `M5-V1` e `M5-V2` concluídos).
 
@@ -557,6 +557,9 @@ flowchart LR
 ---
 
 ## 📝 Registro Histórico de Mudanças (Changelog)
+
+- **v0.5.5-audit-hardening** *(Onda V6 100% Concluída ✅: `V6-D1`..`V6-I1`)*:
+  - **[2026-11-23] Conclusão da Onda V6 (`V6-D1`..`V6-I1` — Saneamento Pós-Auditoria Executiva C1)**: Correção integral do motor temporal `PoP`/`YoY` e forecast 30d real (`V6-D1`), unificação SSOT de estoque em `gold.mart_inventory_position` (`V6-D2`), semântica do Tornado no Simulador (`V6-S1`), regras Apriori `lift > 1.0` + reconciliação de White Space (`V6-S2`), `theme=None` nos 23 `st.plotly_chart` + Dark Mode (`V6-V1`), anticolisão nos gráficos Plotly incluindo Waterfall DRE (`V6-V2`), correção KaTeX/branding/Radar (`V6-V3`), formatação pt-BR e acabamento das tabelas (`V6-V4`) e suíte anti-regressão AST/pytest (`V6-I1`). Detalhes completos no [`TASKS_REFACTORY.md`](./TASKS_REFACTORY.md). Validação global final: `ruff check .` (`All checks passed!`), `ruff format --check .` (`178` arquivos), `mypy src` (`122` arquivos), `0` arquivos `> 400L`, `pytest tests/ --ignore=tests/ui -q` (`240 passed in 207.32s`) e `pytest tests/ui -q` (`79 passed in 27.49s`) — **319 testes aprovados**.
 
 - **v0.5.3-powerbi-redesign** *(Remodelação Executiva Estilo PowerBI — 4 Visões Virtus)*:
   - **[2026-11-16] Reestruturação Departamental Estilo PowerBI (Zero Sub-abas Internas)**: Eliminação completa de `st.tabs` aninhadas dentro de quadrantes e componentes; cada uma das 4 páginas passa a utilizar apenas **1 barra superior de Abas de Página (`st.tabs`)** alternando em bloco KPIs + gráficos + tabelas:

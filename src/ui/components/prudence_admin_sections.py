@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -7,7 +10,7 @@ import streamlit as st
 from src.services.dto import ExecutivePageDTO, TemperancePageDTO
 from src.services.inventory_dto import InventoryPageDTO
 from src.ui.components.kpi_card import render_kpi_card
-from src.ui.formatting import format_brl, format_int
+from src.ui.formatting import fmt_brl_cell, fmt_pct_cell, format_brl, format_int
 from src.ui.theme import get_theme_tokens
 
 
@@ -224,29 +227,43 @@ def render_sku_portfolio_table(exec_dto: ExecutivePageDTO) -> None:
         st.info("Nenhum SKU disponível para a seleção atual.")
         return
 
-    display_skus = exec_dto.abc_xyz_skus_df.copy()
-    sku_view = display_skus.rename(
+    cols_src = [
+        c
+        for c in (
+            "product_name",
+            "family",
+            "abc_xyz_class",
+            "gross_revenue",
+            "contribution_margin",
+            "margin_pct",
+            "policy",
+        )
+        if c in exec_dto.abc_xyz_skus_df.columns
+    ]
+    sku_view = exec_dto.abc_xyz_skus_df[cols_src].rename(
         columns={
             "product_name": "Produto",
             "family": "Família",
             "abc_xyz_class": "Célula",
-            "gross_revenue": "Fat. Bruto (R$)",
-            "contribution_margin": "Margem Líq. (R$)",
-            "margin_pct": "Margem Líq. (%)",
-            "weekly_cv": "Volatilidade (CV)",
+            "gross_revenue": "Fat. Bruto",
+            "contribution_margin": "Margem Líq.",
+            "margin_pct": "Margem %",
             "policy": "Política Operacional",
         }
     )
+    fmt_map: dict[Any, str | Callable[[object], str] | None] = {
+        k: fn
+        for k, fn in (
+            ("Fat. Bruto", fmt_brl_cell),
+            ("Margem Líq.", fmt_brl_cell),
+            ("Margem %", fmt_pct_cell),
+        )
+        if k in sku_view.columns
+    }
     st.dataframe(
-        sku_view,
+        sku_view.style.format(fmt_map),
         use_container_width=True,
         height=185,
-        column_config={
-            "Fat. Bruto (R$)": st.column_config.NumberColumn(format="R$ %.2f"),
-            "Margem Líq. (R$)": st.column_config.NumberColumn(format="R$ %.2f"),
-            "Margem Líq. (%)": st.column_config.NumberColumn(format="%.1f%%"),
-            "Volatilidade (CV)": st.column_config.NumberColumn(format="%.2f"),
-        },
         hide_index=True,
     )
 

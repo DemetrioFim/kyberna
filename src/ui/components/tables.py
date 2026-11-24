@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import pandas as pd
 import streamlit as st
+
+from src.ui.formatting import fmt_brl_cell, fmt_pct_cell
 
 
 def render_margin_drivers_table(
@@ -12,59 +15,54 @@ def render_margin_drivers_table(
     *,
     height: int | None = None,
 ) -> None:
-    """Renderiza a tabela de Top Geradores ou Destruidores de Margem de Contribuição.
-
-    Espera DataFrame com colunas:
-        - `name`: Nome do produto ou razão social do lojista.
-        - `secondary_label`: Família do produto ou UF/Segmento do cliente.
-        - `gross_revenue`: Faturamento bruto (R$).
-        - `discount_pct`: Desconto médio praticado (%).
-        - `contribution_margin`: Margem de contribuição líquida (R$).
-        - `margin_pct`: Margem de contribuição líquida (%).
-    """
+    """Renderiza a tabela de Top Geradores ou Destruidores de Margem de Contribuição."""
+    del is_generator
     if df.empty:
         st.info("Nenhum registro encontrado para os filtros selecionados.")
         return
 
-    display_df = df.copy()
+    cols_src = [
+        c
+        for c in (
+            "name",
+            "secondary_label",
+            "gross_revenue",
+            "discount_pct",
+            "contribution_margin",
+            "margin_pct",
+        )
+        if c in df.columns
+    ]
+    display_df = df[cols_src].rename(
+        columns={
+            "name": "Item / Parceiro",
+            "secondary_label": "Família / Região",
+            "gross_revenue": "Fat. Bruto",
+            "discount_pct": "Desc. %",
+            "contribution_margin": "Margem Líq.",
+            "margin_pct": "Margem %",
+        }
+    )
 
-    # Renomeia colunas para cabeçalhos executivos em português
-    col_mapping = {
-        "name": "Item / Parceiro",
-        "secondary_label": "Família / Região",
-        "gross_revenue": "Fat. Bruto (R$)",
-        "discount_pct": "Desconto (%)",
-        "contribution_margin": "Margem Líquida (R$)",
-        "margin_pct": "Margem Líquida (%)",
-    }
-    display_df = display_df.rename(columns=col_mapping)
+    fmt_map: dict[str, Any] = {}
+    if "Fat. Bruto" in display_df.columns:
+        fmt_map["Fat. Bruto"] = fmt_brl_cell
+    if "Desc. %" in display_df.columns:
+        fmt_map["Desc. %"] = fmt_pct_cell
+    if "Margem Líq." in display_df.columns:
+        fmt_map["Margem Líq."] = fmt_brl_cell
 
-    # Configuração de exibição tipada para o st.dataframe
     column_config: dict[str, Any] = {
-        "Fat. Bruto (R$)": st.column_config.NumberColumn(
-            "Fat. Bruto",
-            format="R$ %.2f",
-            help="Faturamento bruto tabelado faturado no período",
-        ),
-        "Desconto (%)": st.column_config.NumberColumn(
-            "Desconto Médio",
-            format="%.1f%%",
-            help="Percentual médio de desconto comercial concedido",
-        ),
-        "Margem Líquida (R$)": st.column_config.NumberColumn(
-            "Margem Líq. (R$)",
-            format="R$ %.2f",
-            help="Margem de contribuição líquida que sobrou no bolso da empresa",
-        ),
-        "Margem Líquida (%)": st.column_config.ProgressColumn(
-            "Margem Líq. (%)",
+        "Margem %": st.column_config.ProgressColumn(
+            "Margem %",
             format="%.1f%%",
             min_value=0.0,
             max_value=100.0,
-            help="Margem de contribuição percentual sobre a receita líquida",
+            help="Margem de contribuição percentual sobre o faturamento bruto",
         ),
     }
 
+    styled = display_df.style.format(fmt_map) if fmt_map else display_df
     df_kwargs: dict[str, Any] = {
         "use_container_width": True,
         "hide_index": True,
@@ -72,4 +70,48 @@ def render_margin_drivers_table(
     }
     if height is not None:
         df_kwargs["height"] = height
-    st.dataframe(display_df, **df_kwargs)
+    st.dataframe(styled, **df_kwargs)
+
+
+def render_vampire_customers_expander(vampires_df: pd.DataFrame, customer_label: str) -> None:
+    """Renderiza acesso rápido às contas Vampiro (<15% MC) na Aba 2 de 2. Fortaleza."""
+    if vampires_df.empty:
+        return
+    with st.expander(
+        f"Detalhamento: Clientes Vampiros (<15% MC · {len(vampires_df)} contas)", expanded=False
+    ):
+        cols = [
+            c
+            for c in (
+                "customer_name",
+                "state",
+                "sales_rep_name",
+                "gross_revenue",
+                "avg_discount_pct",
+                "contribution_margin",
+                "margin_pct",
+            )
+            if c in vampires_df.columns
+        ]
+        view = vampires_df[cols].rename(
+            columns={
+                "customer_name": customer_label,
+                "state": "UF",
+                "sales_rep_name": "RCA",
+                "gross_revenue": "Fat. Bruto",
+                "avg_discount_pct": "Desc. %",
+                "contribution_margin": "Margem Líq.",
+                "margin_pct": "Margem %",
+            }
+        )
+        fmt_map: dict[Any, str | Callable[[object], str] | None] = {
+            k: fn
+            for k, fn in (
+                ("Fat. Bruto", fmt_brl_cell),
+                ("Desc. %", fmt_pct_cell),
+                ("Margem Líq.", fmt_brl_cell),
+                ("Margem %", fmt_pct_cell),
+            )
+            if k in view.columns
+        }
+        st.dataframe(view.style.format(fmt_map), use_container_width=True, hide_index=True, height=160)

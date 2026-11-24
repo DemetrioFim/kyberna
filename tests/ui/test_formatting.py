@@ -5,6 +5,9 @@ from datetime import date, datetime
 from src.ui.components.kpi_card import info_tooltip_html, kpi_card_html
 from src.ui.components.prescription import prescription_box_html
 from src.ui.formatting import (
+    fmt_brl_cell,
+    fmt_int_cell,
+    fmt_pct_cell,
     format_brl,
     format_date_br,
     format_int,
@@ -155,3 +158,22 @@ def test_prescription_box_html_with_tooltip() -> None:
     assert "kyb-info-icon" in box_html
     assert "Metodologia de cálculo do potencial em R$." in box_html
     assert "R$ 125,0 mil" in box_html
+
+
+def test_tabular_pt_br_cell_formatters() -> None:
+    """Valida formatadores tabulares pt-BR com tratamento seguro de None e NaN."""
+    assert fmt_brl_cell(43436) == "R$ 43.436,00"
+    assert fmt_brl_cell(1214370.74) == "R$ 1.214.370,74"
+    assert fmt_brl_cell(43436.4, decimals=0) == "R$ 43.436"
+    assert fmt_brl_cell(None) == "—"
+    assert fmt_brl_cell(float("nan")) == "—"
+
+    assert fmt_pct_cell(26.4) == "26,4%"
+    assert fmt_pct_cell(26.2, signed=True) == "+26,2%"
+    assert fmt_pct_cell(-3.6, signed=True) == "-3,6%"
+    assert fmt_pct_cell(None, signed=True) == "—"
+    assert fmt_pct_cell(float("nan"), signed=True) == "—"
+
+    assert fmt_int_cell(19578) == "19.578"
+    assert fmt_int_cell(None) == "—"
+    assert fmt_int_cell(float("nan")) == "—"

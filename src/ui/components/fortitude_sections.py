@@ -5,7 +5,7 @@ import streamlit as st
 from src.services.dto import FortitudePageDTO
 from src.ui.components.kpi_card import KpiAccent, render_kpi_card
 from src.ui.components.prescription import render_prescription_box
-from src.ui.formatting import format_brl
+from src.ui.formatting import fmt_brl_cell, fmt_pct_cell, format_brl
 
 
 def _style_aging_stage(val: object) -> str:
@@ -135,18 +135,19 @@ def render_aging_customers_table(dto: FortitudePageDTO) -> None:
             "revenue_12m_brl": "Receita 12m",
         }
     )
-    styled = view.style.map(_style_aging_stage, subset=["Estágio Aging"])
+    styled = view.style.map(_style_aging_stage, subset=["Estágio Aging"]).format(
+        {
+            "Atraso": lambda v: f"{float(str(v)):.2f}x",
+            "Dias s/ Compra": lambda v: f"{int(float(str(v)))} d",
+            "Receita 12m": lambda v: fmt_brl_cell(v, decimals=0),
+        }
+    )
     st.dataframe(
         styled,
         height=185,
         hide_index=True,
         use_container_width=True,
-        column_config={
-            "UF": st.column_config.TextColumn("UF", width="small"),
-            "Atraso": st.column_config.NumberColumn("Atraso", format="%.2fx"),
-            "Dias s/ Compra": st.column_config.NumberColumn("Dias s/ Compra", format="%d d"),
-            "Receita 12m": st.column_config.NumberColumn("Receita 12m", format="R$ %.0f"),
-        },
+        column_config={"UF": st.column_config.TextColumn("UF", width="small")},
     )
 
 
@@ -178,17 +179,18 @@ def render_concentration_tables(dto: FortitudePageDTO) -> None:
         }
     )
     st.dataframe(
-        view,
+        view.style.format(
+            {
+                "Receita 12m": lambda v: fmt_brl_cell(v, decimals=0),
+                "Margem 12m": lambda v: fmt_brl_cell(v, decimals=0),
+                "% Base": fmt_pct_cell,
+                "% Acum.": fmt_pct_cell,
+            }
+        ),
         height=185,
         hide_index=True,
         use_container_width=True,
-        column_config={
-            "Porte": st.column_config.TextColumn("Porte", width="small"),
-            "Receita 12m": st.column_config.NumberColumn("Receita 12m", format="R$ %.0f"),
-            "Margem 12m": st.column_config.NumberColumn("Margem 12m", format="R$ %.0f"),
-            "% Base": st.column_config.NumberColumn("% Base", format="%.1f%%"),
-            "% Acum.": st.column_config.NumberColumn("% Acum.", format="%.1f%%"),
-        },
+        column_config={"Porte": st.column_config.TextColumn("Porte", width="small")},
     )
 
 

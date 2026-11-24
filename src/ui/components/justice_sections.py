@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import pandas as pd
@@ -10,7 +11,7 @@ from src.services.dto import CommercialPageDTO, ExecutivePageDTO, FortitudePageD
 from src.services.export_service import attach_whatsapp_links
 from src.ui.components.kpi_card import KpiAccent, render_kpi_card
 from src.ui.components.tables import render_margin_drivers_table
-from src.ui.formatting import format_brl, format_int
+from src.ui.formatting import fmt_brl_cell, fmt_pct_cell, format_brl, format_int
 
 
 def render_justice_kpi_cards(dto: CommercialPageDTO, customer_plural: str) -> None:
@@ -176,14 +177,15 @@ def render_term_leak_table(temp_dto: TemperancePageDTO) -> None:
         )
     )
     st.dataframe(
-        view,
+        view.style.format(
+            {
+                "Prazo Médio (dias)": lambda v: f"{float(str(v)):.1f} d",
+                "Custo Financeiro (R$)": fmt_brl_cell,
+            }
+        ),
         use_container_width=True,
         hide_index=True,
         height=185,
-        column_config={
-            "Prazo Médio (dias)": st.column_config.NumberColumn(format="%.1f d"),
-            "Custo Financeiro (R$)": st.column_config.NumberColumn(format="R$ %,.2f"),
-        },
     )
 
 
@@ -203,23 +205,33 @@ def render_sales_reps_table(dto: CommercialPageDTO, rep_label: str) -> None:
         "action_prescription",
     ]
     cols = [c for c in target_cols if c in df.columns]
-    rep_display_df = df[cols].copy()
-
-    rep_cfg: dict[str, Any] = {
-        "sales_rep_name": st.column_config.TextColumn(rep_label),
-        "quadrant": st.column_config.TextColumn("Quadrante"),
-        "gross_revenue": st.column_config.NumberColumn("Faturamento", format="R$ %,.2f"),
-        "margin_pct": st.column_config.NumberColumn("Margem %", format="%.1f%%"),
-        "avg_discount_pct": st.column_config.NumberColumn("Desconto Médio", format="%.1f%%"),
-        "revenue_at_risk_brl": st.column_config.NumberColumn("Risco Carteira", format="R$ %,.2f"),
-        "action_prescription": st.column_config.TextColumn("Ação Recomendada", width="medium"),
+    rep_display_df = df[cols].rename(
+        columns={
+            "sales_rep_name": rep_label,
+            "quadrant": "Quadrante",
+            "gross_revenue": "Faturamento",
+            "margin_pct": "Margem %",
+            "avg_discount_pct": "Desc. Médio",
+            "revenue_at_risk_brl": "Risco Carteira",
+            "action_prescription": "Ação Recomendada",
+        }
+    )
+    fmt_map: dict[Any, str | Callable[[object], str] | None] = {
+        k: fn
+        for k, fn in (
+            ("Faturamento", fmt_brl_cell),
+            ("Margem %", fmt_pct_cell),
+            ("Desc. Médio", fmt_pct_cell),
+            ("Risco Carteira", fmt_brl_cell),
+        )
+        if k in rep_display_df.columns
     }
     st.dataframe(
-        rep_display_df,
+        rep_display_df.style.format(fmt_map),
         use_container_width=True,
         hide_index=True,
         height=185,
-        column_config={k: v for k, v in rep_cfg.items() if k in cols},
+        column_config={"Ação Recomendada": st.column_config.TextColumn("Ação Recomendada", width="medium")},
     )
 
 
@@ -246,31 +258,38 @@ def render_critical_customers_table(dto: CommercialPageDTO, customer_label: str)
         "whatsapp_link",
     ]
     cols = [c for c in target_cols if c in df.columns]
-    display_df = df[cols].copy()
-
-    cust_cfg: dict[str, Any] = {
-        "customer_name": st.column_config.TextColumn(customer_label),
-        "rfm_segment": st.column_config.TextColumn("Segmento RFM", width="small"),
-        "state": st.column_config.TextColumn("UF", width="small"),
-        "sales_rep_name": st.column_config.TextColumn("RCA"),
-        "risk_status": st.column_config.TextColumn("Status", width="small"),
-        "delay_ratio": st.column_config.NumberColumn("Atraso", format="%.2fx"),
-        "annual_revenue_at_risk": st.column_config.NumberColumn("R$ em Risco", format="R$ %,.2f"),
-        "top_opportunity_family": st.column_config.TextColumn("Oportunidade Mix", width="small"),
-        "top_opportunity_brl": st.column_config.NumberColumn("Potencial R$", format="R$ %,.2f"),
-        "whatsapp_link": st.column_config.LinkColumn(
-            "WhatsApp",
-            display_text="Chamar",
-            width="small",
-            help="Abre conversa pré-preenchida no WhatsApp Web/App.",
-        ),
+    display_df = df[cols].rename(
+        columns={
+            "customer_name": customer_label,
+            "rfm_segment": "Segmento RFM",
+            "state": "UF",
+            "sales_rep_name": "RCA",
+            "risk_status": "Status",
+            "delay_ratio": "Atraso",
+            "annual_revenue_at_risk": "R$ em Risco",
+            "top_opportunity_family": "Mix Sugerido",
+            "top_opportunity_brl": "Potencial R$",
+            "whatsapp_link": "WhatsApp",
+        }
+    )
+    fmt_map: dict[Any, str | Callable[[object], str] | None] = {
+        k: fn
+        for k, fn in (
+            ("Atraso", lambda v: f"{float(str(v)):.2f}x"),
+            ("R$ em Risco", lambda v: fmt_brl_cell(v, decimals=0)),
+            ("Potencial R$", lambda v: fmt_brl_cell(v, decimals=0)),
+        )
+        if k in display_df.columns
     }
     st.dataframe(
-        display_df,
+        display_df.style.format(fmt_map),
         use_container_width=True,
         hide_index=True,
         height=185,
-        column_config={k: v for k, v in cust_cfg.items() if k in cols},
+        column_config={
+            "UF": st.column_config.TextColumn("UF", width="small"),
+            "WhatsApp": st.column_config.LinkColumn("WhatsApp", display_text="Chamar", width="small"),
+        },
     )
 
 
@@ -319,36 +338,43 @@ def render_white_space_deals_table(
         "whatsapp_link",
     ]
     cols = [c for c in target_cols if c in df.columns]
-    deals_df = df[cols].copy()
-
-    col_cfg: dict[str, Any] = {
-        "customer_name": st.column_config.TextColumn(customer_label, width="medium"),
-        "rfm_segment": st.column_config.TextColumn("Segmento RFM", width="small"),
-        "apriori_rule_view": st.column_config.TextColumn("Regra Apriori (Compra → Oferta)", width="medium"),
-        "apriori_support_pct": st.column_config.NumberColumn("Suporte", format="%.2f%%", width="small"),
-        "apriori_confidence_pct": st.column_config.NumberColumn("Confiança", format="%.1f%%", width="small"),
-        "apriori_lift": st.column_config.NumberColumn("Lift", format="%.2fx", width="small"),
-        "potential_revenue_brl": st.column_config.NumberColumn("Potencial", format="R$ %,.0f", width="small"),
-        "whatsapp_link": st.column_config.LinkColumn(
-            "WhatsApp",
-            display_text="Chamar",
-            width="small",
-            help="Abre conversa pré-preenchida no WhatsApp Web/App com o pitch e SKU âncora.",
-        ),
-    }
+    deals_df = df[cols].rename(
+        columns={
+            "customer_name": customer_label,
+            "rfm_segment": "Segmento RFM",
+            "apriori_rule_view": "Regra Apriori",
+            "apriori_support_pct": "Suporte",
+            "apriori_confidence_pct": "Confiança",
+            "apriori_lift": "Lift",
+            "potential_revenue_brl": "Potencial",
+            "whatsapp_link": "WhatsApp",
+        }
+    )
     total_rows = len(deals_df)
     view_df = deals_df.head(200)
+    fmt_map: dict[Any, str | Callable[[object], str] | None] = {
+        k: fn
+        for k, fn in (
+            ("Suporte", lambda v: fmt_pct_cell(v, decimals=2)),
+            ("Confiança", fmt_pct_cell),
+            ("Lift", lambda v: f"{float(str(v)):.2f}x"),
+            ("Potencial", lambda v: fmt_brl_cell(v, decimals=0)),
+        )
+        if k in view_df.columns
+    }
     styled = (
-        view_df.style.map(_style_rfm_segment, subset=["rfm_segment"])
-        if "rfm_segment" in view_df.columns
-        else view_df
+        view_df.style.map(_style_rfm_segment, subset=["Segmento RFM"]).format(fmt_map)
+        if "Segmento RFM" in view_df.columns
+        else view_df.style.format(fmt_map)
     )
     st.dataframe(
         styled,
         use_container_width=True,
         hide_index=True,
         height=185,
-        column_config={k: v for k, v in col_cfg.items() if k in cols},
+        column_config={
+            "WhatsApp": st.column_config.LinkColumn("WhatsApp", display_text="Chamar", width="small"),
+        },
     )
     if total_rows > 200:
         st.markdown(

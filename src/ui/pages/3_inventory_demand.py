@@ -200,6 +200,13 @@ def render_page() -> None:
     with tab_cv:
         render_champions_vampires_kpis(exec_dto, temp_dto, scenario_cfg.labels.customer_plural)
         render_champions_vampires_section(exec_dto, scenario_cfg.labels)
+        st.markdown(
+            "<div style='font-size:0.75rem; color:var(--kyb-text-muted); margin-top:0.2rem;'>"
+            "<strong>Diretriz 360°:</strong> revise alçadas de desconto e exigência de lote mínimo "
+            "nas contas <strong>Vampiro</strong> de alta receita para estancar erosão sem perder volume."
+            "</div>",
+            unsafe_allow_html=True,
+        )
 
 
 render_page()
