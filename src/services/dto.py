@@ -135,6 +135,8 @@ class CommercialKpisDTO(BaseModel):
     apriori_max_lift: float = 0.0
     apriori_avg_confidence_pct: float = 0.0
     apriori_avg_support_pct: float = 0.0
+    high_lift_customers_count: int = 0
+    high_lift_coverage_pct: float = 0.0
 
 
 class CommercialPageDTO(BaseModel):
@@ -316,6 +318,8 @@ class SimulationLevers(BaseModel):
     delta_cogs_pct: float = Field(0.0, ge=-0.50, le=0.50)
     apply_elasticity: bool = True
     beta_override: float | None = None
+    band_low_change_pct: float = -0.12
+    band_high_change_pct: float = 0.08
 
 
 class SimulationResult(BaseModel):
@@ -357,5 +361,7 @@ class SimulationResult(BaseModel):
     verdict: str
     optimal_price_change_pct: float
     optimal_margin_brl: float
+    band_constrained_optimal_pct: float = 0.0
+    is_outside_band: bool = False
     profit_curve_df: pd.DataFrame
     tornado_df: pd.DataFrame

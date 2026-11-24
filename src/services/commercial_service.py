@@ -94,6 +94,54 @@ def build_commercial_prescription(
     return title, html, top_margin_at_risk
 
 
+def _query_vampire_customers(
+    repo: DataRepository,
+    scenario_id: ScenarioId,
+    *,
+    regiao: str = "Todas",
+    uf: str = "Todas",
+    sales_reps: Sequence[str] = (),
+) -> pd.DataFrame:
+    """Retorna exatamente as contas Vampiro (<15% MC e > R$ 15k faturamento) conciliadas com o KPI."""
+    clauses = ["f.scenario_id = ?"]
+    params: list[object] = [scenario_id]
+    if regiao != "Todas":
+        clauses.append("c.region = ?")
+        params.append(regiao)
+    if uf != "Todas":
+        clauses.append("c.state = ?")
+        params.append(uf)
+    if sales_reps:
+        rep_list = list(sales_reps)
+        ph = ", ".join(["?"] * len(rep_list))
+        clauses.append(f"(c.sales_rep_id IN ({ph}) OR r.name IN ({ph}))")
+        params.extend(rep_list)
+        params.extend(rep_list)
+
+    sql = f"""
+    SELECT
+        COALESCE(c.trade_name, c.company_name) AS customer_name,
+        c.state,
+        r.name AS sales_rep_name,
+        ROUND(SUM(f.gross_revenue), 2) AS gross_revenue,
+        ROUND(SUM(f.discount_amount) / NULLIF(SUM(f.gross_revenue), 0) * 100.0, 2) AS avg_discount_pct,
+        ROUND(SUM(f.contribution_margin), 2) AS contribution_margin,
+        ROUND(SUM(f.contribution_margin) / NULLIF(SUM(f.gross_revenue), 0) * 100.0, 2) AS margin_pct
+    FROM gold.fact_sales f
+    JOIN gold.dim_customer c ON f.customer_id = c.customer_id
+    LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id
+    WHERE {" AND ".join(clauses)}
+    GROUP BY c.customer_id, c.trade_name, c.company_name, c.state, r.name
+    HAVING SUM(f.gross_revenue) > 15000
+       AND (SUM(f.contribution_margin) / NULLIF(SUM(f.gross_revenue), 0) * 100.0) < 15.0
+    ORDER BY margin_pct ASC, gross_revenue DESC
+    """
+    try:
+        return repo.query(sql, params=params)
+    except Exception:
+        return pd.DataFrame()
+
+
 def build_commercial_dashboard(
     repo: DataRepository,
     scenario_id: ScenarioId,
@@ -229,6 +277,13 @@ def build_commercial_dashboard(
     (top_gen_f, top_dest_f), (top_gen_p, top_dest_p) = drvs[0], drvs[1]
     (top_gen_c, top_dest_c), (top_gen_r, top_dest_r) = drvs[2], drvs[3]
 
+    vampires_df = _query_vampire_customers(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        sales_reps=sales_reps,
+    )
     headline_title, headline_text = build_commercial_headline(kpis)
     prescription_title, prescription_html, impact_brl = build_commercial_prescription(kpis, priority_df)
 
@@ -245,7 +300,7 @@ def build_commercial_dashboard(
         cycle_funnel_df=cycle_funnel_df,
         top_white_space_deals_df=top_ws_deals_df,
         champions_df=top_gen_c,
-        vampires_df=top_dest_c,
+        vampires_df=vampires_df,
         top_family_generators_df=top_gen_f,
         top_family_destroyers_df=top_dest_f,
         top_product_generators_df=top_gen_p,

@@ -10,6 +10,7 @@ from src.ml.churn import build_customer_risk_mart, compute_customer_risk_summary
 from src.ml.elasticity import build_price_elasticity_mart
 from src.ml.forecast import build_forecast_30d_mart, compute_forecast_summary
 from src.ml.inventory import build_inventory_position_mart, compute_inventory_position_summary
+from src.ml.pricing import build_pricing_marts
 from src.ml.rep_performance import build_rep_performance_mart, compute_rep_performance_summary
 from src.ml.rfm import build_rfm_mart, compute_rfm_segment_summary
 from src.ml.white_space import build_white_space_mart
@@ -248,6 +249,43 @@ def ml_elasticity(
             "elasticity_classification",
         ]
         typer.echo(df[display_cols].to_string(index=False))
+    finally:
+        con.close()
+
+
+@ml_app.command("pricing")
+def ml_pricing(
+    scenario: str = typer.Option("c1_toys", "--scenario", help="Identificador do cenário"),
+    as_of: str | None = typer.Option(None, "--as-of", help="Data de corte analítica (YYYY-MM-DD)"),
+) -> None:
+    """Calcula banda contextual de preços (QuantileRegressor) e drivers Linear SHAP."""
+    con = duckdb.connect(str(get_duckdb_path()))
+    try:
+        with timed_step("ml_pricing"):
+            realization_df, drivers_df = build_pricing_marts(
+                con,
+                as_of_date=as_of,
+                scenario_id=scenario,  # type: ignore[arg-type]
+            )
+
+        summary = (
+            realization_df.groupby("family", as_index=False)
+            .agg(
+                skus=("product_id", "count"),
+                realized_idx=("realized_idx_mean", "mean"),
+                band_p25=("contextual_band_low_idx", "mean"),
+                band_p75=("contextual_band_high_idx", "mean"),
+                leakage_brl=("price_leakage_brl", "sum"),
+                upside_brl=("inelastic_upside_brl", "sum"),
+            )
+            .round(2)
+            .sort_values("leakage_brl", ascending=False)
+        )
+        typer.echo(
+            f"\nPrecificação Contextual concluída para '{scenario}' "
+            f"({len(realization_df):,} SKUs | {len(drivers_df):,} linhas SHAP):"
+        )
+        typer.echo(summary.to_string(index=False))
     finally:
         con.close()
 

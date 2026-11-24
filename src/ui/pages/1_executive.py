@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pandas as pd
 import streamlit as st
 
 from src.services.dto import ExecutivePageDTO, TemperancePageDTO
@@ -11,20 +10,24 @@ from src.ui.cache import (
     cached_temperance_dashboard,
 )
 from src.ui.components.charts import family_margin_chart
-from src.ui.components.inventory_charts import abc_xyz_heatmap, erosion_breakdown_chart
+from src.ui.components.inventory_charts import abc_xyz_heatmap
 from src.ui.components.prescription import (
     render_cockpit_header,
     render_prescription_box,
     section_header,
 )
 from src.ui.components.prudence_admin_sections import (
-    family_policy_violations_chart,
-    render_admin_demand_policy_kpis,
     render_admin_inventory_kpis,
+    render_admin_pcp_kpis,
     render_admin_portfolio_kpis,
+    render_pcp_plan_table,
     render_sku_portfolio_table,
 )
 from src.ui.components.prudence_sections import render_prudence_anomalies_section
+from src.ui.components.supply_charts import (
+    sop_demand_vs_stock_chart,
+    stockout_by_family_chart,
+)
 from src.ui.components.temperance_inventory_section import (
     render_locked_capital_treemap_tab,
     render_locked_inventory_table,
@@ -33,34 +36,6 @@ from src.ui.components.temperance_inventory_section import (
 )
 from src.ui.formatting import format_brl
 from src.ui.state import AppState, get_app_state
-
-
-def _render_family_policy_table(df: pd.DataFrame) -> None:
-    """Tabela direta de desvios de política de desconto por família (sem sub-abas)."""
-    if df.empty:
-        st.info("Nenhuma violação de política identificada por família.")
-        return
-    cols = ["family", "total_orders", "gross_revenue", "avg_discount_pct", "excess_discount_brl"]
-    view = df[[c for c in cols if c in df.columns]].rename(
-        columns={
-            "family": "Família",
-            "total_orders": "Pedidos",
-            "gross_revenue": "Faturamento (R$)",
-            "avg_discount_pct": "Desc. Médio %",
-            "excess_discount_brl": "Excesso Fora do Teto (R$)",
-        }
-    )
-    st.dataframe(
-        view,
-        use_container_width=True,
-        hide_index=True,
-        height=185,
-        column_config={
-            "Faturamento (R$)": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Desc. Médio %": st.column_config.NumberColumn(format="%.1f%%"),
-            "Excesso Fora do Teto (R$)": st.column_config.NumberColumn(format="R$ %,.2f"),
-        },
-    )
 
 
 def _render_tab_portfolio(
@@ -98,7 +73,7 @@ def _render_tab_portfolio(
         section_header(
             "Margem de Contribuição por Família",
             "Contribuição líquida gerada por cada linha de produto do catálogo",
-            help_text="Compara geração absoluta de lucro (R$) e rentabilidade (%) por família.",
+            help_text="Compara geração absoluta de margem (R$) e rentabilidade (%) por família.",
         )
         st.plotly_chart(
             family_margin_chart(exec_dto.abc_xyz_skus_df, theme_mode=theme_mode),
@@ -143,41 +118,40 @@ def _render_tab_inventory(
         render_locked_capital_treemap_tab(inv_dto, theme_mode=theme_mode)
     with col_r:
         section_header(
-            "Decomposição de Custos & Erosão Operacional",
-            "Distribuição de vazamentos comerciais e logísticos sobre a receita",
-            help_text="Evidencia onde a margem operacional escapa antes de chegar ao caixa.",
+            "Receita em Risco de Ruptura por Família",
+            "Distribuição do faturamento 30d exposto abaixo do ROP entre Curva A e B/C",
+            help_text="Conecta diretamente o risco de desabastecimento à fila de reposição abaixo.",
         )
         st.plotly_chart(
-            erosion_breakdown_chart(temp_dto.kpis, theme_mode=theme_mode),
+            stockout_by_family_chart(inv_dto.family_supply_df, theme_mode=theme_mode),
             use_container_width=True,
             theme=None,
         )
 
-    col_bl, col_br = st.columns([1.05, 1.0])
+    col_bl, col_br = st.columns([1.0, 1.05])
     with col_bl:
-        section_header(
-            "Ordem de Reposição (Ruptura Iminente)",
-            "Itens abaixo do Ponto de Pedido com caixas master sugeridas",
-            help_text="Prioridade imediata de compra/produção para evitar perda de faturamento.",
-        )
-        render_stockout_risk_table(temp_dto, inv_dto=inv_dto)
-    with col_br:
         section_header(
             "SKUs Imobilizados (>120d Cobertura)",
             "Alvos prioritários para campanhas de liquidação e combo",
             help_text="Liquidar 25% do excesso injeta caixa operacional imediato.",
         )
         render_locked_inventory_table(temp_dto)
+    with col_br:
+        section_header(
+            "Ordem de Reposição (Ruptura Iminente)",
+            "Itens abaixo do Ponto de Pedido com caixas master sugeridas",
+            help_text="Prioridade imediata de compra/produção para evitar perda de faturamento.",
+        )
+        render_stockout_risk_table(temp_dto, inv_dto=inv_dto)
 
 
-def _render_tab_forecast_policy(
+def _render_tab_pcp(
     state: AppState,
     exec_dto: ExecutivePageDTO,
-    temp_dto: TemperancePageDTO,
     inv_dto: InventoryPageDTO,
 ) -> None:
-    """Aba 3: Previsão de Demanda 30d & Alçadas."""
-    render_admin_demand_policy_kpis(exec_dto, temp_dto, inv_dto)
+    """Aba 3: Previsão de Demanda 30d & Planejamento PCP."""
+    render_admin_pcp_kpis(inv_dto)
     col_l, col_r = st.columns([1.05, 1.0])
     with col_l:
         section_header(
@@ -188,17 +162,12 @@ def _render_tab_forecast_policy(
         render_sku_forecast_fragment(state.scenario_id, inv_dto, theme_mode=state.theme_mode)
     with col_r:
         section_header(
-            "Descontos Fora do Teto por Família",
-            "Excesso financeiro concedido acima das alçadas por linha de produto",
-            help_text=(
-                "Ranqueia as famílias com maior concessão de descontos acima do teto autorizado "
-                "(P=3%, M=6,5%, G=10,5%)."
-            ),
+            "Demanda Prevista 30d vs. Estoque Atual por Família",
+            "Balanço físico S&OP entre saldo em armazém e saída projetada nos próximos 30 dias",
+            help_text="Evidencia famílias onde a demanda prevista ultrapassa ou pressiona o estoque atual.",
         )
         st.plotly_chart(
-            family_policy_violations_chart(
-                temp_dto.policy_violations_by_family_df, theme_mode=state.theme_mode
-            ),
+            sop_demand_vs_stock_chart(inv_dto.family_supply_df, theme_mode=state.theme_mode),
             use_container_width=True,
             theme=None,
         )
@@ -206,16 +175,16 @@ def _render_tab_forecast_policy(
     col_bl, col_br = st.columns([1.05, 1.0])
     with col_bl:
         section_header(
-            "Auditoria de Alçadas por Família",
-            "Concessão de descontos médios e excesso acima do teto por linha",
-            help_text="Aponta quais famílias estão sofrendo maior erosão de tabela comercial.",
+            "Plano de Necessidade de Compra/Produção (por SKU)",
+            "Agenda PCP priorizada por caixas master sugeridas e receita protegida",
+            help_text="Lista de trabalho para compras e PCP considerando ROP, cobertura e demanda 30d.",
         )
-        _render_family_policy_table(temp_dto.policy_violations_by_family_df)
+        render_pcp_plan_table(inv_dto)
     with col_br:
         section_header(
-            "Radar de Anomalias Operacionais",
-            "Alertas prioritários de desvio de margem e exceções semanais",
-            help_text="Sinais automáticos que demandam verificação administrativa imediata.",
+            "Radar de Anomalias de Supply",
+            "Alertas operacionais prioritários de ruptura Curva A, excesso >120d e S&OP",
+            help_text="Sinais automáticos de operação e abastecimento que demandam ação imediata.",
         )
         render_prudence_anomalies_section(exec_dto)
 
@@ -268,7 +237,7 @@ def render_page() -> None:
     render_cockpit_header(
         title="Visão Administrativa & Operações",
         virtue_badge="1. Prudência",
-        headline_title="Governança de Portfólio, Estoques & Alçadas",
+        headline_title="Governança de Portfólio, Estoques & Planejamento PCP",
         headline_text=(
             f"<b>{len(exec_dto.abc_xyz_skus_df)} SKUs</b> ativos | "
             f"<b>{rup_a_cnt} SKUs Curva A</b> em ruptura "
@@ -277,24 +246,24 @@ def render_page() -> None:
         ),
         as_of_date_label=exec_dto.as_of_date_label,
         help_text=(
-            "Painel administrativo estilo PowerBI com 3 páginas temáticas: Portfólio ABC/XYZ, "
-            "Gestão de Estoque/Ruptura e Previsão de Demanda 30d & Alçadas."
+            "Painel administrativo estilo PowerBI 100% operacional: Portfólio ABC/XYZ, "
+            "Gestão de Estoque/Ruptura e Previsão de Demanda 30d & PCP."
         ),
     )
 
-    tab_port, tab_inv, tab_fc = st.tabs(
+    tab_port, tab_inv, tab_pcp = st.tabs(
         [
             "Portfólio & Curva ABC/XYZ",
             "Estoque, Ruptura & Capital Travado",
-            "Previsão de Demanda 30d & Alçadas",
+            "Previsão de Demanda 30d & PCP",
         ]
     )
     with tab_port:
         _render_tab_portfolio(exec_dto, temp_dto, inv_dto, state.theme_mode)
     with tab_inv:
         _render_tab_inventory(temp_dto, inv_dto, state.theme_mode, is_scoped=is_inv_scoped)
-    with tab_fc:
-        _render_tab_forecast_policy(state, exec_dto, temp_dto, inv_dto)
+    with tab_pcp:
+        _render_tab_pcp(state, exec_dto, inv_dto)
 
 
 render_page()

@@ -230,6 +230,16 @@ def simulate(
             verdict = "Erosão de Margem Projetada"
 
     curve_df, opt_dp, opt_margin = _compute_profit_curve(baseline, levers, beta=beta)
+    band_mask = (curve_df["delta_price_pct"] >= levers.band_low_change_pct - 1e-6) & (
+        curve_df["delta_price_pct"] <= levers.band_high_change_pct + 1e-6
+    )
+    band_sub = curve_df.loc[band_mask] if bool(band_mask.any()) else curve_df
+    band_best_pos = int(np.argmax(band_sub["contribution_margin"].to_numpy(dtype=np.float64)))
+    band_opt_dp = float(band_sub["delta_price_pct"].iloc[band_best_pos])
+    is_out = bool(
+        levers.delta_price_pct < levers.band_low_change_pct - 1e-6
+        or levers.delta_price_pct > levers.band_high_change_pct + 1e-6
+    )
     tornado_df = _compute_tornado_sensitivity(
         baseline,
         margin_0=margin_0,
@@ -272,6 +282,8 @@ def simulate(
         verdict=verdict,
         optimal_price_change_pct=opt_dp,
         optimal_margin_brl=opt_margin,
+        band_constrained_optimal_pct=band_opt_dp,
+        is_outside_band=is_out,
         profit_curve_df=curve_df,
         tornado_df=tornado_df,
     )

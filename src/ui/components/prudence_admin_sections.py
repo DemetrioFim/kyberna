@@ -4,14 +4,12 @@ from collections.abc import Callable
 from typing import Any
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
 from src.services.dto import ExecutivePageDTO, TemperancePageDTO
 from src.services.inventory_dto import InventoryPageDTO
-from src.ui.components.kpi_card import render_kpi_card
-from src.ui.formatting import fmt_brl_cell, fmt_pct_cell, format_brl, format_int
-from src.ui.theme import get_theme_tokens
+from src.ui.components.kpi_card import KpiAccent, render_kpi_card
+from src.ui.formatting import fmt_brl_cell, fmt_int_cell, fmt_pct_cell, format_brl, format_int
 
 
 def _cell_stats(matrix_df: pd.DataFrame, abc: str, xyz: str) -> tuple[int, float]:
@@ -32,16 +30,22 @@ def render_admin_portfolio_kpis(exec_dto: ExecutivePageDTO, inv_dto: InventoryPa
     sku_total = len(skus_df) if not skus_df.empty else len(inv_dto.sku_options_df)
     fam_count = int(skus_df["family"].nunique()) if not skus_df.empty and "family" in skus_df.columns else 0
 
-    share_col = "margin_share_pct" if "margin_share_pct" in matrix_df.columns else "margin_pct"
-    curva_a_pct = (
-        float(matrix_df[matrix_df["abc_class"] == "A"][share_col].sum())
-        if not matrix_df.empty and "abc_class" in matrix_df.columns and share_col in matrix_df.columns
-        else 0.0
-    )
+    if not skus_df.empty and "abc_class" in skus_df.columns:
+        curva_a_df = skus_df[skus_df["abc_class"] == "A"]
+    elif not skus_df.empty and "abc_xyz_class" in skus_df.columns:
+        curva_a_df = skus_df[skus_df["abc_xyz_class"].astype(str).str.startswith("A")]
+    else:
+        curva_a_df = skus_df.iloc[0:0]
+
+    curva_a_skus = len(curva_a_df)
+    curva_a_mix_pct = (curva_a_skus / sku_total * 100.0) if sku_total > 0 else 0.0
+    curva_a_gross = float(curva_a_df["gross_revenue"].sum()) if not curva_a_df.empty else 0.0
+    curva_a_cm = float(curva_a_df["contribution_margin"].sum()) if not curva_a_df.empty else 0.0
+    curva_a_mc_pct = (curva_a_cm / curva_a_gross * 100.0) if curva_a_gross > 0.0 else 0.0
+
     ax_skus, ax_share = _cell_stats(matrix_df, "A", "X")
     cz_skus, cz_share = _cell_stats(matrix_df, "C", "Z")
-    orders_str = format_int(exec_dto.kpis.total_orders)
-    boxes_str = format_int(exec_dto.kpis.total_boxes)
+    net_rev_str = format_brl(exec_dto.kpis.net_revenue, compact=True, decimals=1)
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
@@ -54,37 +58,39 @@ def render_admin_portfolio_kpis(exec_dto: ExecutivePageDTO, inv_dto: InventoryPa
         )
     with c2:
         render_kpi_card(
-            title="Margem na Curva A",
-            value=f"{curva_a_pct:.1f}%",
-            subfooter_left="Meta ABC: Top 80% MC",
+            title="Margem de Contribuição Total",
+            value=format_brl(exec_dto.kpis.contribution_margin, compact=True),
+            subfooter_left=f"Receita Líq.: {net_rev_str} · MC {exec_dto.kpis.contribution_margin_pct:.1f}%",
             accent="green",
-            help_text="Fatia da Margem de Contribuição concentrada nos SKUs prioritários de Classe A.",
+            help_text=("Denominador financeiro completo do portfólio após impostos, CPV, comissões e frete."),
         )
     with c3:
         render_kpi_card(
-            title="SKUs Classe AX (Core)",
-            value=f"{format_int(ax_skus)} SKUs",
-            subfooter_left=f"{ax_share:.1f}% da Margem Total",
+            title="SKUs na Curva A",
+            value=f"{format_int(curva_a_skus)} SKUs",
+            subfooter_left=f"{curva_a_mix_pct:.1f}% do mix · MC {curva_a_mc_pct:.1f}%",
             accent="teal",
-            help_text=("Produtos de alta margem (A) e demanda regular (X): política JIT / ruptura zero."),
+            help_text=(
+                "Quantidade de SKUs que compõem os 80% principais da Margem de Contribuição (Pareto ABC)."
+            ),
         )
     with c4:
         render_kpi_card(
+            title="SKUs Classe AX (Core)",
+            value=f"{format_int(ax_skus)} SKUs",
+            subfooter_left=f"{ax_share:.1f}% da MC Total",
+            accent="teal",
+            help_text="Produtos de alta margem (A) e demanda regular (X): política JIT / ruptura zero.",
+        )
+    with c5:
+        render_kpi_card(
             title="SKUs Classe CZ (Cauda)",
             value=f"{format_int(cz_skus)} SKUs",
-            subfooter_left=f"{cz_share:.1f}% da Margem Total",
+            subfooter_left=f"{cz_share:.1f}% da MC Total",
             accent="alert_warn" if cz_skus > 40 else "brass",
             help_text=(
                 "Itens de baixa margem (C) e giro intermitente (Z): candidatos a venda sob encomenda."
             ),
-        )
-    with c5:
-        render_kpi_card(
-            title="Ticket Médio por Pedido",
-            value=format_brl(exec_dto.kpis.avg_ticket, compact=True),
-            subfooter_left=f"{orders_str} pedidos · {boxes_str} cx",
-            accent="brass",
-            help_text="Valor bruto médio faturado por pedido e volume expedido em caixas master.",
         )
 
 
@@ -163,22 +169,18 @@ def render_admin_inventory_kpis(
         )
 
 
-def render_admin_demand_policy_kpis(
-    exec_dto: ExecutivePageDTO,
-    temp_dto: TemperancePageDTO,
-    inv_dto: InventoryPageDTO,
-) -> None:
-    """Renderiza os 5 KPIs da Aba 3 (Demanda 30d & Conformidade de Alçadas) de Prudência."""
-    t_k = temp_dto.kpis
-    sku_fc_cnt = len(inv_dto.sku_options_df)
-    anom_cnt = len(exec_dto.anomalies_df) if exec_dto.anomalies_df is not None else 0
+def render_admin_pcp_kpis(inv_dto: InventoryPageDTO) -> None:
+    """Renderiza os 5 KPIs S&OP/PCP da Aba 3 (Previsão de Demanda 30d & PCP)."""
+    i_k = inv_dto.kpis
+    wape_acc: KpiAccent = "green" if i_k.weighted_wape_pct <= 25.0 else "alert_warn"
+    delta_acc: KpiAccent = "teal" if i_k.forecast_vs_30d_pct >= 0.0 else "brass"
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         render_kpi_card(
             title="Projeção de Demanda (30d)",
-            value=format_brl(inv_dto.kpis.forecast_30d_revenue_brl, compact=True, decimals=2),
-            subfooter_left=f"{format_int(inv_dto.kpis.forecast_30d_units_total)} un previstas (30d)",
+            value=format_brl(i_k.forecast_30d_revenue_brl, compact=True, decimals=2),
+            subfooter_left=f"{format_int(i_k.forecast_30d_units_total)} un previstas (30d)",
             accent="teal",
             help_text=(
                 "Soma da demanda prevista pelo StatsForecast nos próximos 30 dias valorizada a preço de "
@@ -187,46 +189,56 @@ def render_admin_demand_policy_kpis(
         )
     with c2:
         render_kpi_card(
-            title="SKUs no Motor Forecast",
-            value=f"{format_int(sku_fc_cnt)} SKUs",
-            subfooter_left="Modelos AutoETS / Croston",
-            accent="green",
+            title="Acurácia do Motor (WAPE)",
+            value=f"{i_k.weighted_wape_pct:.1f}%",
+            subfooter_left="Ponderado · AutoETS / Croston",
+            accent=wape_acc,
             help_text=(
-                "Quantidade de SKUs com previsão estatística diária de 30 dias e bandas de confiança 80%/95%."
+                "Erro percentual absoluto ponderado pelo volume previsto (WAPE) no holdout temporal "
+                "sem vazamento de 28 dias."
             ),
         )
     with c3:
         render_kpi_card(
-            title="Descontos Fora de Tabela",
-            value=format_brl(t_k.excess_discount_brl, compact=True, decimals=1),
-            subfooter_left="Alçadas P=3% · M=6,5% · G=10,5%",
-            accent="alert_neg",
-            help_text="Concessões acima do teto comercial autorizado para o porte de cada cliente.",
+            title="Variação Projetada (vs. 30d)",
+            value=f"{i_k.forecast_vs_30d_pct:+.1f}%",
+            subfooter_left=f"Real últimos 30d: {format_int(i_k.last_30d_actual_units)} un",
+            accent=delta_acc,
+            help_text=(
+                "Diferença percentual do volume previsto para os próximos 30 dias frente ao realizado "
+                "nos últimos 30 dias históricos."
+            ),
         )
     with c4:
         render_kpi_card(
-            title="Peso Fora da Política",
-            value=f"{t_k.excess_discount_pct_of_discount:.1f}%",
-            subfooter_left=f"Erosão total: {format_brl(t_k.total_commercial_erosion_brl, compact=True)}",
-            accent="alert_warn",
-            help_text="Percentual dos descontos totais concedidos sem respaldo na política de alçadas.",
+            title="Necessidade Líquida de Compra",
+            value=f"{format_int(i_k.suggested_order_boxes_total)} cx",
+            subfooter_left=f"{format_int(i_k.stockout_risk_skus_count)} SKUs abaixo do ROP",
+            accent="alert_neg" if i_k.suggested_order_boxes_total > 0 else "green",
+            help_text="Volume total de reposição em caixas master requerido pelo planejamento PCP.",
         )
     with c5:
         render_kpi_card(
-            title="Exceções Operacionais",
-            value=f"{anom_cnt} alertas",
-            subfooter_left="Radar semanal automático",
-            accent="alert_warn" if anom_cnt > 0 else "green",
-            help_text="Quantidade de desvios críticos detectados nas regras de auditoria operacional.",
+            title="SKUs com Pico Sazonal",
+            value=f"{format_int(i_k.seasonal_peak_skus_count)} SKUs",
+            subfooter_left="Classe Y com ordem ativa",
+            accent="alert_warn" if i_k.seasonal_peak_skus_count > 0 else "teal",
+            help_text=(
+                "Itens de comportamento sazonal (Classe Y) que demandam reposição imediata para "
+                "atender o próximo ciclo de demanda."
+            ),
         )
 
 
 def render_sku_portfolio_table(exec_dto: ExecutivePageDTO) -> None:
-    """Renderiza a tabela operacional de Portfólio de SKUs com scroll interno."""
+    """Renderiza a tabela operacional de Portfólio de SKUs sem corte horizontal."""
     if exec_dto.abc_xyz_skus_df.empty:
         st.info("Nenhum SKU disponível para a seleção atual.")
         return
 
+    df_src = exec_dto.abc_xyz_skus_df.copy()
+    if "policy" in df_src.columns:
+        df_src["policy_short"] = df_src["policy"].astype(str).str.split("/", n=1).str[0].str.strip()
     cols_src = [
         c
         for c in (
@@ -236,27 +248,27 @@ def render_sku_portfolio_table(exec_dto: ExecutivePageDTO) -> None:
             "gross_revenue",
             "contribution_margin",
             "margin_pct",
-            "policy",
+            "policy_short",
         )
-        if c in exec_dto.abc_xyz_skus_df.columns
+        if c in df_src.columns
     ]
-    sku_view = exec_dto.abc_xyz_skus_df[cols_src].rename(
+    sku_view = df_src[cols_src].rename(
         columns={
             "product_name": "Produto",
             "family": "Família",
             "abc_xyz_class": "Célula",
             "gross_revenue": "Fat. Bruto",
-            "contribution_margin": "Margem Líq.",
-            "margin_pct": "Margem %",
-            "policy": "Política Operacional",
+            "contribution_margin": "MC (R$)",
+            "margin_pct": "MC %",
+            "policy_short": "Política",
         }
     )
     fmt_map: dict[Any, str | Callable[[object], str] | None] = {
         k: fn
         for k, fn in (
             ("Fat. Bruto", fmt_brl_cell),
-            ("Margem Líq.", fmt_brl_cell),
-            ("Margem %", fmt_pct_cell),
+            ("MC (R$)", fmt_brl_cell),
+            ("MC %", fmt_pct_cell),
         )
         if k in sku_view.columns
     }
@@ -265,59 +277,65 @@ def render_sku_portfolio_table(exec_dto: ExecutivePageDTO) -> None:
         use_container_width=True,
         height=185,
         hide_index=True,
+        column_config={
+            "Célula": st.column_config.TextColumn("Célula", width="small"),
+            "MC %": st.column_config.TextColumn("MC %", width="small"),
+        },
     )
 
 
-def family_policy_violations_chart(df: pd.DataFrame, *, theme_mode: str = "light") -> go.Figure:
-    """Gráfico horizontal de descontos fora do teto por família (1. Prudência — Aba 3)."""
-    tokens = get_theme_tokens(theme_mode)
-    template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
+def render_pcp_plan_table(inv_dto: InventoryPageDTO) -> None:
+    """Renderiza a tabela do Plano Mestre de Necessidade de Compra/Produção por SKU."""
+    df = inv_dto.pcp_plan_df
+    if df.empty:
+        st.info("Nenhuma necessidade de compra/produção crítica nos filtros atuais.")
+        return
 
-    if df.empty or "family" not in df.columns or "excess_discount_brl" not in df.columns:
-        fig = go.Figure()
-        fig.update_layout(template=template_name, title=None, height=245)
-        return fig
-
-    top_df = df.head(8).iloc[::-1].copy()
-    excess_vals = [float(v) for v in top_df["excess_discount_brl"]]
-    avg_disc_vals = (
-        [float(v) for v in top_df["avg_discount_pct"]]
-        if "avg_discount_pct" in top_df.columns
-        else [0.0] * len(top_df)
-    )
-    bar_colors = [tokens["negative"] if v > 0 else tokens["teal_500"] for v in excess_vals]
-    texts = [
-        f"{format_brl(ex, compact=True, decimals=1)} ({disc:.1f}%)"
-        for ex, disc in zip(excess_vals, avg_disc_vals, strict=False)
+    cols_src = [
+        c
+        for c in (
+            "product_name",
+            "family",
+            "abc_xyz_class",
+            "stock_units",
+            "forecast_30d_units",
+            "reorder_point_units",
+            "suggested_order_boxes",
+            "protected_revenue_brl",
+        )
+        if c in df.columns
     ]
-
-    fig = go.Figure(
-        go.Bar(
-            x=excess_vals,
-            y=top_df["family"].astype(str).tolist(),
-            orientation="h",
-            marker={"color": bar_colors},
-            customdata=avg_disc_vals,
-            text=texts,
-            textposition="outside",
-            cliponaxis=False,
-            hovertemplate=(
-                "<b>%{y}</b><br>Excesso Fora do Teto: R$ %{x:,.2f}<br>"
-                "Desconto Médio: %{customdata:.1f}%<extra></extra>"
-            ),
+    view = (
+        df[cols_src]
+        .head(30)
+        .rename(
+            columns={
+                "product_name": "Produto",
+                "family": "Família",
+                "abc_xyz_class": "Célula",
+                "stock_units": "Est. (un)",
+                "forecast_30d_units": "Dem. 30d",
+                "reorder_point_units": "ROP",
+                "suggested_order_boxes": "Ordem (cx)",
+                "protected_revenue_brl": "Receita Prot.",
+            }
         )
     )
-    max_x = max(max(excess_vals, default=0.0) * 1.28, 1.0)
-    fig.update_layout(
-        template=template_name,
-        title=None,
-        height=245,
-        margin={"l": 16, "r": 64, "t": 12, "b": 16},
-        xaxis={
-            "title": {"text": "Excesso Fora do Teto (R$)", "standoff": 8},
-            "range": [0, max_x],
-            "automargin": True,
-        },
-        yaxis={"title": None, "automargin": True},
+    fmt_map: dict[Any, str | Callable[[object], str] | None] = {
+        k: fn
+        for k, fn in (
+            ("Est. (un)", fmt_int_cell),
+            ("Dem. 30d", fmt_int_cell),
+            ("ROP", fmt_int_cell),
+            ("Ordem (cx)", fmt_int_cell),
+            ("Receita Prot.", fmt_brl_cell),
+        )
+        if k in view.columns
+    }
+    st.dataframe(
+        view.style.format(fmt_map),
+        use_container_width=True,
+        height=185,
+        hide_index=True,
+        column_config={"Célula": st.column_config.TextColumn("Célula", width="small")},
     )
-    return fig

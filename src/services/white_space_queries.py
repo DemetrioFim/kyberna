@@ -128,7 +128,9 @@ def query_white_space_coverage_kpis(
     ws_sql = f"""
     SELECT
         COUNT(DISTINCT ws.customer_id)::INTEGER AS eligible_customers,
-        COUNT(*)::INTEGER AS total_offers
+        COUNT(*)::INTEGER AS total_offers,
+        COUNT(DISTINCT CASE WHEN ws.apriori_lift >= 1.20 THEN ws.customer_id END)::INTEGER
+            AS high_lift_customers_count
     FROM gold.mart_white_space ws
     JOIN gold.dim_customer c ON ws.customer_id = c.customer_id
     LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id
@@ -137,6 +139,8 @@ def query_white_space_coverage_kpis(
     ws_df = repo.query(ws_sql, params)
     eligible = int(ws_df["eligible_customers"].iloc[0]) if not ws_df.empty else 0
     offers = int(ws_df["total_offers"].iloc[0]) if not ws_df.empty else 0
+    high_lift_cnt = int(ws_df["high_lift_customers_count"].iloc[0]) if not ws_df.empty else 0
+    high_lift_pct = round((high_lift_cnt / eligible) * 100.0, 1) if eligible > 0 else 0.0
 
     mix_clauses: list[str] = ["f.scenario_id = ?"]
     mix_params: list[Any] = [scenario_id]
@@ -184,6 +188,8 @@ def query_white_space_coverage_kpis(
         "white_space_total_offers": offers,
         "avg_families_per_customer": avg_fams,
         "total_catalog_families": max(total_fams, 1),
+        "high_lift_customers_count": high_lift_cnt,
+        "high_lift_coverage_pct": high_lift_pct,
     }
 
 

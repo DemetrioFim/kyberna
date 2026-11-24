@@ -143,10 +143,19 @@ def predict_price_response_curve(
     return np.asarray(model.predict(grid), dtype=np.float64)
 
 
-def compute_optimal_price_change_pct(beta_hat: float, avg_margin_ratio: float) -> float:
-    """Encontra variação de preço em [-25%, +25%] que maximiza a margem de contribuição esperada."""
+def compute_optimal_price_change_pct(
+    beta_hat: float,
+    avg_margin_ratio: float,
+    *,
+    min_delta: float = -0.25,
+    max_delta: float = 0.25,
+) -> float:
+    """Encontra variação de preço dentro da faixa competitiva que maximiza a margem esperada."""
     cost_ratio = float(np.clip(1.0 - avg_margin_ratio, 0.15, 0.85))
-    price_mult = 1.0 + OPTIMAL_PRICE_DELTA_GRID
+    grid_vals = OPTIMAL_PRICE_DELTA_GRID
+    mask = (grid_vals >= min_delta - 1e-9) & (grid_vals <= max_delta + 1e-9)
+    grid = grid_vals[mask] if bool(np.any(mask)) else grid_vals
+    price_mult = 1.0 + grid
     unit_margin = price_mult - cost_ratio
     expected_profit = np.where(
         unit_margin > 0.0,
@@ -154,7 +163,7 @@ def compute_optimal_price_change_pct(beta_hat: float, avg_margin_ratio: float) -
         -1e9,
     )
     best_idx = int(np.argmax(expected_profit))
-    return float(OPTIMAL_PRICE_DELTA_GRID[best_idx])
+    return float(grid[best_idx])
 
 
 def build_elasticity_prescription(family: str, beta_hat: float, optimal_dp: float) -> str:

@@ -12,6 +12,7 @@ from src.ml.churn import build_customer_risk_mart
 from src.ml.elasticity import build_price_elasticity_mart
 from src.ml.forecast import build_forecast_30d_mart
 from src.ml.inventory import build_inventory_position_mart
+from src.ml.pricing import build_pricing_marts
 from src.ml.rep_performance import build_rep_performance_mart
 from src.ml.rfm import build_rfm_mart
 from src.ml.white_space import build_white_space_mart
@@ -169,5 +170,10 @@ def build_gold_marts(
     # Mart analítico de Elasticidade-Preço por Família (Log-Log Bootstrap + LGBM Monotônico)
     elasticity_df = build_price_elasticity_mart(con, scenario_id=scenario_id)
     counts["mart_price_elasticity"] = len(elasticity_df)
+
+    # Marts analíticos de Precificação Contextual (Banda Quantílica + Linear SHAP)
+    realization_df, drivers_df = build_pricing_marts(con, scenario_id=scenario_id)
+    counts["mart_price_realization"] = len(realization_df)
+    counts["mart_pricing_drivers"] = len(drivers_df)
 
     return counts

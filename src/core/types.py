@@ -31,6 +31,8 @@ GoldTable = Literal[
     "mart_forecast_30d",
     "mart_inventory_position",
     "mart_price_elasticity",
+    "mart_price_realization",
+    "mart_pricing_drivers",
     "mart_branch_transfers",
     "inventory_snapshot",
 ]

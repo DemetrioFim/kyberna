@@ -21,6 +21,10 @@ class InventoryKpisDTO(BaseModel):
     stockout_curve_a_revenue_brl: float = 0.0
     forecast_30d_units_total: int = 0
     forecast_30d_revenue_brl: float = 0.0
+    weighted_wape_pct: float = 0.0
+    last_30d_actual_units: int = 0
+    forecast_vs_30d_pct: float = 0.0
+    seasonal_peak_skus_count: int = 0
 
 
 class SkuForecastSeriesDTO(BaseModel):
@@ -51,3 +55,5 @@ class InventoryPageDTO(BaseModel):
     locked_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     treemap_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     sku_options_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    family_supply_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    pcp_plan_df: pd.DataFrame = Field(default_factory=pd.DataFrame)

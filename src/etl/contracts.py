@@ -19,6 +19,10 @@ from src.etl.gold_contracts import (
     GoldRfmSchema,
     GoldWhiteSpaceSchema,
 )
+from src.etl.pricing_contracts import (
+    GoldPriceRealizationSchema,
+    GoldPricingDriversSchema,
+)
 
 __all__ = [
     "VALID_SCENARIO_IDS",
@@ -33,6 +37,8 @@ __all__ = [
     "GoldInventoryPositionSchema",
     "GoldInventorySnapshotSchema",
     "GoldPriceElasticitySchema",
+    "GoldPriceRealizationSchema",
+    "GoldPricingDriversSchema",
     "GoldRepPerformanceSchema",
     "GoldRfmSchema",
     "GoldWhiteSpaceSchema",

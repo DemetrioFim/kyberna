@@ -29,6 +29,8 @@ from src.services.inventory_service import (
     build_inventory_dashboard,
     get_sku_forecast_series,
 )
+from src.services.pricing_dto import PricingPageDTO, PricingShapDTO
+from src.services.pricing_service import build_pricing_dashboard, get_pricing_shap_waterfall
 from src.services.simulator import query_family_elasticity
 from src.services.temperance_service import build_temperance_dashboard
 from src.ui.state import ComparisonMode, fetch_date_bounds, resolve_period_bounds
@@ -267,3 +269,63 @@ def cached_simulation_baseline(
 ) -> SimulationBaseline:
     """Constrói o `SimulationBaseline` tipado a partir dos KPIs executivos e elasticidade."""
     return SimulationBaseline.from_executive_kpis(kpis, beta_elasticity=beta_elasticity)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def cached_pricing_dashboard(
+    scenario_id: ScenarioId,
+    *,
+    regiao: str = "Todas",
+    uf: str = "Todas",
+    families: tuple[str, ...] = (),
+    sales_reps: tuple[str, ...] = (),
+    period_preset: str = "all",
+    comparison_mode: ComparisonMode = "pop",
+    selected_month: str | None = None,
+    selected_quarter: str | None = None,
+    selected_semester: str | None = None,
+    custom_start_date: str | None = None,
+    custom_end_date: str | None = None,
+) -> PricingPageDTO:
+    """Consulta e agrega os dados de Precificação Contextual com cache (TTL 5 min)."""
+    repo = get_cached_repository()
+    min_d, max_d = get_cached_date_bounds(scenario_id)
+    bounds = resolve_period_bounds(
+        period_preset,
+        selected_month,
+        comparison_mode=comparison_mode,
+        selected_quarter=selected_quarter,
+        selected_semester=selected_semester,
+        rolling_end_month=selected_month,
+        custom_start=custom_start_date,
+        custom_end=custom_end_date,
+        min_date=min_d,
+        max_date=max_d,
+    )
+    return build_pricing_dashboard(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+        start_date_key=bounds.start_date_key,
+        end_date_key=bounds.end_date_key,
+    )
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def cached_pricing_shap(
+    scenario_id: ScenarioId,
+    *,
+    scope_type: str,
+    scope_id: str,
+) -> PricingShapDTO:
+    """Carrega os 5 drivers Linear SHAP de um escopo (Família ou SKU) em cache."""
+    repo = get_cached_repository()
+    return get_pricing_shap_waterfall(
+        repo,
+        scenario_id,
+        scope_type=scope_type,
+        scope_id=scope_id,
+    )
