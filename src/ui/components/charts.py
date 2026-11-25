@@ -148,12 +148,12 @@ def dual_trend(
         hovertemplate="<b>%{x}</b><br>Faturamento: R$ %{y:,.2f}<extra></extra>",
     )
 
-    # Linha: Margem Líquida % (Eixo Secundário Y2)
+    # Linha: Margem de Contribuição % (Eixo Secundário Y2)
     has_disc = "avg_discount_pct" in monthly_df.columns
     hover_line = (
-        "<b>%{x}</b><br>Margem: %{y:.1f}%<br>Desconto Médio: %{customdata:.1f}%<extra></extra>"
+        "<b>%{x}</b><br>MC %: %{y:.1f}%<br>Desconto Médio: %{customdata:.1f}%<extra></extra>"
         if has_disc
-        else "<b>%{x}</b><br>Margem Líquida: %{y:.1f}%<extra></extra>"
+        else "<b>%{x}</b><br>MC %: %{y:.1f}%<extra></extra>"
     )
     custom_d = monthly_df["avg_discount_pct"].tolist() if has_disc else None
 
@@ -161,7 +161,7 @@ def dual_trend(
         x=x_vals,
         y=monthly_df["margin_pct"].tolist(),
         customdata=custom_d,
-        name="Margem Líquida (%)",
+        name="Margem de Contribuição (%)",
         mode="lines+markers",
         line={"color": tokens["brass_500"], "width": 3},
         marker={"size": 8, "color": tokens["brass_500"]},

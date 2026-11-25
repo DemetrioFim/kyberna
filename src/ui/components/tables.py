@@ -39,8 +39,8 @@ def render_margin_drivers_table(
             "secondary_label": "Família / Região",
             "gross_revenue": "Fat. Bruto",
             "discount_pct": "Desc. %",
-            "contribution_margin": "Margem Líq.",
-            "margin_pct": "Margem %",
+            "contribution_margin": "MC (R$)",
+            "margin_pct": "MC %",
         }
     )
 
@@ -49,12 +49,12 @@ def render_margin_drivers_table(
         fmt_map["Fat. Bruto"] = fmt_brl_cell
     if "Desc. %" in display_df.columns:
         fmt_map["Desc. %"] = fmt_pct_cell
-    if "Margem Líq." in display_df.columns:
-        fmt_map["Margem Líq."] = fmt_brl_cell
+    if "MC (R$)" in display_df.columns:
+        fmt_map["MC (R$)"] = fmt_brl_cell
 
     column_config: dict[str, Any] = {
-        "Margem %": st.column_config.ProgressColumn(
-            "Margem %",
+        "MC %": st.column_config.ProgressColumn(
+            "MC %",
             format="%.1f%%",
             min_value=0.0,
             max_value=100.0,
@@ -100,8 +100,8 @@ def render_vampire_customers_expander(vampires_df: pd.DataFrame, customer_label:
                 "sales_rep_name": "RCA",
                 "gross_revenue": "Fat. Bruto",
                 "avg_discount_pct": "Desc. %",
-                "contribution_margin": "Margem Líq.",
-                "margin_pct": "Margem %",
+                "contribution_margin": "MC (R$)",
+                "margin_pct": "MC %",
             }
         )
         fmt_map: dict[Any, str | Callable[[object], str] | None] = {
@@ -109,8 +109,8 @@ def render_vampire_customers_expander(vampires_df: pd.DataFrame, customer_label:
             for k, fn in (
                 ("Fat. Bruto", fmt_brl_cell),
                 ("Desc. %", fmt_pct_cell),
-                ("Margem Líq.", fmt_brl_cell),
-                ("Margem %", fmt_pct_cell),
+                ("MC (R$)", fmt_brl_cell),
+                ("MC %", fmt_pct_cell),
             )
             if k in view.columns
         }

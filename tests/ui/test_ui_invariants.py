@@ -70,3 +70,70 @@ def test_no_unescaped_double_dollar_in_ui_captions() -> None:
             if literal_dollars + brl_calls >= 2:
                 violations.append(f"{py_file.name}:{node.lineno}")
     assert not violations, f"st.caption com potencial bug KaTeX (>=2 $): {violations}"
+
+
+def test_one_tab_bar_per_page_and_zero_in_components() -> None:
+    """Garante exatamente 1 barra st.tabs por página e 0 sub-abas em components/."""
+    ui_root = get_project_root() / "src" / "ui"
+    page_violations: list[str] = []
+    comp_violations: list[str] = []
+
+    def _count_st_tabs(py_file: Path) -> int:
+        tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        return sum(
+            1
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "tabs"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "st"
+        )
+
+    for page_file in sorted((ui_root / "pages").glob("*.py")):
+        if page_file.name == "__init__.py":
+            continue
+        count = _count_st_tabs(page_file)
+        if count != 1:
+            page_violations.append(f"{page_file.name}={count}")
+
+    for comp_file in sorted((ui_root / "components").glob("*.py")):
+        if comp_file.name == "__init__.py":
+            continue
+        count = _count_st_tabs(comp_file)
+        if count != 0:
+            comp_violations.append(f"{comp_file.name}={count}")
+
+    assert not page_violations, f"Páginas com quantidade inválida de st.tabs: {page_violations}"
+    assert not comp_violations, f"Componentes com sub-abas st.tabs proibidas: {comp_violations}"
+
+
+def test_no_margem_liquida_in_ui_strings() -> None:
+    """Impede regressão de 'Margem Líquida' em strings de UI (padronizado para Margem de Contribuição)."""
+    ui_root = get_project_root() / "src" / "ui"
+    target_files = sorted(
+        list((ui_root / "pages").glob("*.py")) + list((ui_root / "components").glob("*.py"))
+    )
+    violations: list[str] = []
+    for py_file in target_files:
+        if py_file.name == "__init__.py":
+            continue
+        tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        docstring_nodes: set[int] = set()
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.body
+                and isinstance(node.body[0], ast.Expr)
+                and isinstance(node.body[0].value, ast.Constant)
+            ):
+                docstring_nodes.add(id(node.body[0].value))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Constant)
+                and isinstance(node.value, str)
+                and id(node) not in docstring_nodes
+                and "margem líquida" in node.value.lower()
+            ):
+                violations.append(f"{py_file.name}:{node.lineno}")
+    assert not violations, f"Strings de UI com 'Margem Líquida' residual: {violations}"

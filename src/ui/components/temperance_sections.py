@@ -13,20 +13,8 @@ from src.services.dto import (
 from src.services.inventory_dto import InventoryPageDTO
 from src.ui.components.kpi_card import KpiAccent, render_kpi_card
 from src.ui.components.prescription import render_prescription_box
-from src.ui.formatting import format_brl, format_int
+from src.ui.formatting import fmt_brl_cell, fmt_int_cell, format_brl
 from src.ui.theme import get_theme_tokens
-
-
-def _fmt_brl(x: object) -> str:
-    return format_brl(float(str(x)))
-
-
-def _fmt_pct(x: object) -> str:
-    return f"{float(str(x)):.1f}%"
-
-
-def _fmt_int(x: object) -> str:
-    return format_int(int(float(str(x))))
 
 
 def render_temperance_kpi_cards(
@@ -117,11 +105,14 @@ def render_temperance_mix_kpis(
     with c1:
         m_acc: KpiAccent = "alert_warn" if ek.contribution_margin_pct < ek.margin_target_pct else "green"
         render_kpi_card(
-            title="[Finanças] Margem Líquida",
+            title="[Finanças] Margem de Contribuição",
             value=format_brl(ek.contribution_margin, compact=True),
             subfooter_left=f"{ek.contribution_margin_pct:.1f}% vs. Meta {ek.margin_target_pct:.1f}%",
             accent=m_acc,
-            help_text="Resultado financeiro líquido após descontos, tributos, CMV, comissões e frete.",
+            help_text=(
+                "Margem de contribuição apurada após descontos, tributos, CMV, comissões e frete "
+                "(antes de despesas fixas)."
+            ),
         )
     with c2:
         ccc_acc: KpiAccent = "alert_neg" if fk.cash_conversion_cycle_days > 75.0 else "teal"
@@ -172,12 +163,23 @@ def render_temperance_mix_kpis(
         )
 
 
+def _weighted_mc_pct(df: pd.DataFrame) -> float:
+    """Calcula margem de contribuição percentual ponderada por faturamento bruto."""
+    if df.empty or "contribution_margin" not in df.columns or "gross_revenue" not in df.columns:
+        return 0.0
+    gross_sum = float(df["gross_revenue"].sum())
+    if gross_sum <= 0.0:
+        return 0.0
+    return float(df["contribution_margin"].sum()) / gross_sum * 100.0
+
+
 def render_champions_vampires_kpis(
     exec_dto: ExecutivePageDTO,
     temp_dto: TemperancePageDTO,
     customer_plural: str,
 ) -> None:
     """Renderiza os 5 KPIs da Aba 3 (Matriz Campeões vs. Vampiros 360) de Temperança."""
+    _ = temp_dto
     prod_gen_sum = (
         float(exec_dto.top_generators_df["contribution_margin"].sum())
         if not exec_dto.top_generators_df.empty
@@ -208,6 +210,19 @@ def render_champions_vampires_kpis(
         if not exec_dto.top_customer_destroyers_df.empty
         else 0.0
     )
+    champ_df = (
+        exec_dto.top_customer_generators_df
+        if not exec_dto.top_customer_generators_df.empty
+        else exec_dto.top_generators_df
+    )
+    vamp_df = (
+        exec_dto.top_customer_destroyers_df
+        if not exec_dto.top_customer_destroyers_df.empty
+        else exec_dto.top_destroyers_df
+    )
+    champ_mc_pct = _weighted_mc_pct(champ_df)
+    vamp_mc_pct = _weighted_mc_pct(vamp_df)
+    spread_pp = champ_mc_pct - vamp_mc_pct
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
@@ -232,7 +247,7 @@ def render_champions_vampires_kpis(
             value=format_brl(cust_gen_sum, compact=True),
             subfooter_left="Contas âncora de rentabilidade",
             accent="teal",
-            help_text="Margem líquida gerada pelas 10 contas mais lucrativas da carteira.",
+            help_text="Margem de contribuição gerada pelas 10 contas mais lucrativas da carteira.",
         )
     with c4:
         render_kpi_card(
@@ -244,11 +259,14 @@ def render_champions_vampires_kpis(
         )
     with c5:
         render_kpi_card(
-            title="Descontos Fora de Tabela",
-            value=format_brl(temp_dto.kpis.excess_discount_brl, compact=True, decimals=1),
-            subfooter_left=f"{temp_dto.kpis.excess_discount_pct_of_discount:.1f}% do total",
-            accent="alert_neg",
-            help_text="Parcela dos descontos concedidos acima das alçadas definidas por porte.",
+            title="Spread de Margem (Camp. vs. Vamp.)",
+            value=f"{spread_pp:+.1f} p.p.",
+            subfooter_left=f"Campeões: {champ_mc_pct:.1f}% vs. Vampiros: {vamp_mc_pct:.1f}%",
+            accent="brass",
+            help_text=(
+                "Diferença de margem de contribuição média ponderada entre as 10 contas Campeãs "
+                "e as 10 contas Vampiras."
+            ),
         )
 
 
@@ -287,31 +305,22 @@ def render_violations_rep_chart(df: pd.DataFrame, theme_mode: str) -> go.Figure:
     return fig
 
 
-def render_rep_policy_violations_table(dto: TemperancePageDTO) -> None:
-    """Renderiza tabela direta de auditoria de desvios por representante (sem sub-abas)."""
-    if dto.policy_violations_by_rep_df.empty:
-        st.info("Nenhuma violação de política identificada para a seleção atual.")
+def render_priority_actions_360_table(actions_df: pd.DataFrame) -> None:
+    """Renderiza a Fila Priorizada de Ações 360 consolidando as 4 Virtudes."""
+    if actions_df.empty:
+        st.info("Nenhuma ação prioritária identificada para a seleção atual.")
         return
-    cols_show = ["rep_name", "total_orders", "gross_revenue", "avg_discount_pct", "excess_discount_brl"]
-    df_rep_table = dto.policy_violations_by_rep_df[
-        [c for c in cols_show if c in dto.policy_violations_by_rep_df.columns]
-    ].copy()
-    df_rep_table.columns = [
-        "Representante",
-        "Pedidos",
-        "Faturamento (R$)",
-        "Desc. Médio %",
-        "Excesso Fora do Teto (R$)",
+    cols_show = ["priority_rank", "owner_pillar", "initiative", "scope_detail", "recoverable_brl"]
+    df_show = actions_df[[c for c in cols_show if c in actions_df.columns]].copy()
+    df_show.columns = [
+        "#",
+        "Pilar / Página Dona",
+        "Iniciativa Prescritiva",
+        "Escopo",
+        "Potencial (R$)",
     ]
     st.dataframe(
-        df_rep_table.head(10).style.format(
-            {
-                "Faturamento (R$)": _fmt_brl,
-                "Desc. Médio %": _fmt_pct,
-                "Excesso Fora do Teto (R$)": _fmt_brl,
-                "Pedidos": _fmt_int,
-            }
-        ),
+        df_show.style.format({"#": fmt_int_cell, "Potencial (R$)": fmt_brl_cell}),
         use_container_width=True,
         hide_index=True,
         height=185,

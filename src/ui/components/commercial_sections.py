@@ -79,16 +79,17 @@ def render_commercial_cross_sell_kpis(comm_dto: CommercialPageDTO) -> None:
         )
     with c5:
         render_kpi_card(
-            title="Cobertura de Oportunidades",
-            value=f"{format_int(eligible_cnt)} lojas",
+            title="% Base com Oferta Alto Lift (>1,2x)",
+            value=f"{k.high_lift_coverage_pct:.1f}%",
             subfooter_left=(
-                f"{format_int(total_offers)} ofertas · Mix "
-                f"{k.avg_families_per_customer:.1f}/{k.total_catalog_families}"
+                f"{format_int(k.high_lift_customers_count)} de {format_int(eligible_cnt)} lojas · "
+                f"{format_int(total_offers)} ofertas"
             ),
             accent="teal",
             help_text=(
-                "Total real de lojas elegíveis na carteira com lacuna de mix e média de famílias "
-                "compradas por cliente."
+                "Proporção de lojas elegíveis com recomendação Apriori de alta alavancagem "
+                f"(Lift >= 1,20x). Mix médio atual: {k.avg_families_per_customer:.1f}/"
+                f"{k.total_catalog_families} famílias."
             ),
         )
 
@@ -165,11 +166,14 @@ def render_commercial_reps_kpis(
         )
     with c3:
         render_kpi_card(
-            title="Margem Líquida Média Equipe",
+            title="Margem de Contribuição Média",
             value=f"{avg_margin:.1f}%",
-            subfooter_left="Rentabilidade média dos RCAs",
+            subfooter_left="MC % média da equipe",
             accent="green" if avg_margin >= 25.0 else "alert_warn",
-            help_text="Margem média obtida pela equipe após descontos, comissões e frete.",
+            help_text=(
+                "Margem de contribuição média obtida pela equipe após descontos, comissões e frete "
+                "(antes de despesas fixas)."
+            ),
         )
     with c4:
         render_kpi_card(

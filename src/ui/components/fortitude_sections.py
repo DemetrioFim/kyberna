@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.services.dto import FortitudePageDTO
+from src.services.dto import FortitudePageDTO, TemperancePageDTO
 from src.ui.components.kpi_card import KpiAccent, render_kpi_card
 from src.ui.components.prescription import render_prescription_box
 from src.ui.formatting import fmt_brl_cell, fmt_pct_cell, format_brl
@@ -18,9 +18,14 @@ def _style_aging_stage(val: object) -> str:
     return ""
 
 
-def render_fortitude_kpi_cards(dto: FortitudePageDTO) -> None:
-    """Renderiza os 5 KPI Cards de solvência, break-even, ciclo, concentração e aging."""
+def render_fortitude_kpi_cards(
+    dto: FortitudePageDTO,
+    *,
+    temp_dto: TemperancePageDTO | None = None,
+) -> None:
+    """Renderiza os 5 KPI Cards de solvência, break-even, ciclo, prazo e concentração."""
     k = dto.kpis
+    term_leak = temp_dto.kpis.financial_term_leak_brl if temp_dto is not None else 0.0
     c1, c2, c3, c4, c5 = st.columns(5)
 
     with c1:
@@ -79,31 +84,25 @@ def render_fortitude_kpi_cards(dto: FortitudePageDTO) -> None:
         )
 
     with c4:
-        conc_high = k.top5_customers_share_pct > 35.0
         render_kpi_card(
-            title="Concentração Top 5",
-            value=f"{k.top5_customers_share_pct:.1f}%",
-            subfooter_left=f"Top 10: {k.top10_customers_share_pct:.1f}%",
-            delta_html=f"Top 2 fam.: {k.top2_families_share_pct:.1f}%",
-            accent="alert_warn" if conc_high else "teal",
-            help_text=(
-                "Percentual da receita líquida dos últimos 12 meses concentrado nos 5 maiores "
-                "clientes. Acima de 35% eleva o risco de ruptura comercial."
-            ),
+            title="Custo Financeiro de Prazo",
+            value=format_brl(term_leak, compact=True, decimals=1),
+            subfooter_left="Prazo > 30d (1,35% a.m.)",
+            accent="alert_warn" if term_leak > 0 else "green",
+            help_text=("Custo financeiro implícito de carregar duplicatas acima do prazo padrão de 30 dias."),
         )
 
     with c5:
-        risk_accent: KpiAccent = "alert_neg" if k.at_risk_portfolio_pct >= 20.0 else "alert_warn"
+        conc_high = k.top5_customers_share_pct > 35.0
         render_kpi_card(
-            title="Receita Líq. em Atraso (>1,5x)",
-            value=format_brl(k.at_risk_portfolio_brl, compact=True, decimals=1),
-            subfooter_left=f"{k.at_risk_portfolio_pct:.1f}% da receita líq. 12m",
-            delta_html=f"{k.at_risk_customers_count} clientes em atraso",
-            accent=risk_accent,
+            title="Concentração Top 10",
+            value=f"{k.top10_customers_share_pct:.1f}%",
+            subfooter_left=f"Top 5: {k.top5_customers_share_pct:.1f}%",
+            delta_html=f"Top 2 fam.: {k.top2_families_share_pct:.1f}%",
+            accent="alert_warn" if conc_high else "teal",
             help_text=(
-                "Soma da receita líquida dos últimos 12 meses de clientes cujo atraso de recompra "
-                "ultrapassou 1,5x o ciclo médio (critério contábil de caixa, distinto do potencial "
-                "bruto anualizado exibido em 2. Fortaleza)."
+                "Percentual da receita líquida dos últimos 12 meses concentrado nos 10 maiores "
+                "clientes (e nos 5 maiores no rodapé)."
             ),
         )
 

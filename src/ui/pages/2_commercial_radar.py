@@ -4,29 +4,34 @@ import streamlit as st
 
 from src.core.scenarios import load_scenario_config
 from src.services.dto import ExecutivePageDTO, FortitudePageDTO, TemperancePageDTO
+from src.services.pricing_dto import PricingPageDTO
 from src.ui.cache import (
     cached_executive_dashboard,
     cached_fortitude_dashboard,
+    cached_pricing_dashboard,
     cached_temperance_dashboard,
 )
 from src.ui.components.charts import dual_trend, waterfall_margin
 from src.ui.components.fortitude_charts import (
-    build_aging_buckets_chart,
     build_breakeven_curve_chart,
-    build_concentration_chart,
     build_cycle_comparison_chart,
 )
 from src.ui.components.fortitude_sections import (
-    render_aging_customers_table,
-    render_concentration_tables,
     render_fortitude_kpi_cards,
     render_fortitude_verdict_section,
 )
-from src.ui.components.justice_sections import render_financial_aging_kpis, render_term_leak_table
+from src.ui.components.justice_sections import render_term_leak_table
 from src.ui.components.prescription import (
     render_cockpit_header,
     render_prescription_box,
     section_header,
+)
+from src.ui.components.pricing_sections import (
+    render_pricing_boxplot_chart,
+    render_pricing_deviations_table,
+    render_pricing_kpis,
+    render_pricing_shap_fragment,
+    render_pricing_verdict_section,
 )
 from src.ui.components.prudence_sections import (
     render_monthly_sales_table_section,
@@ -78,7 +83,7 @@ def _render_tab_dre(
     with col_l:
         section_header(
             "Decomposição DRE Completa (Waterfall)",
-            "Do faturamento bruto de tabela até a margem de contribuição líquida",
+            "Do faturamento bruto de tabela até a margem de contribuição",
             help_text="Deduz descontos comerciais, impostos (ICMS/PIS/COFINS), CPV, comissões e frete.",
         )
         st.plotly_chart(
@@ -88,7 +93,7 @@ def _render_tab_dre(
         )
     with col_r:
         section_header(
-            "Ritmo Mensal: Faturamento vs. Margem %",
+            "Ritmo Mensal: Faturamento vs. Margem de Contribuição %",
             "Evolução temporal de volume frente à meta de rentabilidade",
             help_text="Identifica se ganhos de volume estão ocorrendo com sacrifício de margem.",
         )
@@ -125,7 +130,7 @@ def _render_tab_cash_cycle(
     theme_mode: str,
 ) -> None:
     """Aba 2: Fluxo de Caixa, Runway & Ciclo (NCG)."""
-    render_fortitude_kpi_cards(fort_dto)
+    render_fortitude_kpi_cards(fort_dto, temp_dto=temp_dto)
     col_l, col_r = st.columns([1.0, 1.0])
     with col_l:
         section_header(
@@ -162,63 +167,51 @@ def _render_tab_cash_cycle(
         render_fortitude_verdict_section(fort_dto)
 
 
-def _render_tab_aging(
-    fort_dto: FortitudePageDTO,
-    temp_dto: TemperancePageDTO,
-    theme_mode: str,
+def _render_tab_pricing(
+    state: AppState,
+    pricing_dto: PricingPageDTO,
 ) -> None:
-    """Aba 3: Aging de Recebíveis & Concentração Pareto."""
-    render_financial_aging_kpis(fort_dto, temp_dto)
-    col_l, col_r = st.columns([1.0, 1.0])
+    """Aba 3: Precificação, Banda Ideal & Drivers (SHAP)."""
+    render_pricing_kpis(pricing_dto)
+    col_l, col_r = st.columns([1.0, 1.05])
     with col_l:
         section_header(
-            "Exposição por Faixa de Aging (Atraso)",
-            "Buckets de atraso no ciclo de recompra (proxy comportamental de inadimplência)",
+            "Banda de Preço Realizado vs. Contextual (Boxplot)",
+            "Dispersão real (P05-P95) sobre a banda justa [P25-P75] e piso de 15% MC",
             help_text=(
-                "Proxy comportamental calculado pela razão entre dias sem compra e o ciclo médio "
-                "de recompra de cada conta (até integração com títulos a receber via ERP)."
+                "Vendas abaixo da faixa verde translúcida ocorreram abaixo do esperado para porte, "
+                "volume e frete regionais."
             ),
         )
-        st.plotly_chart(
-            build_aging_buckets_chart(fort_dto.aging_buckets_df, theme_mode=theme_mode),
-            use_container_width=True,
-            theme=None,
-        )
-        st.markdown(
-            "<div style='font-size:0.72rem; color:var(--kyb-text-muted); margin-top:-0.25rem;'>"
-            "Proxy comportamental: atraso relativo sobre o ciclo histórico de recompra (pré-ERP)."
-            "</div>",
-            unsafe_allow_html=True,
-        )
+        render_pricing_boxplot_chart(pricing_dto, theme_mode=state.theme_mode)
     with col_r:
         section_header(
-            "Concentração Pareto — Top 10 Clientes",
-            "Peso acumulado das maiores contas sobre a receita líquida anual",
-        )
-        st.plotly_chart(
-            build_concentration_chart(fort_dto.customer_concentration_df, theme_mode=theme_mode),
-            use_container_width=True,
-            theme=None,
-        )
-
-    col_bl, col_br = st.columns([1.05, 1.0])
-    with col_bl:
-        section_header(
-            "Auditoria de Vencimentos (Aging List · Ciclo)",
-            "Priorização de cobrança/resgate por atraso sobre o ciclo médio de recompra",
+            "Drivers de Preço — SHAP Waterfall (Regressão)",
+            "Decomposição exata da tabela base até o preço esperado vs. praticado real",
             help_text=(
-                "Ordena clientes com maior atraso relativo ao ciclo histórico de recompra "
-                "(proxy comportamental pré-ERP)."
+                "Explica quanto do desconto decorre de contrapartidas legítimas e escancara o "
+                "resíduo sem lastro comercial."
             ),
         )
-        render_aging_customers_table(fort_dto)
+        render_pricing_shap_fragment(state.scenario_id, pricing_dto, theme_mode=state.theme_mode)
+
+    col_bl, col_br = st.columns([1.2, 1.0])
+    with col_bl:
+        section_header(
+            "Auditoria de Desvios de Preço (Fora da Banda)",
+            "SKUs com maior vazamento financeiro abaixo do piso contextual P25",
+        )
+        render_pricing_deviations_table(pricing_dto)
     with col_br:
-        section_header("Concentração Pareto (Top 20)", "Dependência individual e participação acumulada")
-        render_concentration_tables(fort_dto)
+        section_header(
+            "Veredito de Política de Preços",
+            "Contenção de subprecificação e captura em famílias inelásticas",
+        )
+        render_pricing_verdict_section(pricing_dto)
 
 
 def render_page() -> None:
-    """Renderiza a Página 3 — 3. Justiça (Visão Financeira) estilo PowerBI."""
+    """Renderiza a Página 3 — 3. Justiça (Governança Financeira, Caixa & Precificação)."""
     state = get_app_state()
     labels = load_scenario_config(state.scenario_id).labels
 
@@ -258,32 +251,46 @@ def render_page() -> None:
         custom_start_date=state.custom_start_date,
         custom_end_date=state.custom_end_date,
     )
+    pricing_dto = cached_pricing_dashboard(
+        state.scenario_id,
+        regiao=state.regiao,
+        uf=state.uf,
+        families=tuple(state.families),
+        sales_reps=tuple(state.sales_reps),
+        period_preset=state.period_preset,
+        comparison_mode=state.comparison_mode,
+        selected_month=state.selected_month,
+        selected_quarter=state.selected_quarter,
+        selected_semester=state.selected_semester,
+        custom_start_date=state.custom_start_date,
+        custom_end_date=state.custom_end_date,
+    )
 
     render_cockpit_header(
-        title="Justiça · Governança Financeira, DRE & Solvência de Caixa",
+        title="Justiça · Governança Financeira, Caixa & Precificação",
         virtue_badge="3. Justiça",
         headline_title=exec_dto.headline_title,
         headline_text=exec_dto.headline_text,
         as_of_date_label=exec_dto.as_of_date_label,
         help_text=(
-            "Visão financeira completa em 3 abas estilo PowerBI: DRE Gerencial & Margem Real, "
-            "Fluxo de Caixa/NCG e Aging de Recebíveis & Concentração Pareto."
+            "Visão financeira completa em 3 abas estilo PowerBI: DRE Gerencial & Margem de Contribuição, "
+            "Fluxo de Caixa/NCG e Precificação Contextual (Banda Ideal + SHAP)."
         ),
     )
 
-    tab_dre, tab_cash, tab_aging = st.tabs(
+    tab_dre, tab_cash, tab_pricing = st.tabs(
         [
             "DRE Gerencial & Margem Real",
             "Fluxo de Caixa, Runway & Ciclo (NCG)",
-            "Aging de Recebíveis & Concentração Pareto",
+            "Precificação, Banda Ideal & Drivers (SHAP)",
         ]
     )
     with tab_dre:
         _render_tab_dre(state, exec_dto, labels.customer_plural)
     with tab_cash:
         _render_tab_cash_cycle(fort_dto, temp_dto, state.theme_mode)
-    with tab_aging:
-        _render_tab_aging(fort_dto, temp_dto, state.theme_mode)
+    with tab_pricing:
+        _render_tab_pricing(state, pricing_dto)
 
 
 render_page()

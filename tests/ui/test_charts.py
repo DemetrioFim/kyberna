@@ -251,7 +251,7 @@ def test_quadrant_scatter_hover_uses_pt_br_titles() -> None:
     assert "gross_revenue" not in hover
     assert "margin_pct" not in hover
     assert "Faturamento Bruto (R$)" in hover
-    assert "Margem Líquida (%)" in hover
+    assert "Margem de Contribuição (%)" in hover
     assert fig.data[0].mode == "markers"
 
 
@@ -284,3 +284,34 @@ def test_tornado_chart_customdata_labels() -> None:
     assert len(fig.data) == 2
     assert "+5% CMV" in list(fig.data[0].customdata)
     assert "-5% CMV" in list(fig.data[1].customdata)
+
+
+def test_profit_curve_chart_renders_price_band_vrect() -> None:
+    """Valida sombreamento da Banda Ideal [P25-P75] e marcador Ótimo na Banda."""
+    from src.services.dto import ExecutiveKpisDTO, SimulationBaseline, SimulationLevers
+    from src.services.simulator import simulate
+    from src.ui.components.simulator_charts import profit_curve_chart
+
+    kpis = ExecutiveKpisDTO(
+        gross_revenue=1_000_000.0,
+        discount_amount=80_000.0,
+        net_price_revenue=920_000.0,
+        tax_amount=160_000.0,
+        net_revenue=760_000.0,
+        cogs=430_000.0,
+        commission_amount=46_000.0,
+        freight_amount=12_000.0,
+        contribution_margin=272_000.0,
+        contribution_margin_pct=27.2,
+        total_orders=500,
+        active_customers=80,
+        avg_ticket=2000.0,
+        total_boxes=1200.0,
+        total_units=15000,
+    )
+    levers = SimulationLevers(band_low_change_pct=-0.05, band_high_change_pct=0.08)
+    res = simulate(SimulationBaseline.from_executive_kpis(kpis, beta_elasticity=-1.2), levers)
+    fig = profit_curve_chart(res, 0.0, band_low_pct=-5.0, band_high_pct=8.0, theme_mode="light")
+
+    assert len(fig.layout.shapes) >= 1
+    assert any(tr.name == "Ótimo na Banda" for tr in fig.data)

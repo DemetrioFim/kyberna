@@ -27,7 +27,8 @@ def test_fortitude_page_full_render() -> None:
     assert "Potencial White Space" in all_markdown
     assert "Confiança & Suporte (Apriori)" in all_markdown
     assert "Alavancagem Máx. (Lift)" in all_markdown
-    assert "Cobertura de Oportunidades" in all_markdown
+    assert "% Base com Oferta Alto Lift (>1,2x)" in all_markdown
+    assert "Cobertura de Oportunidades" not in all_markdown
     assert "Mapa de Oportunidades: Família x Segmento RFM" in all_markdown
     assert "Regras de Associação Apriori (Suporte x Confiança x Lift)" in all_markdown
     assert any(r.key == "ws_apriori_level" for r in at.radio)
@@ -36,14 +37,17 @@ def test_fortitude_page_full_render() -> None:
     assert rfm_sb.value == "Todos"
     assert fam_sb.value == "Todas"
 
-    # Aba 2: Risco / Churn & Oportunidades (sem KPI duplicado da Aba 1)
+    # Aba 2: Risco / Churn & Oportunidades (conciliação exata Vampiros 4 == 4)
     assert "em Risco" in all_markdown
     assert "Receita Anual em Risco" in all_markdown
     assert "Clientes Vampiros (<15% MC)" in all_markdown
+    assert any("Clientes Vampiros (<15% MC · 4 contas)" in exp.label for exp in at.expander)
     assert "Positivação de Carteira" in all_markdown
 
-    # Aba 3: Equipe Comercial (RCAs)
+    # Aba 3: Equipe Comercial (RCAs) com padronização MC %
     assert "Equipe Ativa" in all_markdown
+    assert "Margem de Contribuição Média" in all_markdown
+    assert "Margem Líquida Média" not in all_markdown
     assert "Top RCAs por Desconto Fora do Teto" in all_markdown
 
     # Tabelas e botões de exportação comercial (.xlsx e .csv)

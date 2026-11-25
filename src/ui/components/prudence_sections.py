@@ -73,30 +73,31 @@ def render_prudence_kpis(dto: ExecutivePageDTO, customer_plural: str) -> None:
             "alert_warn" if dto.kpis.contribution_margin_pct < dto.kpis.margin_target_pct else "gold"
         )
         render_kpi_card(
-            title="Margem Líquida %",
+            title="Margem de Contribuição %",
             value=format_pct(dto.kpis.contribution_margin_pct),
             subfooter_left=f"Meta: {dto.kpis.margin_target_pct:.1f}%",
             delta_html=margin_delta,
             accent=margin_accent,
             help_text=(
-                "Índice de rentabilidade real (Margem de Contribuição ÷ Faturamento Bruto). "
-                f"Meta estipulada de governança: {dto.kpis.margin_target_pct:.1f}%."
+                "Índice de rentabilidade operacional (Margem de Contribuição ÷ Faturamento Bruto) "
+                f"antes de despesas fixas. Meta: {dto.kpis.margin_target_pct:.1f}%."
             ),
         )
 
     with col5:
-        cust_delta = get_delta_html(dto.kpis.active_customers_delta_pct, kind="pct", invert_color=False)
-        cust_accent: KpiAccent = "alert_warn" if (dto.kpis.active_customers_delta_pct or 0.0) < 0 else "teal"
+        del customer_plural
+        gross = dto.kpis.gross_revenue
+        disc_pct = (dto.kpis.discount_amount / gross * 100.0) if gross > 0 else 0.0
+        tax_pct_gross = (dto.kpis.tax_amount / gross * 100.0) if gross > 0 else 0.0
+        deductions_pct = disc_pct + tax_pct_gross
         render_kpi_card(
-            title=f"{customer_plural} Ativos",
-            value=format_int(dto.kpis.active_customers),
-            subfooter_left=f"Ticket: {format_brl(dto.kpis.avg_ticket, compact=True)}",
-            delta_html=cust_delta,
-            accent=cust_accent,
+            title="Deduções & Descontos",
+            value=format_pct(deductions_pct),
+            subfooter_left=f"Desc.: {disc_pct:.1f}% · Trib.: {tax_pct_gross:.1f}%",
+            accent="alert_warn" if disc_pct >= 8.0 else "brass",
             help_text=(
-                f"Quantidade de {customer_plural.lower()} distintos com pedido faturado.<br><br>"
-                f"<strong>Ritmo Trimestral (90d):</strong> "
-                f"{format_brl(dto.kpis.projected_quarter_revenue_brl, compact=True)}."
+                "Peso combinado de descontos comerciais e tributos (ICMS/PIS/COFINS) sobre o "
+                "faturamento bruto de tabela."
             ),
         )
 

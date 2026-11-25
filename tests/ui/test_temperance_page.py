@@ -25,21 +25,27 @@ def test_temperance_page_full_render() -> None:
     assert "Síntese Executiva 360°" in all_markdown
 
     # Aba 1: Termômetro Executivo 360° (Mix dos 3 pilares)
-    assert "[Finanças] Margem Líquida" in all_markdown
+    assert "[Finanças] Margem de Contribuição" in all_markdown
     assert "[Finanças] Ciclo & NCG" in all_markdown
     assert "[Comercial] Risco vs. Mix" in all_markdown
     assert "[Admin] Capital Travado" in all_markdown
     assert "[Síntese] Ganho Recuperável" in all_markdown
     assert "Elasticidade-Preço & Sensibilidade por Família" in all_markdown
+    assert "Fila Priorizada de Ações 360°" in all_markdown
     assert "Veredito Integrado de Temperança" in all_markdown
+    assert "Auditoria Cruzada de Alçadas por Representante" not in all_markdown
+    assert "[Finanças] Margem Líquida" not in all_markdown
+    assert "Nova Margem Líquida %" not in all_markdown
 
     # Aba 2: Simulador Estratégico What-If
     slider_keys = {s.key for s in at.slider}
     assert {"_what_if_price", "_what_if_disc", "_what_if_cost", "sim_comm_pp"}.issubset(slider_keys)
+    assert "Nova Margem Contr. %" in all_markdown
 
     # Aba 3: Matriz Campeões vs. Vampiros 360°
     assert "Top 10 SKUs Campeões" in all_markdown
     assert "Top 10 SKUs Vampiros" in all_markdown
+    assert "Spread de Margem (Camp. vs. Vamp.)" in all_markdown
 
     assert len(at.dataframe) >= 5
     assert len(at.get("plotly_chart")) >= 4

@@ -10,7 +10,7 @@ _AXIS_PT_BR: dict[str, str] = {
     "revenue": "Faturamento Bruto (R$)",
     "net_revenue": "Receita Líquida (R$)",
     "contribution_margin": "Margem de Contribuição (R$)",
-    "margin_pct": "Margem Líquida (%)",
+    "margin_pct": "Margem de Contribuição (%)",
     "avg_discount_pct": "Desconto Médio (%)",
     "revenue_at_risk_brl": "Risco de Carteira (R$)",
     "positivation_pct": "Positivação (%)",

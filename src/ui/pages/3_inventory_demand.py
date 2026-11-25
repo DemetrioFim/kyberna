@@ -5,12 +5,14 @@ import streamlit as st
 
 from src.core.scenarios import load_scenario_config
 from src.services.dto import ExecutivePageDTO, TemperancePageDTO
+from src.services.temperance_actions import build_priority_actions_360
 from src.ui.cache import (
     cached_commercial_dashboard,
     cached_executive_dashboard,
     cached_family_elasticity,
     cached_fortitude_dashboard,
     cached_inventory_dashboard,
+    cached_pricing_dashboard,
     cached_temperance_dashboard,
 )
 from src.ui.components.inventory_charts import erosion_breakdown_chart
@@ -20,7 +22,7 @@ from src.ui.components.simulator_charts import elasticity_family_chart
 from src.ui.components.simulator_section import render_what_if_quick_fragment
 from src.ui.components.temperance_sections import (
     render_champions_vampires_kpis,
-    render_rep_policy_violations_table,
+    render_priority_actions_360_table,
     render_temperance_mix_kpis,
     render_temperance_verdict_section,
 )
@@ -107,6 +109,20 @@ def render_page() -> None:
         custom_end_date=state.custom_end_date,
     )
     inv_dto = cached_inventory_dashboard(state.scenario_id, families=tuple(state.families))
+    pricing_dto = cached_pricing_dashboard(
+        state.scenario_id,
+        regiao=state.regiao,
+        uf=state.uf,
+        families=tuple(state.families),
+        sales_reps=tuple(state.sales_reps),
+        period_preset=state.period_preset,
+        comparison_mode=state.comparison_mode,
+        selected_month=state.selected_month,
+        selected_quarter=state.selected_quarter,
+        selected_semester=state.selected_semester,
+        custom_start_date=state.custom_start_date,
+        custom_end_date=state.custom_end_date,
+    )
 
     fig_cache_key: tuple[object, ...] = (
         state.scenario_id,
@@ -179,10 +195,17 @@ def render_page() -> None:
         col_bl, col_br = st.columns([1.25, 1.0])
         with col_bl:
             section_header(
-                "Auditoria Cruzada de Alçadas por Representante",
-                "Maiores desvios de tabela impactando simultaneamente margem e caixa",
+                "Fila Priorizada de Ações 360°",
+                "Alavancas ranqueadas por potencial de recuperação em R$ nas 4 Virtudes",
             )
-            render_rep_policy_violations_table(temp_dto)
+            actions_360_df = build_priority_actions_360(
+                fort_dto=fort_dto,
+                comm_dto=comm_dto,
+                temp_dto=temp_dto,
+                inv_dto=inv_dto,
+                pricing_dto=pricing_dto,
+            )
+            render_priority_actions_360_table(actions_360_df)
         with col_br:
             section_header(
                 "Veredito Integrado de Temperança (360°)",
@@ -193,9 +216,14 @@ def render_page() -> None:
     with tab_sim:
         section_header(
             "Simulador Estratégico What-If & Elasticidade Real (β)",
-            "Teste impactos conjuntos de preço, descontos, CMV e comissão sobre lucro e ponto de equilíbrio",
+            "Teste impactos conjuntos de preço, descontos, CMV e comissão sobre lucro e banda competitiva",
         )
-        render_what_if_quick_fragment(exec_dto, theme_mode=theme_mode)
+        render_what_if_quick_fragment(
+            exec_dto,
+            family_bands_df=pricing_dto.family_bands_df,
+            sku_deviations_df=pricing_dto.deviations_df,
+            theme_mode=theme_mode,
+        )
 
     with tab_cv:
         render_champions_vampires_kpis(exec_dto, temp_dto, scenario_cfg.labels.customer_plural)

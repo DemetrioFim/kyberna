@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -18,9 +19,11 @@ def profit_curve_chart(
     sim_result: SimulationResult,
     current_price_pct: float,
     *,
+    band_low_pct: float | None = None,
+    band_high_pct: float | None = None,
     theme_mode: str = "light",
 ) -> go.Figure:
-    """Curva Lucro x Preço com marcadores Atual (0%), Simulado e Ótimo."""
+    """Curva Lucro x Preço com marcadores Atual (0%), Simulado, Banda Ideal e Ótimo."""
     tokens = get_theme_tokens(theme_mode)
     template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
 
@@ -34,6 +37,21 @@ def profit_curve_chart(
     y_margin = df["contribution_margin"]
 
     fig = go.Figure()
+    has_band = band_low_pct is not None and band_high_pct is not None and band_low_pct <= band_high_pct
+    if has_band:
+        fig.add_vrect(
+            x0=float(band_low_pct),  # type: ignore[arg-type]
+            x1=float(band_high_pct),  # type: ignore[arg-type]
+            fillcolor="rgba(13, 148, 136, 0.14)",
+            line_width=1,
+            line_dash="dot",
+            line_color=tokens["teal_500"],
+            annotation_text="Banda Ideal [P25-P75]",
+            annotation_position="top left",
+            annotation_font_color=tokens["teal_500"],
+            annotation_font_size=10,
+        )
+
     fig.add_trace(
         go.Scatter(
             x=x_pct,
@@ -74,18 +92,27 @@ def profit_curve_chart(
         )
     )
 
-    # Ponto Ótimo
-    opt_pct = sim_result.optimal_price_change_pct * 100.0
+    # Ponto Ótimo (restrito à Banda Ideal quando ativa)
+    if has_band:
+        opt_frac = sim_result.band_constrained_optimal_pct
+        opt_pct = opt_frac * 100.0
+        nearest_idx = int(np.argmin(np.abs(df["delta_price_pct"].to_numpy(dtype=np.float64) - opt_frac)))
+        opt_margin = float(df["contribution_margin"].iloc[nearest_idx])
+        opt_name = "Ótimo na Banda"
+    else:
+        opt_pct = sim_result.optimal_price_change_pct * 100.0
+        opt_margin = sim_result.optimal_margin_brl
+        opt_name = "Ótimo"
+
     fig.add_trace(
         go.Scatter(
             x=[opt_pct],
-            y=[sim_result.optimal_margin_brl],
+            y=[opt_margin],
             mode="markers",
-            name="Ótimo",
+            name=opt_name,
             marker={"color": tokens["positive"], "size": 11, "symbol": "star"},
             hovertemplate=(
-                f"<b>Ótimo ({opt_pct:+.1f}%)</b><br>"
-                f"Margem: {format_brl(sim_result.optimal_margin_brl)}<extra></extra>"
+                f"<b>{opt_name} ({opt_pct:+.1f}%)</b><br>Margem: {format_brl(opt_margin)}<extra></extra>"
             ),
         )
     )

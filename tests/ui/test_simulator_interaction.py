@@ -63,3 +63,26 @@ def test_simulator_slider_latency_and_scenario_comparison() -> None:
     clear_btn.click().run()
     assert not at.exception
     assert len(at.session_state.saved_simulations) == 0
+
+
+def test_simulator_price_band_warning_and_tactical_sku_mode() -> None:
+    """Valida alerta de saída da Banda Ideal e alternância para modo Tático por SKU."""
+    page_path = get_project_root() / "src" / "ui" / "pages" / "3_inventory_demand.py"
+    at = AppTest.from_file(str(page_path), default_timeout=15)
+    at.run()
+    assert not at.exception
+
+    # Slider para +25% deve disparar alerta de saída da Banda Ideal
+    price_slider = next(s for s in at.slider if s.key == "_what_if_price")
+    price_slider.set_value(25.0).run()
+    assert not at.exception
+    all_markdown = " ".join(m.value for m in at.markdown)
+    assert "Fora da Banda Ideal" in all_markdown
+    assert "Nova Margem Contr. %" in all_markdown
+
+    # Alternar para Tático por SKU
+    mode_radio = next(r for r in at.radio if r.key == "sim_scope_mode")
+    mode_radio.set_value("Tático por SKU").run()
+    assert not at.exception
+    sb_keys = {sb.key for sb in at.selectbox}
+    assert "sim_scope_sku" in sb_keys

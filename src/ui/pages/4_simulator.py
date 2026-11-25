@@ -271,7 +271,7 @@ def _render_tab_sales_reps(
     with col_l:
         section_header(
             f"Quadrante de Eficiência ({rep_plural})",
-            "Volume Faturado vs. Margem Líquida % — separa Estrelas de vendedores de desconto",
+            "Volume Faturado vs. Margem de Contribuição % — separa Estrelas de vendedores de desconto",
             help_text="Tamanho da bolha representa receita em risco na carteira do representante.",
         )
         if not comm_dto.rep_performance_df.empty:
@@ -315,7 +315,7 @@ def _render_tab_sales_reps(
                 "<b>Janela Pré-Churn</b>."
             ),
             impact_brl=temp_dto.kpis.excess_discount_brl,
-            action_hint="Condicione bonificações à margem de contribuição líquida, não ao bruto.",
+            action_hint="Condicione bonificações à margem de contribuição, não ao faturamento bruto.",
             help_text="Economia potencial estimada ao conter descontos concedidos acima da política.",
         )
 
@@ -373,8 +373,8 @@ def render_page() -> None:
     tab_cs, tab_risk, tab_rca = st.tabs(
         [
             "Cross-Sell & Mix (Modelo Apriori)",
-            f"Lojas em Risco (Churn) & Oportunidades ({scenario_cfg.labels.customer_plural})",
-            f"Desempenho da Equipe ({rep_plural})",
+            f"Lojas em Risco (Churn) & Retenção ({scenario_cfg.labels.customer_plural})",
+            f"Desempenho & Governança ({rep_plural})",
         ]
     )
     with tab_cs:

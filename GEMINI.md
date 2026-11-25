@@ -33,10 +33,10 @@ Siga este protocolo em **toda** solicitação de implementação:
    - Não "aproveite para refatorar" arquivos fora do escopo sem pedir. Se notar um problema fora do escopo, registre-o na seção *Achados* do `TASKS.md` / `TASKS_REFACTORY.md`.
 3. **Respeitar o Mapa Canônico Inviolável das 4 Páginas Virtus Estilo PowerBI (`src/ui/pages/`).**
    - Os caminhos físicos dos 4 arquivos de página são fixos para preservar histórico Git, mas cada página atua como um **dashboard departamental único estilo PowerBI com 1 barra superior de Abas de Página (`st.tabs`) e ZERO sub-abas internas**:
-     - `1_executive.py` (`prudence_admin_sections.py` + `temperance_inventory_section.py`) → **1. Prudência · Visão Administrativa & Operações** (Aba 1: Portfólio & Curva ABC/XYZ; Aba 2: Estoque, Ruptura & Capital Travado; Aba 3: Previsão de Demanda 30d & Alçadas).
+     - `1_executive.py` (`prudence_admin_sections.py` + `temperance_inventory_section.py`) → **1. Prudência · Visão Administrativa & Operações** (Aba 1: Portfólio & Curva ABC/XYZ; Aba 2: Estoque, Ruptura & Capital Travado; Aba 3: Previsão de Demanda 30d & PCP).
      - `4_simulator.py` (`commercial_sections.py` + `justice_sections.py`) → **2. Fortaleza · Visão Comercial** (Aba 1: Cross-Sell & Mix via Modelo Apriori + Exportação; Aba 2: Lojas em Risco/Churn & RFM; Aba 3: Desempenho da Equipe Comercial RCAs).
-     - `2_commercial_radar.py` (`prudence_sections.py` + `fortitude_sections.py` + `justice_sections.py`) → **3. Justiça · Visão Financeira** (Aba 1: DRE Gerencial & Margem Real + Toggle PoP/YoY; Aba 2: Fluxo de Caixa, Runway & Ciclo NCG; Aba 3: Aging de Recebíveis & Concentração Pareto).
-     - `3_inventory_demand.py` (`temperance_sections.py` + `simulator_section.py` + `justice_sections.py`) → **4. Temperança · Visão Integrada 360° (Mix Admin + Comercial + Finanças)** (Aba 1: Termômetro Executivo 360°; Aba 2: Simulador Estratégico What-If & Elasticidade; Aba 3: Matriz Campeões vs. Vampiros 360°). **Proibido adicionar sub-abas internas em quadrantes/componentes.**
+     - `2_commercial_radar.py` (`prudence_sections.py` + `fortitude_sections.py` + `pricing_sections.py` + `pricing_charts.py`) → **3. Justiça · Visão Financeira** (Aba 1: DRE Gerencial & Margem de Contribuição + Toggle PoP/YoY; Aba 2: Fluxo de Caixa, Runway & Ciclo NCG; Aba 3: Precificação, Banda Ideal & Drivers SHAP).
+     - `3_inventory_demand.py` (`temperance_sections.py` + `simulator_section.py` + `simulator_controls.py` + `justice_sections.py`) → **4. Temperança · Visão Integrada 360° (Mix Admin + Comercial + Finanças)** (Aba 1: Termômetro Executivo 360° + Fila Priorizada 360°; Aba 2: Simulador Estratégico What-If conectado à Banda Ideal & Elasticidade; Aba 3: Matriz Campeões vs. Vampiros 360°). **Proibido adicionar sub-abas internas em quadrantes/componentes.**
 4. **Testar via terminal e validar entre pilares antes de declarar concluído.**
    - Rode no mínimo: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest -q` (ou o subconjunto relevante: `uv run pytest tests/<pilar> -q`).
    - Verifique que **nenhum** arquivo em `src/` ultrapassa **400 linhas** (`Get-ChildItem -Path src -Recurse -Filter *.py | Where-Object { (Get-Content $_.FullName).Count -gt 400 }`).
@@ -118,6 +118,7 @@ Kyberna/
 │   │   ├── audit.py                # gerador do Excel de conciliação financeira (+ audit_sheets.py / audit_queries.py)
 │   │   ├── contracts.py            # Pandera schemas Bronze/Silver + re-exports Gold (< 400 linhas)
 │   │   ├── gold_contracts.py       # Pandera schemas da camada Gold (< 400 linhas)
+│   │   ├── pricing_contracts.py    # Pandera schemas Gold de Precificação & SHAP (< 400 linhas)
 │   │   └── lake.py                 # gerenciador DuckDB + read/write Parquet local ↔ ADLS
 │   ├── ml/
 │   │   ├── features.py
@@ -180,7 +181,7 @@ Regras:
 
 - **Dimensões:** `dim_date`, `dim_product`, `dim_customer`, `dim_sales_rep`, `dim_branch`, `dim_geography`.
 - **Fato:** `fact_sales` (grão: linha de pedido) — `scenario_id, order_id, date_key, customer_id, product_id, sales_rep_id, branch_id, units, boxes, unit_list_price, unit_net_price, gross_revenue, discount_amount, tax_amount, net_revenue, cogs, commission_amount, freight_amount, contribution_margin`.
-- **Marts:** `mart_margin_monthly`, `mart_abc_xyz`, `mart_customer_risk` (RFM + churn), `mart_white_space`, `mart_rep_performance`, `mart_forecast_30d`, `mart_inventory_position`, `mart_price_elasticity`, `mart_branch_transfers` (C3).
+- **Marts:** `mart_margin_monthly`, `mart_abc_xyz`, `mart_customer_risk` (RFM + churn), `mart_white_space`, `mart_rep_performance`, `mart_forecast_30d`, `mart_inventory_position`, `mart_price_elasticity`, `mart_price_realization`, `mart_pricing_drivers`, `mart_branch_transfers` (C3).
 - Toda tabela Gold contém `scenario_id` (`c1_toys`, `c2_beverages`, `c3_retail_chain`, `c4_single_store`) e `snapshot_date`.
 
 ### 4.3 Waterfall da Margem de Contribuição (definição canônica)

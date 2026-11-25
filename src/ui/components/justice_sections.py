@@ -210,7 +210,7 @@ def render_sales_reps_table(dto: CommercialPageDTO, rep_label: str) -> None:
             "sales_rep_name": rep_label,
             "quadrant": "Quadrante",
             "gross_revenue": "Faturamento",
-            "margin_pct": "Margem %",
+            "margin_pct": "MC %",
             "avg_discount_pct": "Desc. Médio",
             "revenue_at_risk_brl": "Risco Carteira",
             "action_prescription": "Ação Recomendada",
@@ -220,7 +220,7 @@ def render_sales_reps_table(dto: CommercialPageDTO, rep_label: str) -> None:
         k: fn
         for k, fn in (
             ("Faturamento", fmt_brl_cell),
-            ("Margem %", fmt_pct_cell),
+            ("MC %", fmt_pct_cell),
             ("Desc. Médio", fmt_pct_cell),
             ("Risco Carteira", fmt_brl_cell),
         )

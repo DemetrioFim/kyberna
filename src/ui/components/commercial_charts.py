@@ -190,7 +190,7 @@ def rfm_treemap(
     )
 
     hovertemplate = (
-        "<b>Segmento: %{label}</b><br>Margem Líquida: R$ %{value:,.2f}<br>Margem %: %{color:.1f}%<br>"
+        "<b>Segmento: %{label}</b><br>Margem de Contribuição: R$ %{value:,.2f}<br>MC %: %{color:.1f}%<br>"
     )
     if has_ltv:
         hovertemplate += "LTV Estimado Médio: R$ %{customdata[5]:,.2f}<br>"
