@@ -211,7 +211,7 @@ def render_admin_pcp_kpis(inv_dto: InventoryPageDTO) -> None:
         )
     with c4:
         render_kpi_card(
-            title="Necessidade Líquida de Compra",
+            title="Necessidade de Compra",
             value=f"{format_int(i_k.suggested_order_boxes_total)} cx",
             subfooter_left=f"{format_int(i_k.stockout_risk_skus_count)} SKUs abaixo do ROP",
             accent="alert_neg" if i_k.suggested_order_boxes_total > 0 else "green",
@@ -337,5 +337,12 @@ def render_pcp_plan_table(inv_dto: InventoryPageDTO) -> None:
         use_container_width=True,
         height=185,
         hide_index=True,
-        column_config={"Célula": st.column_config.TextColumn("Célula", width="small")},
+        column_config={
+            "Produto": st.column_config.TextColumn("Produto", width="medium"),
+            "Célula": st.column_config.TextColumn("Cél.", width="small"),
+            "Est. (un)": st.column_config.TextColumn("Est.", width="small"),
+            "Dem. 30d": st.column_config.TextColumn("Dem.30d", width="small"),
+            "ROP": st.column_config.TextColumn("ROP", width="small"),
+            "Ordem (cx)": st.column_config.TextColumn("Ordem", width="small"),
+        },
     )

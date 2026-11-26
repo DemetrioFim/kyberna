@@ -31,6 +31,12 @@ class PricingShapDTO(BaseModel):
     expected_idx: float
     realized_idx: float
     unjustified_gap_pp: float
+    table_gross_brl: float = 0.0
+    expected_net_brl: float = 0.0
+    realized_net_brl: float = 0.0
+    unjustified_gap_brl: float = 0.0
+    avg_base_unit_brl: float = 0.0
+    units_sold: int = 0
     drivers_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
 
 

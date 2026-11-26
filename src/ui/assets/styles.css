@@ -110,6 +110,37 @@ section[data-testid="stSidebar"] > div:first-child,
 section[data-testid="stSidebar"] hr {
   border-color: var(--kyb-border) !important;
   opacity: 0.7;
+  margin: 0.35rem 0 !important;
+}
+
+section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
+  padding: 0.35rem 0.75rem 0.65rem 0.75rem !important;
+}
+
+section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+  gap: 0.22rem !important;
+}
+
+section[data-testid="stSidebar"] label[data-testid="stWidgetLabel"],
+section[data-testid="stSidebar"] label[data-testid="stWidgetLabel"] p {
+  font-size: 0.78rem !important;
+  margin-bottom: 0.08rem !important;
+}
+
+section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
+  font-size: 0.72rem !important;
+  line-height: 1.25 !important;
+}
+
+/* Barra de filtros no topo (Opção B — estilo PowerBI) */
+div[data-testid="stHorizontalBlock"]:has(.top-filter-bar-anchor),
+div[data-testid="stVerticalBlock"]:has(> div > .top-filter-bar-anchor) > div[data-testid="stHorizontalBlock"] {
+  background-color: var(--kyb-card-bg) !important;
+  border: 1px solid var(--kyb-border) !important;
+  border-radius: 8px !important;
+  padding: 0.35rem 0.65rem !important;
+  margin-bottom: 0.35rem !important;
+  box-shadow: var(--kyb-shadow);
 }
 
 section[data-testid="stSidebar"] p,
@@ -409,7 +440,12 @@ div[data-testid="stAlert"] * {
   box-shadow: var(--kyb-shadow);
   position: relative;
   overflow: visible;
-  margin-bottom: 0.12rem;
+  min-height: 108px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 

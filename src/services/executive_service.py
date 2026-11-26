@@ -279,7 +279,7 @@ def build_executive_dashboard(
     headline_title = "Síntese Executiva: Ritmo de Metas & Margem Real"
     headline_text = (
         f"Faturamento de <strong>{format_brl(kpis.gross_revenue, compact=True)}</strong> gerou "
-        f"<strong>{format_brl(kpis.contribution_margin, compact=True)}</strong> em Margem Líquida "
+        f"<strong>{format_brl(kpis.contribution_margin, compact=True)}</strong> em Margem de Contribuição "
         f"(<strong>{kpis.contribution_margin_pct:.1f}%</strong>). "
         f"Ritmo atual atinge <strong>{kpis.revenue_pacing_pct:.1f}% da meta</strong> com ritmo trimestral de "
         f"<strong>{format_brl(kpis.projected_quarter_revenue_brl, compact=True)}</strong>."

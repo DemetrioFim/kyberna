@@ -4,9 +4,11 @@ from pathlib import Path
 
 import streamlit as st
 
+from src.core.scenarios import load_scenario_config
 from src.db.repository import DataRepository
 from src.ui.cache import get_cached_repository
 from src.ui.components.auth_gate import require_authentication
+from src.ui.components.filter_controls import render_top_filter_bar
 from src.ui.components.sidebar import render_sidebar
 from src.ui.state import init_app_state
 from src.ui.theme import get_theme_tokens
@@ -146,7 +148,10 @@ try:
 except Exception:
     repo = None
 
-render_sidebar(repo)
+state = render_sidebar(repo)
+
+if state.filter_layout == "top":
+    render_top_filter_bar(repo, load_scenario_config(state.scenario_id))
 
 # ==============================================================================
 # Navegação Multipage (st.navigation)

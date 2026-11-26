@@ -12,6 +12,8 @@ from src.services.pricing_queries import (
     query_filtered_pricing_kpis,
     query_pricing_boxplot_data,
     query_pricing_deviations,
+)
+from src.services.pricing_shap_queries import (
     query_pricing_shap_drivers,
     query_pricing_shap_options,
 )
@@ -74,8 +76,26 @@ def build_pricing_dashboard(
         end_date_key=end_date_key,
     )
     kpis = PricingKpisDTO(**raw_kpis)
-    boxplot_df = query_pricing_boxplot_data(repo, scenario_id, families=families)
-    deviations_df = query_pricing_deviations(repo, scenario_id, families=families, sales_reps=sales_reps)
+    boxplot_df = query_pricing_boxplot_data(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+    )
+    deviations_df = query_pricing_deviations(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+    )
     shap_options_df = query_pricing_shap_options(repo, scenario_id, families=families)
     family_bands_df = query_family_pricing_bands(repo, scenario_id)
     title, html, impact = build_pricing_prescription(kpis, deviations_df)
@@ -99,13 +119,25 @@ def get_pricing_shap_waterfall(
     *,
     scope_type: str,
     scope_id: str,
+    regiao: str = "Todas",
+    uf: str = "Todas",
+    families: Sequence[str] = (),
+    sales_reps: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> PricingShapDTO:
-    """Retorna os 5 drivers Linear SHAP para renderização do Waterfall de Formação de Preço."""
-    df = query_pricing_shap_drivers(
+    """Retorna os 5 drivers Linear SHAP (% e R$) para o Waterfall de Formação de Preço."""
+    df, fin_stats = query_pricing_shap_drivers(
         repo,
         scenario_id,
         scope_type=scope_type,
         scope_id=scope_id,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     if df.empty:
         return PricingShapDTO(
@@ -121,14 +153,40 @@ def get_pricing_shap_waterfall(
         )
 
     r0 = df.iloc[0]
+    base_idx = float(r0["base_idx"])
+    expected_idx = float(r0["expected_idx"])
+    table_gross = float(fin_stats.get("table_gross_brl", 0.0))
+    realized_net = float(fin_stats.get("realized_net_brl", 0.0))
+
+    if table_gross > 0.0:
+        realized_idx = round((realized_net / table_gross) * 100.0, 2)
+        unjustified_gap_pp = round(realized_idx - expected_idx, 2)
+        expected_net = round(table_gross * (expected_idx / 100.0), 2)
+        unjustified_gap_brl = round(realized_net - expected_net, 2)
+        work_df = df.copy()
+        work_df["shap_impact_brl"] = (work_df["shap_impact_pp"].astype(float) / 100.0 * table_gross).round(2)
+    else:
+        realized_idx = float(r0["realized_idx"])
+        unjustified_gap_pp = float(r0["unjustified_gap_pp"])
+        expected_net = 0.0
+        unjustified_gap_brl = 0.0
+        work_df = df.copy()
+        work_df["shap_impact_brl"] = 0.0
+
     return PricingShapDTO(
         scope_type=str(r0["scope_type"]),
         scope_id=str(r0["scope_id"]),
         scope_label=str(r0["scope_label"]),
         family=str(r0["family"]),
-        base_idx=float(r0["base_idx"]),
-        expected_idx=float(r0["expected_idx"]),
-        realized_idx=float(r0["realized_idx"]),
-        unjustified_gap_pp=float(r0["unjustified_gap_pp"]),
-        drivers_df=df,
+        base_idx=base_idx,
+        expected_idx=expected_idx,
+        realized_idx=realized_idx,
+        unjustified_gap_pp=unjustified_gap_pp,
+        table_gross_brl=table_gross,
+        expected_net_brl=expected_net,
+        realized_net_brl=realized_net,
+        unjustified_gap_brl=unjustified_gap_brl,
+        avg_base_unit_brl=float(fin_stats.get("avg_base_unit_brl", 0.0)),
+        units_sold=int(fin_stats.get("units_sold", 0)),
+        drivers_df=work_df,
     )

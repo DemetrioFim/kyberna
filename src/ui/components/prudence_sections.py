@@ -130,21 +130,21 @@ def render_prudence_anomalies_section(dto: ExecutivePageDTO) -> None:
         card_top = (
             '<div style="display: flex; justify-content: space-between; align-items: center; '
             'gap: 0.35rem; margin-bottom: 0.2rem;">'
-            f'<span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; '
+            f'<span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; '
             f'color: {color_border};">[{sev}] {cat}</span>'
-            f'<span style="font-size: 0.76rem; font-weight: 600; color: var(--kyb-text);">'
-            f"{format_brl(impact, compact=True)}</span>"
+            f'<span style="font-size: 0.76rem; font-weight: 600; color: var(--kyb-text); '
+            f'white-space: nowrap;">{format_brl(impact, compact=True)}</span>'
             "</div>"
         )
         card_html = (
             f'<div style="background: var(--kyb-card-bg); border-left: 4px solid {color_border}; '
             "border-top: 1px solid var(--kyb-border); border-right: 1px solid var(--kyb-border); "
             "border-bottom: 1px solid var(--kyb-border); border-radius: 6px; padding: 0.45rem 0.65rem; "
-            'height: 100%;">'
-            f"{card_top}"
-            f'<div style="font-size: 0.83rem; font-weight: 600; color: var(--kyb-text); '
-            f'margin-bottom: 0.15rem; line-height: 1.25;">{title}</div>'
-            f'<div style="font-size: 0.76rem; color: var(--kyb-text-muted); line-height: 1.3;">'
+            'min-height: 185px; display: flex; flex-direction: column; justify-content: space-between;">'
+            f"<div>{card_top}"
+            f'<div style="font-size: 0.82rem; font-weight: 600; color: var(--kyb-text); '
+            f'margin-bottom: 0.15rem; line-height: 1.25;">{title}</div></div>'
+            f'<div style="font-size: 0.75rem; color: var(--kyb-text-muted); line-height: 1.3;">'
             f"<strong>Ação:</strong> {rec}</div>"
             "</div>"
         )

@@ -27,10 +27,9 @@ from src.ui.components.prescription import (
     section_header,
 )
 from src.ui.components.pricing_sections import (
-    render_pricing_boxplot_chart,
+    render_pricing_analytics_fragment,
     render_pricing_deviations_table,
     render_pricing_kpis,
-    render_pricing_shap_fragment,
     render_pricing_verdict_section,
 )
 from src.ui.components.prudence_sections import (
@@ -173,27 +172,7 @@ def _render_tab_pricing(
 ) -> None:
     """Aba 3: Precificação, Banda Ideal & Drivers (SHAP)."""
     render_pricing_kpis(pricing_dto)
-    col_l, col_r = st.columns([1.0, 1.05])
-    with col_l:
-        section_header(
-            "Banda de Preço Realizado vs. Contextual (Boxplot)",
-            "Dispersão real (P05-P95) sobre a banda justa [P25-P75] e piso de 15% MC",
-            help_text=(
-                "Vendas abaixo da faixa verde translúcida ocorreram abaixo do esperado para porte, "
-                "volume e frete regionais."
-            ),
-        )
-        render_pricing_boxplot_chart(pricing_dto, theme_mode=state.theme_mode)
-    with col_r:
-        section_header(
-            "Drivers de Preço — SHAP Waterfall (Regressão)",
-            "Decomposição exata da tabela base até o preço esperado vs. praticado real",
-            help_text=(
-                "Explica quanto do desconto decorre de contrapartidas legítimas e escancara o "
-                "resíduo sem lastro comercial."
-            ),
-        )
-        render_pricing_shap_fragment(state.scenario_id, pricing_dto, theme_mode=state.theme_mode)
+    render_pricing_analytics_fragment(state, pricing_dto)
 
     col_bl, col_br = st.columns([1.2, 1.0])
     with col_bl:

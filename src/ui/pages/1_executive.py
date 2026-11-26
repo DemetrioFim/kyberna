@@ -34,7 +34,7 @@ from src.ui.components.temperance_inventory_section import (
     render_sku_forecast_fragment,
     render_stockout_risk_table,
 )
-from src.ui.formatting import format_brl
+from src.ui.formatting import format_brl, format_int
 from src.ui.state import AppState, get_app_state
 
 
@@ -65,7 +65,8 @@ def _render_tab_portfolio(
             "<div style='font-size:0.72rem; color:var(--kyb-text-muted); line-height:1.35; "
             "margin-top:-0.35rem; padding:0.2rem 0.45rem; background:var(--kyb-card-bg); "
             "border-radius:4px; border:1px solid var(--kyb-border);'>"
-            "<strong>Legenda:</strong> <b>ABC (Lucro):</b> A=80% · B=15% · C=5% &nbsp;|&nbsp; "
+            "<strong>Legenda:</strong> <b>MC = Margem de Contribuição</b> (mais escuro = maior % da MC) "
+            "&nbsp;|&nbsp; <b>ABC:</b> A=80% · B=15% · C=5% &nbsp;|&nbsp; "
             "<b>XYZ (Giro):</b> X=constante · Y=sazonal · Z=intermitente</div>",
             unsafe_allow_html=True,
         )
@@ -122,6 +123,11 @@ def _render_tab_inventory(
             "Distribuição do faturamento 30d exposto abaixo do ROP entre Curva A e B/C",
             help_text="Conecta diretamente o risco de desabastecimento à fila de reposição abaixo.",
         )
+        st.caption(
+            f"Exposição (<ROP): **{format_brl(inv_dto.kpis.protected_revenue_brl)}** em "
+            f"**{format_int(inv_dto.kpis.stockout_risk_skus_count)} SKUs** · "
+            f"Curva A: **{format_int(inv_dto.kpis.stockout_curve_a_skus_count)} SKUs**"
+        )
         st.plotly_chart(
             stockout_by_family_chart(inv_dto.family_supply_df, theme_mode=theme_mode),
             use_container_width=True,
@@ -165,6 +171,18 @@ def _render_tab_pcp(
             "Demanda Prevista 30d vs. Estoque Atual por Família",
             "Balanço físico S&OP entre saldo em armazém e saída projetada nos próximos 30 dias",
             help_text="Evidencia famílias onde a demanda prevista ultrapassa ou pressiona o estoque atual.",
+        )
+        tot_stock_u = (
+            int(inv_dto.family_supply_df["stock_units"].sum()) if not inv_dto.family_supply_df.empty else 0
+        )
+        tot_fc_u = (
+            int(inv_dto.family_supply_df["forecast_30d_units"].sum())
+            if not inv_dto.family_supply_df.empty
+            else 0
+        )
+        st.caption(
+            f"Balanço S&OP: Estoque Atual **{format_int(tot_stock_u)} un** vs. "
+            f"Demanda 30d Prevista **{format_int(tot_fc_u)} un**"
         )
         st.plotly_chart(
             sop_demand_vs_stock_chart(inv_dto.family_supply_df, theme_mode=state.theme_mode),

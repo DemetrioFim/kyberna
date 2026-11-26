@@ -270,3 +270,27 @@ def test_executive_pop_yoy_toggle_and_app_render() -> None:
     assert len(at_app.sidebar.selectbox) >= 4
     assert at_app.sidebar.selectbox[-1].key == "_scenario_select"
     assert "Fonte:" in at_app.sidebar.markdown[-1].value
+
+    # Alternância para Opção B (Filtros no Topo estilo PowerBI)
+    def _top_filter_entrypoint() -> None:
+        import src.ui.components.filter_controls as fc
+        import src.ui.components.sidebar as st_sidebar
+        import src.ui.state as st_state
+        from src.core.scenarios import load_scenario_config
+        from src.db.duckdb_repo import DuckDBRepository
+
+        repo_local = DuckDBRepository()
+        st_state.init_app_state()
+        st_local = st_sidebar.render_sidebar(repo=repo_local)
+        if st_local.filter_layout == "top":
+            fc.render_top_filter_bar(repo_local, load_scenario_config(st_local.scenario_id))
+
+    at_top = AppTest.from_function(_top_filter_entrypoint, default_timeout=15)
+    at_top.run()
+    assert not at_top.exception
+    layout_toggle = next(t for t in at_top.sidebar.toggle if t.key == "_filter_layout_toggle")
+    layout_toggle.set_value(True).run()
+    assert not at_top.exception
+    assert at_top.session_state.filter_layout == "top"
+    assert any(sb.key == "_period_preset_select" for sb in at_top.main.selectbox)
+    assert not any(sb.key == "_period_preset_select" for sb in at_top.sidebar.selectbox)

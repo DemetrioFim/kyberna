@@ -25,12 +25,19 @@ def test_pricing_charts_render_light_and_dark() -> None:
     )
 
     for mode in ("light", "dark"):
-        fig_box = price_band_boxplot_chart(pricing_dto.boxplot_df, theme_mode=mode)
-        fig_shap = pricing_shap_waterfall_chart(shap_dto, theme_mode=mode)
-        assert len(fig_box.data) == 2
-        assert len(fig_shap.data) == 2
-        assert fig_box.layout.title.text is None
-        assert fig_shap.layout.title.text is None
+        fig_box_pct = price_band_boxplot_chart(pricing_dto.boxplot_df, unit_mode="pct", theme_mode=mode)
+        fig_box_brl = price_band_boxplot_chart(pricing_dto.boxplot_df, unit_mode="brl", theme_mode=mode)
+        fig_shap_pct = pricing_shap_waterfall_chart(shap_dto, unit_mode="pct", theme_mode=mode)
+        fig_shap_brl = pricing_shap_waterfall_chart(shap_dto, unit_mode="brl", theme_mode=mode)
+        # Hover limpo: go.Bar e go.Box com hoverinfo='skip' + 1 Scatter de hover executivo
+        assert len(fig_box_pct.data) == 3
+        assert fig_box_pct.data[0].hoverinfo == "skip"
+        assert fig_box_pct.data[1].hoverinfo == "skip"
+        assert len(fig_box_brl.data) == 4
+        assert len(fig_shap_pct.data) == 2
+        assert len(fig_shap_brl.data) == 2
+        assert fig_box_pct.layout.title.text is None
+        assert fig_shap_pct.layout.title.text is None
 
 
 def test_pricing_tab_shap_selector_interaction() -> None:
@@ -51,4 +58,10 @@ def test_pricing_tab_shap_selector_interaction() -> None:
     options = list(shap_selectors[0].options)
     assert len(options) > 1
     shap_selectors[0].set_value(options[-1]).run()
+    assert not at.exception
+
+    # Alternância entre % Tabela e Valor Absoluto (R$) via st.toggle
+    unit_toggles = [t for t in at.toggle if t.key == "pricing_unit_mode_toggle"]
+    assert len(unit_toggles) == 1
+    unit_toggles[0].set_value(True).run()
     assert not at.exception

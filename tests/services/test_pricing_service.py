@@ -40,7 +40,7 @@ def test_pricing_dashboard_and_shap_service(repo: DuckDBRepository) -> None:
     assert len(dto_fam.boxplot_df) <= 10
     assert (dto_fam.boxplot_df["family"] == "Quebra-Cabeças").all()
 
-    # SHAP Waterfall fecha exatamente
+    # SHAP Waterfall fecha exatamente (% e R$)
     shap_dto = get_pricing_shap_waterfall(
         repo,
         scenario_id="c1_toys",
@@ -50,6 +50,24 @@ def test_pricing_dashboard_and_shap_service(repo: DuckDBRepository) -> None:
     assert len(shap_dto.drivers_df) == 5
     sum_shap = float(shap_dto.drivers_df["shap_impact_pp"].sum())
     assert shap_dto.base_idx + sum_shap == pytest.approx(shap_dto.expected_idx, abs=1e-3)
+    assert shap_dto.table_gross_brl > 0.0
+    sum_shap_brl = float(shap_dto.drivers_df["shap_impact_brl"].sum())
+    assert shap_dto.table_gross_brl + sum_shap_brl == pytest.approx(shap_dto.expected_net_brl, abs=5.0)
+
+    # Upside inelástico e Boxplot reagem aos filtros globais
+    dto_elastic = build_pricing_dashboard(repo, scenario_id="c1_toys", families=["Linha Escolar"])
+    assert dto_elastic.kpis.inelastic_reprice_upside_brl == 0.0
+
+    dto_sul = build_pricing_dashboard(
+        repo,
+        scenario_id="c1_toys",
+        regiao="Sul",
+        start_date_key=20240101,
+        end_date_key=20241231,
+    )
+    assert 0.0 < dto_sul.kpis.inelastic_reprice_upside_brl < dto_all.kpis.inelastic_reprice_upside_brl
+    assert "p50_brl" in dto_sul.boxplot_df.columns
+    assert dto_sul.kpis.subpricing_leakage_brl < dto_all.kpis.subpricing_leakage_brl
 
 
 def test_v7_boundaries_supply_vampires_high_lift_and_actions_360(repo: DuckDBRepository) -> None:

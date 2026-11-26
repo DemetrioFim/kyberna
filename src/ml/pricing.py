@@ -174,15 +174,20 @@ def _build_sku_realization_df(
     grouped["price_cv_pct"] = np.round((std_idx / mean_idx) * 100.0, 2)
 
     betas = grouped["family"].astype(str).map(elasticity_map).fillna(-1.2).to_numpy(dtype=np.float64)
-    gap_to_expected = np.maximum(
+    gap_to_band_high = np.maximum(
         0.0,
-        (grouped["contextual_band_expected_idx"] - grouped["realized_idx_mean"]).to_numpy(dtype=np.float64)
+        (grouped["contextual_band_high_idx"] - grouped["realized_idx_mean"]).to_numpy(dtype=np.float64)
         / 100.0,
     )
     is_inelastic = betas > -1.0
-    # Upside anualizado (dividido por ~2 anos da janela) mantendo volume ajustado por beta
-    vol_factor = np.power(1.0 + gap_to_expected, betas)
-    upside = np.where(is_inelastic, (gap_to_expected * base_p_arr * units_arr * vol_factor) / 2.0, 0.0)
+    curr_p_arr = np.maximum(grouped["avg_net_price"].to_numpy(dtype=np.float64), 1e-6)
+    target_p_arr = (grouped["contextual_band_high_idx"].to_numpy(dtype=np.float64) / 100.0) * base_p_arr
+    price_ratio = np.clip(target_p_arr / curr_p_arr, 1.0, 1.25)
+    vol_factor = np.power(price_ratio, betas)
+    net_keep_arr = np.maximum(1.0 - tax_r - comm_r, 0.25)
+    # Upside anualizado (dividido por ~2 anos da janela) recompondo até o teto contextual P75
+    delta_net_rev = np.maximum(0.0, units_arr * vol_factor * target_p_arr - units_arr * curr_p_arr)
+    upside = np.where(is_inelastic & (gap_to_band_high > 0.0), (delta_net_rev * net_keep_arr) / 2.0, 0.0)
     grouped["inelastic_upside_brl"] = np.round(np.maximum(upside, 0.0), 2)
 
     grouped["scenario_id"] = scenario_id

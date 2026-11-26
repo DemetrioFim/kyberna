@@ -320,12 +320,42 @@ def cached_pricing_shap(
     *,
     scope_type: str,
     scope_id: str,
+    regiao: str = "Todas",
+    uf: str = "Todas",
+    families: tuple[str, ...] = (),
+    sales_reps: tuple[str, ...] = (),
+    period_preset: str = "all",
+    comparison_mode: str = "pop",
+    selected_month: str | None = None,
+    selected_quarter: str = "2024-Q4",
+    selected_semester: str = "2024-S2",
+    custom_start_date: str | None = None,
+    custom_end_date: str | None = None,
 ) -> PricingShapDTO:
-    """Carrega os 5 drivers Linear SHAP de um escopo (Família ou SKU) em cache."""
+    """Carrega os 5 drivers Linear SHAP (% e R$) de um escopo respeitando os filtros globais."""
     repo = get_cached_repository()
+    min_d, max_d = get_cached_date_bounds(scenario_id)
+    bounds = resolve_period_bounds(
+        period_preset,
+        selected_month,
+        comparison_mode=comparison_mode,  # type: ignore[arg-type]
+        selected_quarter=selected_quarter,
+        selected_semester=selected_semester,
+        rolling_end_month=selected_month,
+        custom_start=custom_start_date,
+        custom_end=custom_end_date,
+        min_date=min_d,
+        max_date=max_d,
+    )
     return get_pricing_shap_waterfall(
         repo,
         scenario_id,
         scope_type=scope_type,
         scope_id=scope_id,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+        start_date_key=bounds.start_date_key,
+        end_date_key=bounds.end_date_key,
     )

@@ -86,6 +86,14 @@ def render_locked_inventory_table(dto: TemperancePageDTO) -> None:
             use_container_width=True,
             hide_index=True,
             height=185,
+            column_config={
+                "Produto": st.column_config.TextColumn("Produto", width="medium"),
+                "Unidades": st.column_config.TextColumn("Unid.", width="small"),
+                "Cx Master": st.column_config.TextColumn("Cx", width="small"),
+                val_label: st.column_config.TextColumn(val_label, width="small"),
+                "Cobertura": st.column_config.TextColumn("Cob.", width="small"),
+                "Célula": st.column_config.TextColumn("Cél.", width="small"),
+            },
         )
 
 
@@ -139,6 +147,16 @@ def render_stockout_risk_table(
             use_container_width=True,
             hide_index=True,
             height=185,
+            column_config={
+                "Produto": st.column_config.TextColumn("Produto", width="medium"),
+                "Est. (cx)": st.column_config.TextColumn("Est.(cx)", width="small"),
+                "SS": st.column_config.TextColumn("SS", width="small"),
+                "ROP": st.column_config.TextColumn("ROP", width="small"),
+                "Cobertura": st.column_config.TextColumn("Cob.", width="small"),
+                "Ordem (cx)": st.column_config.TextColumn("Ordem", width="small"),
+                "Receita Prot.": st.column_config.TextColumn("Rec. Prot.", width="small"),
+                "Célula": st.column_config.TextColumn("Cél.", width="small"),
+            },
         )
         return
 
@@ -221,7 +239,7 @@ def render_sku_forecast_fragment(
         f"MAE SKU: **{fc_dto.sku_mae:.2f}** | Demanda 30d Prevista: "
         f"**{format_int(round(fc_dto.forecast_30d_total_units))} un**"
     )
-    fig = forecast_band_chart(fc_dto.series_df, theme_mode=theme_mode)
+    fig = forecast_band_chart(fc_dto.series_df, height=205, theme_mode=theme_mode)
     st.plotly_chart(fig, use_container_width=True, theme=None)
 
 

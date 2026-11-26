@@ -7,14 +7,16 @@ import streamlit as st
 
 from src.core.types import ScenarioId
 from src.services.pricing_dto import PricingPageDTO
-from src.ui.cache import cached_pricing_shap
+from src.ui.cache import cached_pricing_dashboard, cached_pricing_shap
 from src.ui.components.kpi_card import KpiAccent, render_kpi_card
-from src.ui.components.prescription import render_prescription_box
+from src.ui.components.prescription import render_prescription_box, section_header
 from src.ui.components.pricing_charts import (
+    UnitMode,
     price_band_boxplot_chart,
     pricing_shap_waterfall_chart,
 )
 from src.ui.formatting import fmt_brl_cell, fmt_pct_cell, format_brl
+from src.ui.state import AppState
 
 
 def render_pricing_kpis(pricing_dto: PricingPageDTO) -> None:
@@ -85,6 +87,8 @@ def render_pricing_shap_fragment(
     scenario_id: ScenarioId,
     pricing_dto: PricingPageDTO,
     *,
+    state: AppState | None = None,
+    unit_mode: UnitMode = "pct",
     theme_mode: str = "light",
 ) -> None:
     """Fragmento reativo com seletor de Família/SKU e SHAP Waterfall de Formação de Preço."""
@@ -115,22 +119,215 @@ def render_pricing_shap_fragment(
         label_visibility="collapsed",
     )
     sel_type, sel_id = str(selected_key).split("::", maxsplit=1)
-    shap_dto = cached_pricing_shap(scenario_id, scope_type=sel_type, scope_id=sel_id)
+    shap_dto = cached_pricing_shap(
+        scenario_id,
+        scope_type=sel_type,
+        scope_id=sel_id,
+        regiao=state.regiao if state is not None else "Todas",
+        uf=state.uf if state is not None else "Todas",
+        families=tuple(state.families) if state is not None else (),
+        sales_reps=tuple(state.sales_reps) if state is not None else (),
+        period_preset=state.period_preset if state is not None else "all",
+        comparison_mode=state.comparison_mode if state is not None else "pop",
+        selected_month=state.selected_month if state is not None else None,
+        selected_quarter=state.selected_quarter if state is not None else "2024-Q4",
+        selected_semester=state.selected_semester if state is not None else "2024-S2",
+        custom_start_date=state.custom_start_date if state is not None else None,
+        custom_end_date=state.custom_end_date if state is not None else None,
+    )
 
     gap_color = "var(--kyb-neg)" if shap_dto.unjustified_gap_pp < -0.5 else "var(--kyb-pos)"
+    if unit_mode == "brl" and shap_dto.table_gross_brl > 0.0:
+        exp_txt = format_brl(shap_dto.expected_net_brl, compact=True, decimals=1)
+        real_txt = format_brl(shap_dto.realized_net_brl, compact=True, decimals=1)
+        gap_txt = format_brl(shap_dto.unjustified_gap_brl, compact=True, decimals=1)
+        if shap_dto.unjustified_gap_brl > 0:
+            gap_txt = f"+{gap_txt}"
+    else:
+        exp_txt = f"{shap_dto.expected_idx:.1f}%"
+        real_txt = f"{shap_dto.realized_idx:.1f}%"
+        gap_txt = f"{shap_dto.unjustified_gap_pp:+.2f} pp"
+
     st.markdown(
         "<div style='font-size:0.78rem; color:var(--kyb-text-muted); margin-bottom:0.2rem;'>"
-        f"Esperado (Modelo): <strong>{shap_dto.expected_idx:.1f}%</strong> · "
-        f"Praticado: <strong>{shap_dto.realized_idx:.1f}%</strong> · "
-        f"Resíduo s/ lastro: <strong style='color:{gap_color};'>"
-        f"{shap_dto.unjustified_gap_pp:+.2f} pp</strong></div>",
+        f"Esperado (Modelo): <strong>{exp_txt}</strong> · "
+        f"Praticado: <strong>{real_txt}</strong> · "
+        f"Resíduo s/ lastro: <strong style='color:{gap_color};'>{gap_txt}</strong></div>",
         unsafe_allow_html=True,
     )
     st.plotly_chart(
-        pricing_shap_waterfall_chart(shap_dto, theme_mode=theme_mode),
+        pricing_shap_waterfall_chart(shap_dto, unit_mode=unit_mode, theme_mode=theme_mode),
         use_container_width=True,
         theme=None,
     )
+
+
+def _render_shap_panel(
+    state: AppState,
+    *,
+    sel_type: str,
+    sel_id: str,
+    unit_mode: UnitMode,
+) -> None:
+    """Renderiza o painel direito de Drivers SHAP com resumo financeiro/percentual."""
+    if not sel_type:
+        st.info("Decomposição SHAP ainda não disponível para os filtros atuais.")
+        return
+    shap_dto = cached_pricing_shap(
+        state.scenario_id,
+        scope_type=sel_type,
+        scope_id=sel_id,
+        regiao=state.regiao,
+        uf=state.uf,
+        families=tuple(state.families),
+        sales_reps=tuple(state.sales_reps),
+        period_preset=state.period_preset,
+        comparison_mode=state.comparison_mode,
+        selected_month=state.selected_month,
+        selected_quarter=state.selected_quarter,
+        selected_semester=state.selected_semester,
+        custom_start_date=state.custom_start_date,
+        custom_end_date=state.custom_end_date,
+    )
+    gap_color = "var(--kyb-neg)" if shap_dto.unjustified_gap_pp < -0.5 else "var(--kyb-pos)"
+    if unit_mode == "brl" and shap_dto.table_gross_brl > 0.0:
+        exp_txt = format_brl(shap_dto.expected_net_brl, compact=True, decimals=1)
+        real_txt = format_brl(shap_dto.realized_net_brl, compact=True, decimals=1)
+        gap_txt = format_brl(shap_dto.unjustified_gap_brl, compact=True, decimals=1)
+        if shap_dto.unjustified_gap_brl > 0:
+            gap_txt = f"+{gap_txt}"
+    else:
+        exp_txt = f"{shap_dto.expected_idx:.1f}%"
+        real_txt = f"{shap_dto.realized_idx:.1f}%"
+        gap_txt = f"{shap_dto.unjustified_gap_pp:+.2f} pp"
+
+    st.markdown(
+        "<div style='font-size:0.78rem; color:var(--kyb-text-muted); margin-bottom:0.15rem;'>"
+        f"Escopo: <strong>{shap_dto.scope_label}</strong> · "
+        f"Esperado: <strong>{exp_txt}</strong> · "
+        f"Praticado: <strong>{real_txt}</strong> · "
+        f"Resíduo: <strong style='color:{gap_color};'>{gap_txt}</strong></div>",
+        unsafe_allow_html=True,
+    )
+    st.plotly_chart(
+        pricing_shap_waterfall_chart(shap_dto, unit_mode=unit_mode, theme_mode=state.theme_mode),
+        use_container_width=True,
+        theme=None,
+    )
+
+
+@st.fragment
+def render_pricing_analytics_fragment(state: AppState, pricing_dto: PricingPageDTO) -> None:
+    """Faixa 2 da Aba 3 de Justiça com filtro de escopo unificado (Boxplot + SHAP) e toggle R$."""
+    opts_df = pricing_dto.shap_options_df
+    keys: list[str] = ["all::portfolio"]
+    labels_map: dict[str, str] = {"all::portfolio": "[Portfólio] Todas as Famílias (Visão Geral)"}
+    scope_family_map: dict[str, str] = {}
+
+    if not opts_df.empty:
+        for scope_type, scope_id, scope_label, fam_val, gap_pp in zip(
+            opts_df["scope_type"],
+            opts_df["scope_id"],
+            opts_df["scope_label"],
+            opts_df["family"],
+            opts_df["unjustified_gap_pp"],
+            strict=False,
+        ):
+            key_val = f"{scope_type}::{scope_id}"
+            prefix = "Família" if str(scope_type) == "family" else "SKU"
+            keys.append(key_val)
+            labels_map[key_val] = f"[{prefix}] {scope_label} (Gap: {float(gap_pp):+.1f} pp)"
+            scope_family_map[key_val] = str(fam_val)
+
+    st.markdown("<div style='height:0.45rem;'></div>", unsafe_allow_html=True)
+    c_scope, c_toggle = st.columns([1.85, 0.85], vertical_alignment="center")
+    with c_scope:
+        selected_key = st.selectbox(
+            "Escopo de Precificação (Boxplot e SHAP)",
+            options=keys,
+            format_func=lambda k_val: labels_map.get(str(k_val), str(k_val)),
+            key="pricing_shap_scope_select",
+            label_visibility="collapsed",
+        )
+    with c_toggle:
+        show_brl = st.toggle(
+            "Exibir em R$ Absoluto",
+            value=False,
+            key="pricing_unit_mode_toggle",
+            help="Alterna Boxplot (R$/un.) e SHAP Waterfall (R$ no recorte) entre % da Tabela e R$.",
+        )
+    unit_mode: UnitMode = "brl" if show_brl else "pct"
+
+    sel_key_str = str(selected_key)
+    active_boxplot_df = pricing_dto.boxplot_df
+    if sel_key_str == "all::portfolio":
+        sel_type = str(opts_df["scope_type"].iloc[0]) if not opts_df.empty else ""
+        sel_id = str(opts_df["scope_id"].iloc[0]) if not opts_df.empty else ""
+    else:
+        sel_type, sel_id = sel_key_str.split("::", maxsplit=1)
+        target_fam = scope_family_map.get(sel_key_str, "")
+        if target_fam:
+            scoped_dto = cached_pricing_dashboard(
+                state.scenario_id,
+                regiao=state.regiao,
+                uf=state.uf,
+                families=(target_fam,),
+                sales_reps=tuple(state.sales_reps),
+                period_preset=state.period_preset,
+                comparison_mode=state.comparison_mode,
+                selected_month=state.selected_month,
+                selected_quarter=state.selected_quarter,
+                selected_semester=state.selected_semester,
+                custom_start_date=state.custom_start_date,
+                custom_end_date=state.custom_end_date,
+            )
+            if not scoped_dto.boxplot_df.empty:
+                active_boxplot_df = scoped_dto.boxplot_df
+
+    col_l, col_r = st.columns([1.0, 1.05])
+    with col_l:
+        section_header(
+            "Banda de Preço Realizado vs. Contextual (Boxplot)",
+            "Dispersão real (P05-P95) sobre a banda justa [P25-P75] e piso de 15% MC",
+            help_text=(
+                "Vendas abaixo da faixa verde translúcida ocorreram abaixo do esperado para porte, "
+                "volume e frete regionais."
+            ),
+        )
+        if not active_boxplot_df.empty:
+            med_val = (
+                format_brl(float(active_boxplot_df["p50_brl"].mean()))
+                if unit_mode == "brl" and "p50_brl" in active_boxplot_df.columns
+                else f"{float(active_boxplot_df['p50'].mean()):.1f}%"
+            )
+            leak_sum = float(active_boxplot_df["price_leakage_brl"].sum())
+            leak_val = format_brl(leak_sum, compact=True, decimals=1)
+            box_scope = (
+                scope_family_map.get(sel_key_str, "Portfólio")
+                if sel_key_str != "all::portfolio"
+                else "Todas as Famílias"
+            )
+            st.markdown(
+                "<div style='font-size:0.78rem; color:var(--kyb-text-muted); margin-bottom:0.15rem;'>"
+                f"Escopo: <strong>{box_scope}</strong> · Mediana: <strong>{med_val}</strong> · "
+                f"Vazamento: <strong style='color:var(--kyb-neg);'>{leak_val}</strong></div>",
+                unsafe_allow_html=True,
+            )
+        st.plotly_chart(
+            price_band_boxplot_chart(active_boxplot_df, unit_mode=unit_mode, theme_mode=state.theme_mode),
+            use_container_width=True,
+            theme=None,
+        )
+    with col_r:
+        section_header(
+            "Drivers de Preço — SHAP Waterfall (Regressão)",
+            "Decomposição exata da tabela base até o preço esperado vs. praticado real",
+            help_text=(
+                "Explica quanto do desconto decorre de contrapartidas legítimas e escancara o "
+                "resíduo sem lastro comercial."
+            ),
+        )
+        _render_shap_panel(state, sel_type=sel_type, sel_id=sel_id, unit_mode=unit_mode)
 
 
 def render_pricing_deviations_table(pricing_dto: PricingPageDTO) -> None:
@@ -172,7 +369,11 @@ def render_pricing_deviations_table(pricing_dto: PricingPageDTO) -> None:
         use_container_width=True,
         hide_index=True,
         height=185,
-        column_config={"Realiz. %": st.column_config.TextColumn("Realiz. %", width="small")},
+        column_config={
+            "SKU": st.column_config.TextColumn("SKU", width="medium"),
+            "Realiz. %": st.column_config.TextColumn("Realiz. %", width="small"),
+            "RCA Ofensor": st.column_config.TextColumn("RCA Ofensor", width="small"),
+        },
     )
 
 
@@ -184,13 +385,4 @@ def render_pricing_verdict_section(pricing_dto: PricingPageDTO) -> None:
         impact_brl=pricing_dto.prescription_impact_brl,
         action_hint="Trave alçadas fora da banda P25 e simule reajustes inelásticos na 4. Temperança.",
         help_text="Estimativa de recuperação de margem contendo subprecificação sem contrapartida.",
-    )
-
-
-def render_pricing_boxplot_chart(pricing_dto: PricingPageDTO, *, theme_mode: str = "light") -> None:
-    """Renderiza o Boxplot contextual de realização de preço com faixa [P25, P75]."""
-    st.plotly_chart(
-        price_band_boxplot_chart(pricing_dto.boxplot_df, theme_mode=theme_mode),
-        use_container_width=True,
-        theme=None,
     )

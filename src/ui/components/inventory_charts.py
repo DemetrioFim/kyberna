@@ -39,11 +39,18 @@ def _empty_figure(message: str, *, theme_mode: str = "light", height: int = 280)
     return fig
 
 
-def forecast_band_chart(series_df: pd.DataFrame, *, theme_mode: str = "light") -> go.Figure:
+def forecast_band_chart(
+    series_df: pd.DataFrame,
+    *,
+    height: int = 245,
+    theme_mode: str = "light",
+) -> go.Figure:
     """Gráfico de demanda diária (90d histórico + 30d forecast) com bandas IC 80% e 95%."""
     if series_df.empty:
         return _empty_figure(
-            "Sem série de previsão disponível para o SKU selecionado.", theme_mode=theme_mode
+            "Sem série de previsão disponível para o SKU selecionado.",
+            theme_mode=theme_mode,
+            height=height,
         )
 
     tokens = get_theme_tokens(theme_mode)
@@ -115,7 +122,7 @@ def forecast_band_chart(series_df: pd.DataFrame, *, theme_mode: str = "light") -
     fig.update_layout(
         template="kyberna_dark" if theme_mode == "dark" else "kyberna_light",
         title=None,
-        height=245,
+        height=height,
         margin={"l": 12, "r": 12, "t": 16, "b": 12},
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1.0},
         yaxis={"title": {"text": "Unidades / Dia", "standoff": 8}, "automargin": True},
@@ -216,7 +223,10 @@ def abc_xyz_heatmap(
                     f"<span style='font-size:10px'>{short_policy}</span>"
                 )
                 hover_row.append(
-                    f"<b>Célula {cell_code}</b><br>SKUs: {sku_cnt} ({m_share:.1f}% MC)<br>Política: {policy}"
+                    f"<b>Célula {cell_code}</b><br>"
+                    f"SKUs: {sku_cnt}<br>"
+                    f"Peso na Margem de Contribuição (MC): <b>{m_share:.1f}%</b><br>"
+                    f"Política: {policy}"
                 )
                 z_row.append(m_share)
                 font_color = "#FFFFFF" if m_share >= 18.0 else "#1E293B"
@@ -246,7 +256,14 @@ def abc_xyz_heatmap(
             texttemplate=None,
             hovertemplate="%{customdata}<extra></extra>",
             colorscale="Teal" if theme_mode == "light" else "Blues",
-            showscale=False,
+            showscale=True,
+            colorbar={
+                "title": {"text": "% MC", "side": "top", "font": {"size": 10}},
+                "thickness": 10,
+                "len": 0.9,
+                "ticksuffix": "%",
+                "tickfont": {"size": 9.5},
+            },
             hoverongaps=False,
         )
     )
@@ -257,25 +274,27 @@ def abc_xyz_heatmap(
         xaxis={
             "tickmode": "array",
             "tickvals": ["X", "Y", "Z"],
-            "ticktext": ["X · Demanda Regular", "Y · Demanda Sazonal", "Z · Demanda Errática"],
+            "ticktext": ["X · Regular", "Y · Sazonal", "Z · Errática"],
             "title": {
-                "text": "Eixo XYZ — Previsibilidade de Giro (Demanda)",
-                "font": {"size": 11},
-                "standoff": 6,
+                "text": "Eixo XYZ (Previsibilidade de Giro)",
+                "font": {"size": 10.5},
+                "standoff": 10,
             },
+            "automargin": True,
         },
         yaxis={
             "tickmode": "array",
             "tickvals": ["A", "B", "C"],
-            "ticktext": ["Curva A (80% MC)", "Curva B (15% MC)", "Curva C (5% MC)"],
+            "ticktext": ["A (80%)", "B (15%)", "C (5%)"],
             "title": {
-                "text": "Curva ABC — Relevância na Margem",
-                "font": {"size": 11},
-                "standoff": 6,
+                "text": "Curva ABC (% MC)",
+                "font": {"size": 10.5},
+                "standoff": 10,
             },
+            "automargin": True,
         },
-        height=225,
-        margin={"l": 16, "r": 12, "t": 6, "b": 32},
+        height=230,
+        margin={"l": 16, "r": 24, "t": 10, "b": 18},
     )
     return fig
 

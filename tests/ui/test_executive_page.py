@@ -35,7 +35,7 @@ def test_executive_page_full_render() -> None:
     assert "Projeção de Demanda (30d)" in all_markdown
     assert "Acurácia do Motor (WAPE)" in all_markdown
     assert "Variação Projetada (vs. 30d)" in all_markdown
-    assert "Necessidade Líquida de Compra" in all_markdown
+    assert "Necessidade de Compra" in all_markdown
     assert "SKUs com Pico Sazonal" in all_markdown
 
     # Fragmento de Forecast 30d + Treemap reconciliado

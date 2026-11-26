@@ -28,6 +28,7 @@ __all__ = [
     "PERIOD_PRESETS",
     "AppState",
     "ComparisonMode",
+    "FilterLayout",
     "PeriodBounds",
     "ThemeMode",
     "build_month_options",
@@ -39,6 +40,7 @@ __all__ = [
     "on_comparison_mode_change",
     "on_custom_date_range_change",
     "on_families_change",
+    "on_filter_layout_toggle",
     "on_period_preset_change",
     "on_regiao_change",
     "on_sales_reps_change",
@@ -53,6 +55,7 @@ __all__ = [
 ]
 
 ThemeMode = Literal["light", "dark"]
+FilterLayout = Literal["sidebar", "top"]
 
 
 @dataclass(frozen=True)
@@ -65,6 +68,7 @@ class AppState:
     """
 
     theme_mode: ThemeMode = "light"
+    filter_layout: FilterLayout = "sidebar"
     scenario_id: ScenarioId = "c1_toys"
     period_preset: str = "all"
     comparison_mode: ComparisonMode = "pop"
@@ -86,6 +90,7 @@ def init_app_state() -> AppState:
     """Inicializa as chaves essenciais em `st.session_state` caso ainda não existam."""
     defaults: dict[str, object] = {
         "theme_mode": "light",
+        "filter_layout": "sidebar",
         "scenario_id": "c1_toys",
         "period_preset": "all",
         "comparison_mode": "pop",
@@ -129,9 +134,12 @@ def get_app_state() -> AppState:
 
     raw_comp = st.session_state.get("comparison_mode", "pop")
     comp_mode: ComparisonMode = "yoy" if raw_comp == "yoy" else "pop"
+    raw_layout = st.session_state.get("filter_layout", "sidebar")
+    f_layout: FilterLayout = "top" if raw_layout == "top" else "sidebar"
 
     return AppState(
         theme_mode=st.session_state.get("theme_mode", "light"),
+        filter_layout=f_layout,
         scenario_id=st.session_state.get("scenario_id", "c1_toys"),
         period_preset=st.session_state.get("period_preset", "all"),
         comparison_mode=comp_mode,
@@ -176,6 +184,12 @@ def on_theme_toggle() -> None:
     """Callback acionado ao alternar o toggle de tema na barra lateral."""
     is_dark = bool(st.session_state.get("_theme_toggle", False))
     st.session_state.theme_mode = "dark" if is_dark else "light"
+
+
+def on_filter_layout_toggle() -> None:
+    """Callback acionado ao alternar a posição dos filtros (Sidebar vs. Topo)."""
+    is_top = bool(st.session_state.get("_filter_layout_toggle", False))
+    st.session_state.filter_layout = "top" if is_top else "sidebar"
 
 
 def on_period_preset_change() -> None:
