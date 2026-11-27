@@ -141,7 +141,7 @@ def _render_tab_inventory(
             "Alvos prioritários para campanhas de liquidação e combo",
             help_text="Liquidar 25% do excesso injeta caixa operacional imediato.",
         )
-        render_locked_inventory_table(temp_dto)
+        render_locked_inventory_table(temp_dto, inv_dto=inv_dto)
     with col_br:
         section_header(
             "Ordem de Reposição (Ruptura Iminente)",

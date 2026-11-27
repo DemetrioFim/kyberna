@@ -12,6 +12,7 @@ from src.ui.cache import (
     cached_temperance_dashboard,
 )
 from src.ui.components.charts import dual_trend, waterfall_margin
+from src.ui.components.executive_charts import pvm_bridge_chart
 from src.ui.components.fortitude_charts import (
     build_breakeven_curve_chart,
     build_cycle_comparison_chart,
@@ -56,16 +57,39 @@ def _render_tab_dre(
 
     col_l, col_r = st.columns([1.0, 1.05])
     with col_l:
-        section_header(
-            "Decomposição DRE Completa (Waterfall)",
-            "Do faturamento bruto de tabela até a margem de contribuição",
-            help_text="Deduz descontos comerciais, impostos (ICMS/PIS/COFINS), CPV, comissões e frete.",
+        show_pvm = st.toggle(
+            "Ver Bridge PVM vs. Período Anterior",
+            value=False,
+            key="dre_pvm_toggle",
         )
-        st.plotly_chart(
-            waterfall_margin(exec_dto.waterfall_df, theme_mode=state.theme_mode),
-            use_container_width=True,
-            theme=None,
-        )
+        if show_pvm:
+            section_header(
+                "Bridge PVM — Variação da Margem de Contribuição",
+                "Decomposição exata entre Volume, Preço Tabela, Mix e Descontos/Custos",
+                help_text="Concilia ao centavo: MC Base + Volume + Preço + Mix + Desc./Custos = MC Atual.",
+            )
+            if not exec_dto.pvm_bridge_df.empty:
+                st.plotly_chart(
+                    pvm_bridge_chart(exec_dto.pvm_bridge_df, theme_mode=state.theme_mode),
+                    use_container_width=True,
+                    theme=None,
+                )
+            else:
+                st.info(
+                    "Sem janela comparativa ativa para o Bridge PVM neste recorte. "
+                    "Ative 'Comparar c/ Ano Anterior (YoY)' ou selecione um período fechado."
+                )
+        else:
+            section_header(
+                "Decomposição DRE Completa (Waterfall)",
+                "Do faturamento bruto de tabela até a margem de contribuição",
+                help_text="Deduz descontos comerciais, impostos (ICMS/PIS/COFINS), CPV, comissões e frete.",
+            )
+            st.plotly_chart(
+                waterfall_margin(exec_dto.waterfall_df, theme_mode=state.theme_mode),
+                use_container_width=True,
+                theme=None,
+            )
     with col_r:
         section_header(
             "Ritmo Mensal: Faturamento vs. Margem de Contribuição %",

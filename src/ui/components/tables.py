@@ -6,6 +6,7 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
+from src.services.export_service import attach_whatsapp_links
 from src.ui.formatting import fmt_brl_cell, fmt_pct_cell
 
 
@@ -115,3 +116,81 @@ def render_vampire_customers_expander(vampires_df: pd.DataFrame, customer_label:
             if k in view.columns
         }
         st.dataframe(view.style.format(fmt_map), use_container_width=True, hide_index=True, height=160)
+
+
+def render_silent_churn_expander(silent_churn_df: pd.DataFrame, customer_label: str) -> None:
+    """Renderiza contas em Churn Silencioso (ciclo ativo mas queda >35% em 90d ou perda de mix)."""
+    if silent_churn_df.empty:
+        return
+    with st.expander(
+        f"Churn Silencioso: Queda de Volume/Mix ({len(silent_churn_df)} contas ativas no ciclo)",
+        expanded=False,
+    ):
+        work = silent_churn_df.copy()
+        work["_pitch"] = (
+            "Notamos redução recente no seu volume de compras e separamos uma condição especial de reposição."
+        )
+        work = attach_whatsapp_links(
+            work,
+            pitch_col="_pitch",
+            fallback_pitch="Condição especial de retomada de mix",
+        )
+        if "fams_prev" in work.columns and "fams_curr" in work.columns:
+            work["mix_shift"] = [
+                f"{int(p)} → {int(c)}" for p, c in zip(work["fams_prev"], work["fams_curr"], strict=False)
+            ]
+        cols = [
+            c
+            for c in (
+                "customer_name",
+                "state",
+                "sales_rep_name",
+                "rev_prev_90d",
+                "rev_curr_90d",
+                "drop_pct",
+                "mix_shift",
+                "whatsapp_link",
+            )
+            if c in work.columns
+        ]
+        view = work[cols].rename(
+            columns={
+                "customer_name": customer_label,
+                "state": "UF",
+                "sales_rep_name": "RCA",
+                "rev_prev_90d": "90d Ant.",
+                "rev_curr_90d": "90d Atual",
+                "drop_pct": "Queda %",
+                "mix_shift": "Famílias",
+                "whatsapp_link": "WhatsApp",
+            }
+        )
+        fmt_map: dict[Any, str | Callable[[object], str] | None] = {
+            k: fn
+            for k, fn in (
+                ("90d Ant.", lambda v: fmt_brl_cell(v, decimals=0)),
+                ("90d Atual", lambda v: fmt_brl_cell(v, decimals=0)),
+                ("Queda %", fmt_pct_cell),
+            )
+            if k in view.columns
+        }
+        st.dataframe(
+            view.style.format(fmt_map),
+            use_container_width=True,
+            hide_index=True,
+            height=165,
+            column_config={
+                "UF": st.column_config.TextColumn("UF", width="small"),
+                "WhatsApp": st.column_config.LinkColumn("WhatsApp", display_text="Chamar", width="small"),
+            },
+        )
+
+
+def render_risk_expanders(
+    vampires_df: pd.DataFrame,
+    silent_churn_df: pd.DataFrame,
+    customer_label: str,
+) -> None:
+    """Agrupa os expanders de Vampiros e Churn Silencioso na Aba 2 de 2. Fortaleza."""
+    render_vampire_customers_expander(vampires_df, customer_label)
+    render_silent_churn_expander(silent_churn_df, customer_label)

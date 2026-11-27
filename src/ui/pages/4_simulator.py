@@ -21,6 +21,7 @@ from src.ui.components.commercial_sections import (
     render_commercial_reps_kpis,
     render_top_apriori_rules_table,
 )
+from src.ui.components.customer_xray import render_customer_xray_card
 from src.ui.components.export_bar import render_commercial_export_bar
 from src.ui.components.justice_sections import (
     render_critical_customers_table,
@@ -33,7 +34,7 @@ from src.ui.components.prescription import (
     render_prescription_box,
     section_header,
 )
-from src.ui.components.tables import render_vampire_customers_expander
+from src.ui.components.tables import render_risk_expanders
 from src.ui.components.temperance_sections import render_violations_rep_chart
 from src.ui.formatting import format_brl
 from src.ui.state import AppState, get_app_state
@@ -239,8 +240,12 @@ def _render_tab_risk_opportunities(
             f"{labels.customer_plural} com Maior Risco de Perda & Oportunidade",
             "Lista priorizada por receita em risco e mix complementar com WhatsApp direto",
         )
-        render_critical_customers_table(comm_dto, labels.customer)
-        render_vampire_customers_expander(comm_dto.vampires_df, labels.customer)
+        selected_cust = render_critical_customers_table(comm_dto, labels.customer)
+        if selected_cust is not None:
+            render_customer_xray_card(selected_cust, comm_dto.top_white_space_deals_df, labels.customer)
+        else:
+            st.caption("Clique em uma linha da tabela acima para abrir a Ficha Raio-X 360° da conta.")
+        render_risk_expanders(comm_dto.vampires_df, comm_dto.silent_churn_df, labels.customer)
     with col_br:
         section_header(
             "Funil de Saúde do Ciclo de Recompra",

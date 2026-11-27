@@ -3,7 +3,17 @@ from __future__ import annotations
 import pandas as pd
 import plotly.graph_objects as go
 
+from src.ui.formatting import format_brl
 from src.ui.theme import get_theme_tokens
+
+_PVM_LABEL_MAP: dict[str, str] = {
+    "mc_base": "MC Base<br>(Ant.)",
+    "volume": "Efeito<br>Volume",
+    "price": "Preço<br>Tabela",
+    "mix": "Mix<br>Produtos",
+    "disc_cost": "Desc. &<br>Custos",
+    "mc_final": "MC<br>Atual",
+}
 
 _AXIS_PT_BR: dict[str, str] = {
     "gross_revenue": "Faturamento Bruto (R$)",
@@ -190,5 +200,61 @@ def quadrant_scatter(
         showlegend=False,
         height=245,
         margin={"l": 24, "r": 24, "t": 14, "b": 28},
+    )
+    return fig
+
+
+def pvm_bridge_chart(
+    pvm_df: pd.DataFrame,
+    theme_mode: str = "light",
+) -> go.Figure:
+    """Gera o grafico Waterfall da Bridge PVM (Volume, Preco, Mix e Desc./Custos)."""
+    tokens = get_theme_tokens(theme_mode)
+    template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
+    if pvm_df.empty:
+        fig = go.Figure()
+        fig.update_layout(template=template_name, title=None, height=245)
+        return fig
+
+    x_labels = [
+        _PVM_LABEL_MAP.get(str(k), str(lbl))
+        for k, lbl in zip(pvm_df["step_key"], pvm_df["label"], strict=False)
+    ]
+    text_values = [
+        (
+            f"+{format_brl(float(val), compact=True, decimals=1)}"
+            if m == "relative" and float(val) > 0.0
+            else format_brl(float(val), compact=True, decimals=1)
+        )
+        for val, m in zip(pvm_df["amount"], pvm_df["measure"], strict=False)
+    ]
+    fig = go.Figure(
+        go.Waterfall(
+            name="Bridge PVM",
+            orientation="v",
+            measure=pvm_df["measure"].tolist(),
+            x=x_labels,
+            y=pvm_df["amount"].tolist(),
+            text=text_values,
+            textposition="outside",
+            textfont={"size": 11, "color": tokens["text_primary"]},
+            outsidetextfont={"size": 11, "color": tokens["text_primary"]},
+            cliponaxis=False,
+            hovertemplate="<b>%{x}</b><br>Impacto: R$ %{y:,.2f}<extra></extra>",
+            connector={"line": {"color": tokens["border_subtle"], "width": 1.5, "dash": "dot"}},
+            increasing={"marker": {"color": tokens["teal_500"]}},
+            decreasing={"marker": {"color": tokens["negative"]}},
+            totals={"marker": {"color": tokens["brass_500"]}},
+        )
+    )
+    fig.update_layout(
+        template=template_name,
+        title=None,
+        showlegend=False,
+        height=245,
+        margin={"l": 16, "r": 16, "t": 22, "b": 34},
+        xaxis={"tickangle": 0, "tickfont": {"size": 10}, "automargin": True},
+        yaxis={"showgrid": False, "showticklabels": False, "title": ""},
+        waterfallgap=0.28,
     )
     return fig

@@ -237,11 +237,14 @@ def render_sales_reps_table(dto: CommercialPageDTO, rep_label: str) -> None:
     )
 
 
-def render_critical_customers_table(dto: CommercialPageDTO, customer_label: str) -> None:
-    """Renderiza a tabela de clientes críticos com link direto WhatsApp e scroll interno."""
+def render_critical_customers_table(
+    dto: CommercialPageDTO,
+    customer_label: str,
+) -> pd.Series | None:
+    """Renderiza a tabela de clientes críticos com seleção interativa para Raio-X 360°."""
     if dto.priority_risk_df.empty:
         st.info("Nenhum cliente em risco encontrado para o filtro selecionado.")
-        return
+        return None
     df = attach_whatsapp_links(
         dto.priority_risk_df,
         pitch_col="top_opportunity_pitch",
@@ -283,16 +286,23 @@ def render_critical_customers_table(dto: CommercialPageDTO, customer_label: str)
         )
         if k in display_df.columns
     }
-    st.dataframe(
+    event = st.dataframe(
         display_df.style.format(fmt_map),
         use_container_width=True,
         hide_index=True,
         height=185,
+        on_select="rerun",
+        selection_mode="single-row",
+        key="critical_customers_table",
         column_config={
             "UF": st.column_config.TextColumn("UF", width="small"),
             "WhatsApp": st.column_config.LinkColumn("WhatsApp", display_text="Chamar", width="small"),
         },
     )
+    sel_rows = event.selection.rows if event is not None and hasattr(event, "selection") else []
+    if sel_rows and 0 <= int(sel_rows[0]) < len(df):
+        return df.iloc[int(sel_rows[0])]
+    return None
 
 
 def _style_rfm_segment(val: object) -> str:

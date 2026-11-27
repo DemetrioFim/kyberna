@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any
+
+import pandas as pd
 import streamlit as st
 
 from src.core.types import ScenarioId
@@ -36,8 +40,71 @@ def _fmt_boxes(x: object) -> str:
     return f"{float(str(x)):.1f}"
 
 
-def render_locked_inventory_table(dto: TemperancePageDTO) -> None:
-    """Renderiza a tabela de SKUs com capital imobilizado com scroll interno."""
+def render_unlock_cash_combos_expander(unlock_combos_df: pd.DataFrame) -> None:
+    """Renderiza o expander de Combos Destrava-Caixa pareando SKU >120d com âncora AX/AY."""
+    if unlock_combos_df.empty:
+        return
+    with st.expander(
+        f"Combos Destrava-Caixa Sugeridos (SKU Campeão AX + >120d · {len(unlock_combos_df)} pares)",
+        expanded=False,
+    ):
+        cols = [
+            c
+            for c in (
+                "product_name",
+                "family",
+                "coverage_days",
+                "locked_capital_brl",
+                "anchor_product_name",
+                "anchor_cell",
+                "combo_ratio",
+                "combo_suggestion",
+            )
+            if c in unlock_combos_df.columns
+        ]
+        view = (
+            unlock_combos_df[cols]
+            .head(15)
+            .rename(
+                columns={
+                    "product_name": "SKU Travado (>120d)",
+                    "family": "Família",
+                    "coverage_days": "Cobertura",
+                    "locked_capital_brl": "Capital Travado",
+                    "anchor_product_name": "SKU Âncora",
+                    "anchor_cell": "Célula",
+                    "combo_ratio": "Proporção",
+                    "combo_suggestion": "Ação de Combo Sugerida",
+                }
+            )
+        )
+        fmt_map: dict[Any, str | Callable[[object], str] | None] = {
+            k: fn
+            for k, fn in (
+                ("Cobertura", _fmt_days),
+                ("Capital Travado", _fmt_brl),
+            )
+            if k in view.columns
+        }
+        st.dataframe(
+            view.style.format(fmt_map),
+            use_container_width=True,
+            hide_index=True,
+            height=175,
+            column_config={
+                "SKU Travado (>120d)": st.column_config.TextColumn("SKU >120d", width="medium"),
+                "Célula": st.column_config.TextColumn("Cél.", width="small"),
+                "Proporção": st.column_config.TextColumn("Prop.", width="small"),
+                "Ação de Combo Sugerida": st.column_config.TextColumn("Combo Sugerido", width="large"),
+            },
+        )
+
+
+def render_locked_inventory_table(
+    dto: TemperancePageDTO,
+    inv_dto: InventoryPageDTO | None = None,
+) -> None:
+    """Renderiza a tabela de SKUs com capital imobilizado e Combos Destrava-Caixa."""
     st.markdown(
         '<div style="font-size:0.82rem; color:var(--kyb-text-muted); margin-bottom:0.25rem;">'
         f"Imobilização: <strong>{format_brl(dto.kpis.locked_capital_brl)}</strong> em "
@@ -95,6 +162,8 @@ def render_locked_inventory_table(dto: TemperancePageDTO) -> None:
                 "Célula": st.column_config.TextColumn("Cél.", width="small"),
             },
         )
+    if inv_dto is not None and not inv_dto.unlock_combos_df.empty:
+        render_unlock_cash_combos_expander(inv_dto.unlock_combos_df)
 
 
 def render_stockout_risk_table(
