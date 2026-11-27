@@ -13,7 +13,7 @@ from src.services.dto import (
 from src.services.inventory_dto import InventoryPageDTO
 from src.ui.components.kpi_card import KpiAccent, render_kpi_card
 from src.ui.components.prescription import render_prescription_box
-from src.ui.formatting import fmt_brl_cell, fmt_int_cell, format_brl
+from src.ui.formatting import fmt_brl_cell, fmt_int_cell, format_brl, get_delta_html
 from src.ui.theme import get_theme_tokens
 
 
@@ -30,6 +30,7 @@ def render_temperance_kpi_cards(
             title="Erosão Comercial Total",
             value=format_brl(kpis.total_commercial_erosion_brl, compact=True, decimals=1),
             subfooter_left=f"Sangria: {kpis.total_commercial_erosion_pct:.1f}% da receita",
+            delta_html=get_delta_html(kpis.total_erosion_delta_pct, kind="pct", invert_color=True),
             accent="alert_warn",
             help_text="Deduções entre faturamento bruto e lucro: descontos, comissões de RCAs e frete CIF.",
         )
@@ -39,6 +40,7 @@ def render_temperance_kpi_cards(
             title="Descontos Fora de Tabela",
             value=format_brl(kpis.excess_discount_brl, compact=True, decimals=1),
             subfooter_left=f"{kpis.excess_discount_pct_of_discount:.1f}% dos descontos",
+            delta_html=get_delta_html(kpis.excess_discount_delta_pct, kind="pct", invert_color=True),
             accent="alert_neg",
             help_text="Concedido acima do teto estipulado por porte (P=3%, M=6.5%, G=10.5%).",
         )
@@ -48,6 +50,7 @@ def render_temperance_kpi_cards(
             title="Custo de Prazo Esticado",
             value=format_brl(kpis.financial_term_leak_brl, compact=True, decimals=1),
             subfooter_left="Prazo > 30 dias (1,35% a.m.)",
+            delta_html=get_delta_html(kpis.financial_term_leak_delta_pct, kind="pct", invert_color=True),
             accent="brass",
             help_text="Custo de carregamento financeiro de boletos esticados além do padrão de 30 dias.",
         )
@@ -108,6 +111,7 @@ def render_temperance_mix_kpis(
             title="[Finanças] Margem de Contribuição",
             value=format_brl(ek.contribution_margin, compact=True),
             subfooter_left=f"{ek.contribution_margin_pct:.1f}% vs. Meta {ek.margin_target_pct:.1f}%",
+            delta_html=get_delta_html(ek.contribution_margin_delta_pct, kind="pct"),
             accent=m_acc,
             help_text=(
                 "Margem de contribuição apurada após descontos, tributos, CMV, comissões e frete "
@@ -120,6 +124,7 @@ def render_temperance_mix_kpis(
             title="[Finanças] Ciclo & NCG",
             value=f"{fk.cash_conversion_cycle_days:.0f} dias",
             subfooter_left=f"NCG: {format_brl(fk.ncg_brl, compact=True, decimals=1)}",
+            delta_html=get_delta_html(fk.ccc_delta_days, kind="float", invert_color=True, label_suffix="d"),
             accent=ccc_acc,
             help_text="Ciclo Financeiro (PME + PMR - PMP) e Necessidade de Capital de Giro.",
         )
@@ -128,6 +133,7 @@ def render_temperance_mix_kpis(
             title="[Comercial] Risco vs. Mix",
             value=format_brl(ck.annual_revenue_at_risk_brl, compact=True),
             subfooter_left=f"White Space: +{format_brl(ck.white_space_potential_revenue_brl, compact=True)}",
+            delta_html=get_delta_html(ck.white_space_revenue_delta_pct, kind="pct"),
             accent="alert_warn",
             help_text="Contrapõe a receita em risco de evasão ao potencial incremental de cross-sell.",
         )
@@ -155,6 +161,7 @@ def render_temperance_mix_kpis(
                 f"Fora teto: {format_brl(tk.excess_discount_brl, compact=True, decimals=1)} · "
                 f"Deduções: {format_brl(tk.total_commercial_erosion_brl, compact=True, decimals=1)}"
             ),
+            delta_html=get_delta_html(tk.total_erosion_delta_pct, kind="pct", invert_color=True),
             accent="alert_neg",
             help_text=(
                 "Ganho imediato reconciliado com o Veredito Integrado (estancamento de descontos "

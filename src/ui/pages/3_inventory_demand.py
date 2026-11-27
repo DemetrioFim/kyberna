@@ -165,6 +165,7 @@ def render_page() -> None:
         headline_title=temp_dto.headline_title,
         headline_text=temp_dto.headline_text,
         as_of_date_label=temp_dto.as_of_date_label,
+        comparison_label=exec_dto.comparison_label,
         help_text=(
             "Visão executiva transversal estilo PowerBI integrando Finanças, Comercial e Operações, "
             "além do Simulador Estratégico What-If e Matriz 360° Campeões vs. Vampiros."
@@ -230,6 +231,12 @@ def render_page() -> None:
         section_header(
             "Simulador Estratégico What-If & Elasticidade Real (β)",
             "Teste impactos conjuntos de preço, descontos, CMV e comissão sobre lucro e banda competitiva",
+            help_text=(
+                "<b>O que é Elasticidade Real (β)?</b> É a sensibilidade percentual da demanda a variações "
+                "de preço estimada sobre as vendas históricas. Ex.: β = -0,6 significa que +10% no preço "
+                "reduz o volume em ~6% (demanda <b>inelástica</b>, ideal para recompor margem); "
+                "|β| ≥ 1 indica demanda <b>elástica</b> (alta perda de giro ao subir preço)."
+            ),
         )
         render_what_if_quick_fragment(
             exec_dto,

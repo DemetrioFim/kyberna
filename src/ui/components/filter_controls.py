@@ -18,6 +18,7 @@ from src.ui.state import (
     build_semester_options,
     fetch_date_bounds,
     get_app_state,
+    on_comparison_mode_toggle,
     on_custom_date_range_change,
     on_families_change,
     on_period_preset_change,
@@ -200,6 +201,17 @@ def render_period_controls(
         )
         if isinstance(picked, tuple) and len(picked) >= 2:
             eff_start, eff_end = picked[0].isoformat(), picked[1].isoformat()
+
+    st.toggle(
+        "Comparar c/ Ano Anterior (YoY)",
+        value=(state.comparison_mode == "yoy"),
+        key="_comparison_mode_toggle",
+        on_change=on_comparison_mode_toggle,
+        help=(
+            "Ligado: compara KPIs com o mesmo período do ano anterior (YoY). "
+            "Desligado: compara com o período imediatamente anterior (PoP)."
+        ),
+    )
 
     if show_caption:
         bounds = resolve_period_bounds(

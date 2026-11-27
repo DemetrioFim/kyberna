@@ -364,6 +364,7 @@ def render_page() -> None:
         headline_title=comm_dto.headline_title,
         headline_text=comm_dto.headline_text,
         as_of_date_label=comm_dto.as_of_date_label,
+        comparison_label=comm_dto.comparison_label,
         help_text=(
             "Visão comercial dedicada estilo PowerBI: Cross-Sell com Modelo Apriori, "
             "risco de evasão da carteira (Churn/RFM) e produtividade dos RCAs."

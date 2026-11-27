@@ -36,18 +36,7 @@ from src.ui.components.prudence_sections import (
     render_monthly_sales_table_section,
     render_prudence_kpis,
 )
-from src.ui.state import (
-    COMPARISON_MODE_LABELS,
-    AppState,
-    ComparisonMode,
-    get_app_state,
-    on_comparison_mode_change,
-)
-
-
-def _format_comparison_mode(mode: ComparisonMode) -> str:
-    """Retorna rótulo pt-BR da base comparativa dos KPIs financeiros."""
-    return COMPARISON_MODE_LABELS[mode]
+from src.ui.state import AppState, get_app_state
 
 
 def _render_tab_dre(
@@ -56,26 +45,13 @@ def _render_tab_dre(
     customer_plural: str,
 ) -> None:
     """Aba 1: DRE Gerencial & Margem Real."""
-    col_period_info, col_comp_toggle = st.columns([1.65, 1.0])
-    with col_period_info:
-        st.markdown(
-            "<div style='font-size:0.78rem; color:var(--kyb-text-muted); padding-top:0.2rem;'>"
-            f"<strong style='color:var(--kyb-text);'>Janela:</strong> {exec_dto.period_label} · "
-            f"<span style='color:var(--kyb-teal); font-weight:600;'>{exec_dto.comparison_label}</span>"
-            "</div>",
-            unsafe_allow_html=True,
-        )
-    with col_comp_toggle:
-        st.radio(
-            "Base Comparativa dos KPIs",
-            options=["pop", "yoy"],
-            index=0 if state.comparison_mode == "pop" else 1,
-            format_func=_format_comparison_mode,
-            key="_comparison_mode_radio",
-            on_change=on_comparison_mode_change,
-            horizontal=True,
-            label_visibility="collapsed",
-        )
+    st.markdown(
+        "<div style='font-size:0.78rem; color:var(--kyb-text-muted); margin-bottom:0.25rem;'>"
+        f"<strong style='color:var(--kyb-text);'>Janela:</strong> {exec_dto.period_label} · "
+        f"<span style='color:var(--kyb-teal); font-weight:600;'>{exec_dto.comparison_label}</span>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
     render_prudence_kpis(exec_dto, customer_plural)
 
     col_l, col_r = st.columns([1.0, 1.05])
@@ -258,6 +234,7 @@ def render_page() -> None:
         headline_title=exec_dto.headline_title,
         headline_text=exec_dto.headline_text,
         as_of_date_label=exec_dto.as_of_date_label,
+        comparison_label=exec_dto.comparison_label,
         help_text=(
             "Visão financeira completa em 3 abas estilo PowerBI: DRE Gerencial & Margem de Contribuição, "
             "Fluxo de Caixa/NCG e Precificação Contextual (Banda Ideal + SHAP)."

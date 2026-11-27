@@ -38,6 +38,7 @@ __all__ = [
     "get_app_state",
     "init_app_state",
     "on_comparison_mode_change",
+    "on_comparison_mode_toggle",
     "on_custom_date_range_change",
     "on_families_change",
     "on_filter_layout_toggle",
@@ -202,6 +203,12 @@ def on_comparison_mode_change() -> None:
     """Callback acionado ao alternar a base comparativa (`PoP` vs. `YoY`)."""
     val = st.session_state.get("_comparison_mode_radio", "pop")
     st.session_state.comparison_mode = "yoy" if val == "yoy" else "pop"
+
+
+def on_comparison_mode_toggle() -> None:
+    """Callback global do toggle 'Comparar c/ Ano Anterior (YoY)' nos filtros."""
+    is_yoy = bool(st.session_state.get("_comparison_mode_toggle", False))
+    st.session_state.comparison_mode = "yoy" if is_yoy else "pop"
 
 
 def on_selected_month_change() -> None:

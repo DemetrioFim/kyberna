@@ -141,3 +141,22 @@ def test_empty_filtered_slice_renders_without_exception_across_all_pages() -> No
         at.session_state["sales_reps"] = ("Ana Júlia Martins",)
         at.run()
         assert not at.exception, f"Exceção com recorte vazio em {filename}: {at.exception}"
+
+
+def test_yoy_comparison_badges_render_across_all_four_pages() -> None:
+    """Ativar comparison_mode='yoy' exibe Base comparativa no header e badges nos KPIs das 4 telas."""
+    pages_dir = get_project_root() / "src" / "ui" / "pages"
+    for filename in (
+        "1_executive.py",
+        "4_simulator.py",
+        "2_commercial_radar.py",
+        "3_inventory_demand.py",
+    ):
+        at = AppTest.from_file(str(pages_dir / filename), default_timeout=30)
+        at.session_state["scenario_id"] = "c1_toys"
+        at.session_state["comparison_mode"] = "yoy"
+        at.run()
+        assert not at.exception, f"Exceção com comparison_mode='yoy' em {filename}: {at.exception}"
+        all_md = " ".join(m.value for m in at.markdown)
+        assert "Base:" in all_md
+        assert "badge-positive" in all_md or "badge-negative" in all_md

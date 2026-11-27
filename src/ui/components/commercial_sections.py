@@ -5,7 +5,7 @@ import streamlit as st
 
 from src.services.dto import CommercialPageDTO, TemperancePageDTO
 from src.ui.components.kpi_card import render_kpi_card
-from src.ui.formatting import format_brl, format_int
+from src.ui.formatting import format_brl, format_int, get_delta_html
 
 
 def render_commercial_cross_sell_kpis(comm_dto: CommercialPageDTO) -> None:
@@ -39,6 +39,7 @@ def render_commercial_cross_sell_kpis(comm_dto: CommercialPageDTO) -> None:
             title="Potencial White Space",
             value=format_brl(k.white_space_potential_revenue_brl, compact=True),
             subfooter_left=f"Lacuna média: {format_brl(avg_gap, compact=True)} / loja",
+            delta_html=get_delta_html(k.white_space_revenue_delta_pct, kind="pct"),
             accent="teal",
             help_text=(
                 "Receita incremental anual mapeada pelo algoritmo Apriori + Lookalike "
@@ -85,6 +86,7 @@ def render_commercial_cross_sell_kpis(comm_dto: CommercialPageDTO) -> None:
                 f"{format_int(k.high_lift_customers_count)} de {format_int(eligible_cnt)} lojas · "
                 f"{format_int(total_offers)} ofertas"
             ),
+            delta_html=get_delta_html(k.avg_families_delta, kind="float", label_suffix="fam"),
             accent="teal",
             help_text=(
                 "Proporção de lojas elegíveis com recomendação Apriori de alta alavancagem "
@@ -147,12 +149,14 @@ def render_commercial_reps_kpis(
     )
     excess_disc = temp_dto.kpis.excess_discount_brl
 
+    ck = comm_dto.kpis
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         render_kpi_card(
             title=f"Equipe Ativa ({rep_plural})",
             value=f"{format_int(n_reps)} RCAs",
             subfooter_left=f"{stars} no quadrante Estrela",
+            delta_html=get_delta_html(ck.rep_positivation_delta_pp, kind="pp"),
             accent="teal",
             help_text="Representantes comerciais ativos com vendas faturadas no recorte.",
         )
@@ -161,6 +165,7 @@ def render_commercial_reps_kpis(
             title="Faturamento Médio / RCA",
             value=format_brl(avg_rev, compact=True),
             subfooter_left="Receita média por vendedor",
+            delta_html=get_delta_html(ck.rep_gross_revenue_delta_pct, kind="pct"),
             accent="brass",
             help_text="Receita bruta média gerada por representante no período filtrado.",
         )
@@ -169,6 +174,7 @@ def render_commercial_reps_kpis(
             title="Margem de Contribuição Média",
             value=f"{avg_margin:.1f}%",
             subfooter_left="MC % média da equipe",
+            delta_html=get_delta_html(ck.rep_margin_pct_delta_pp, kind="pp"),
             accent="green" if avg_margin >= 25.0 else "alert_warn",
             help_text=(
                 "Margem de contribuição média obtida pela equipe após descontos, comissões e frete "
@@ -180,6 +186,7 @@ def render_commercial_reps_kpis(
             title="Destaques (Quadrante Estrela)",
             value=f"{format_int(stars)} RCAs",
             subfooter_left="Alto volume + alta margem",
+            delta_html=get_delta_html(ck.rep_discount_pct_delta_pp, kind="pp", invert_color=True),
             accent="green",
             help_text="Vendedores acima das medianas de faturamento e margem simultaneamente.",
         )
@@ -188,6 +195,7 @@ def render_commercial_reps_kpis(
             title="Descontos Fora do Teto",
             value=format_brl(excess_disc, compact=True, decimals=1),
             subfooter_left=f"{temp_dto.kpis.excess_discount_pct_of_discount:.1f}% dos descontos",
+            delta_html=get_delta_html(temp_dto.kpis.excess_discount_delta_pct, kind="pct", invert_color=True),
             accent="alert_neg",
             help_text="Concessão comercial acima da alçada autorizada por porte do cliente.",
         )

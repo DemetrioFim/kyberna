@@ -263,6 +263,7 @@ def render_page() -> None:
             f"<b>{format_brl(inv_dto.kpis.locked_capital_brl, compact=True)}</b> imobilizados (>120d)."
         ),
         as_of_date_label=exec_dto.as_of_date_label,
+        comparison_label=exec_dto.comparison_label,
         help_text=(
             "Painel administrativo estilo PowerBI 100% operacional: Portfólio ABC/XYZ, "
             "Gestão de Estoque/Ruptura e Previsão de Demanda 30d & PCP."

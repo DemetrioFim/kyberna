@@ -51,6 +51,7 @@ def render_cockpit_header(
     headline_text: str,
     virtue_badge: str | None = None,
     period_badge: str | None = None,
+    comparison_label: str | None = None,
     as_of_date_label: str = "31/12/2024",
     help_text: str | None = None,
 ) -> None:
@@ -59,6 +60,11 @@ def render_cockpit_header(
     info_html = f" {info_tooltip_html(help_text, align='left')}" if help_text else ""
     virtue_html = (
         f'<span class="badge badge-source">{html.escape(virtue_badge)}</span>' if virtue_badge else ""
+    )
+    comp_html = (
+        f'<span class="cockpit-date-tag">Base: <strong>{html.escape(comparison_label)}</strong></span>'
+        if comparison_label
+        else ""
     )
     pill_html = f'<span class="cockpit-headline-pill">{html.escape(headline_title)}{info_html}</span>'
     header_html = (
@@ -69,6 +75,7 @@ def render_cockpit_header(
         f'<h2 class="cockpit-title">{html.escape(title)}</h2>'
         "</div>"
         '<div class="cockpit-meta-group">'
+        f"{comp_html}"
         f'<span class="cockpit-date-tag">Corte: <strong>{html.escape(as_of_date_label)}</strong></span>'
         "</div>"
         "</div>"

@@ -15,12 +15,12 @@ from src.ui.components.simulator_controls import (
     NO_SKU_OPT,
     build_sku_band_options,
     render_breakeven_callout,
+    render_optimal_adjustment_banner,
     render_scenario_comparator,
     render_simulator_kpis,
     resolve_active_band,
     resolve_active_beta,
 )
-from src.ui.formatting import format_brl
 
 
 def _render_simulator_charts(
@@ -132,20 +132,26 @@ def render_what_if_quick_fragment(
         beta_active, beta_badge = resolve_active_beta(elasticity_df, active_family)
 
         with c_el:
+            el_pct = abs(beta_active) * 10.0
             apply_elasticity = st.toggle(
                 f"Elasticidade β: {beta_badge}",
                 value=True,
                 key="sim_use_elasticity",
+                help=(
+                    "Mede o quanto o volume vendido cai quando o preço sobe. "
+                    f"Com β = {beta_active:.2f}, um aumento de +10% no preço altera a demanda em "
+                    f"~{-el_pct:.1f}% (|β| < 1 = inelástica; |β| ≥ 1 = elástica)."
+                ),
             )
 
+        st.session_state.setdefault("_what_if_price", 0.0)
         c1, c2 = st.columns(2)
         with c1:
             price_delta = st.slider(
                 "Ajuste de Preço (%)",
                 min_value=-30.0,
                 max_value=30.0,
-                value=0.0,
-                step=0.5,
+                step=0.1,
                 key="_what_if_price",
             )
             cost_delta = st.slider(
@@ -187,16 +193,6 @@ def render_what_if_quick_fragment(
     res = simulate(baseline, levers)
 
     scope_label = selected_sku if scope_mode == "Tático por SKU" else selected_family
-    if scope_label != ALL_FAMILIES_OPT:
-        with c_ctrl:
-            st.markdown(
-                "<div style='font-size:0.74rem; color:var(--kyb-text-muted); margin-top:0.2rem;'>"
-                f"Elasticidade β de <strong>{active_family}</strong> aplicada sobre a base atual "
-                f"(<strong>{format_brl(res.gross_revenue_0)}</strong>); "
-                f"Banda Ideal: <strong>{band_caption or 'Global'}</strong>."
-                "</div>",
-                unsafe_allow_html=True,
-            )
 
     with kpi_slot:
         render_simulator_kpis(res, dto.kpis.contribution_margin_pct)
@@ -211,6 +207,14 @@ def render_what_if_quick_fragment(
             cost_pct=float(cost_delta),
             comm_pp=float(comm_delta),
         )
+
+    render_optimal_adjustment_banner(
+        res,
+        scope_label=scope_label,
+        active_family=active_family,
+        beta_val=beta_active,
+        band_caption=band_caption,
+    )
 
     _render_simulator_charts(
         res,

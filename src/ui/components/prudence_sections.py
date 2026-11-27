@@ -94,6 +94,7 @@ def render_prudence_kpis(dto: ExecutivePageDTO, customer_plural: str) -> None:
             title="Deduções & Descontos",
             value=format_pct(deductions_pct),
             subfooter_left=f"Desc.: {disc_pct:.1f}% · Trib.: {tax_pct_gross:.1f}%",
+            delta_html=get_delta_html(dto.kpis.deductions_pct_delta_pp, kind="pp", invert_color=True),
             accent="alert_warn" if disc_pct >= 8.0 else "brass",
             help_text=(
                 "Peso combinado de descontos comerciais e tributos (ICMS/PIS/COFINS) sobre o "

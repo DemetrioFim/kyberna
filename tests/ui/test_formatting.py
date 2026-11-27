@@ -85,6 +85,14 @@ def test_get_delta_html_colors_and_inversion() -> None:
     assert "badge-source" in get_delta_html(None)
     assert "badge-source" in get_delta_html(0.0)
 
+    # Decimal com sufixo (ex.: meses de Runway, dias de Ciclo NCG)
+    runway_html = get_delta_html(0.4, kind="float", label_suffix="m")
+    assert "badge-positive" in runway_html
+    assert "+0,4 m" in runway_html
+    ccc_html = get_delta_html(-2.3, kind="float", invert_color=True, label_suffix="d")
+    assert "badge-positive" in ccc_html
+    assert "-2,3 d" in ccc_html
+
 
 def test_info_tooltip_html_rendering_and_validation() -> None:
     """Valida geração do ícone azul de informação ⓘ e obrigatoriedade de texto não-vazio."""

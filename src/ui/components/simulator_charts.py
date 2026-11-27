@@ -116,13 +116,27 @@ def profit_curve_chart(
             ),
         )
     )
+    fig.add_annotation(
+        x=opt_pct,
+        y=opt_margin,
+        text=f"Ideal: {opt_pct:+.1f}%",
+        showarrow=True,
+        arrowhead=0,
+        arrowcolor=tokens["positive"],
+        ax=28 if opt_pct <= 15.0 else -32,
+        ay=24,
+        font={"size": 10, "color": tokens["positive"]},
+        bgcolor=tokens["surface_card"],
+        bordercolor=tokens["positive"],
+        borderpad=2,
+    )
 
     fig.update_layout(
         template=template_name,
         title=None,
-        height=260,
-        margin={"l": 16, "r": 12, "t": 16, "b": 16},
-        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1.0},
+        height=265,
+        margin={"l": 16, "r": 12, "t": 36, "b": 18},
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.04, "xanchor": "right", "x": 1.0},
         xaxis={"title": {"text": "Variação de Preço de Tabela (%)", "standoff": 8}, "automargin": True},
         yaxis={"title": {"text": "Margem de Contribuição (R$)", "standoff": 8}, "automargin": True},
     )

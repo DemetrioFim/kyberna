@@ -108,7 +108,7 @@ def format_date_br(value: date | datetime | str | None) -> str:
 
 def get_delta_html(
     delta: float | None,
-    kind: Literal["pct", "pp", "brl", "int"] = "pct",
+    kind: Literal["pct", "pp", "brl", "int", "float"] = "pct",
     invert_color: bool = False,
     label_suffix: str = "",
 ) -> str:
@@ -116,9 +116,9 @@ def get_delta_html(
 
     Argumentos:
         delta: Variação numérica absoluta ou percentual.
-        kind: Tipo de formatação ('pct', 'pp', 'brl', 'int').
+        kind: Tipo de formatação ('pct', 'pp', 'brl', 'int', 'float').
         invert_color: Inverte semântica de cor (positivo vira vermelho para custos/impostos/perdas).
-        label_suffix: Sufixo adicional no texto (ex: 'vs. mês anterior').
+        label_suffix: Sufixo adicional no texto (ex: 'm', 'd', 'fam').
     """
     if delta is None:
         return '<span class="badge badge-source">—</span>'
@@ -140,6 +140,9 @@ def get_delta_html(
     elif kind == "brl":
         prefix = "+R$ " if is_positive else "-R$ "
         val_str = f"{prefix}{format_brl(abs(delta), compact=True, decimals=1)[3:]}"
+    elif kind == "float":
+        sign = "+" if is_positive else ""
+        val_str = f"{sign}{float(delta):.1f}".replace(".", ",")
     else:
         prefix = "+" if is_positive else ""
         val_str = f"{prefix}{format_int(delta)}"

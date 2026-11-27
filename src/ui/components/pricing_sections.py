@@ -15,7 +15,7 @@ from src.ui.components.pricing_charts import (
     price_band_boxplot_chart,
     pricing_shap_waterfall_chart,
 )
-from src.ui.formatting import fmt_brl_cell, fmt_pct_cell, format_brl
+from src.ui.formatting import fmt_brl_cell, fmt_pct_cell, format_brl, get_delta_html
 from src.ui.state import AppState
 
 
@@ -30,6 +30,7 @@ def render_pricing_kpis(pricing_dto: PricingPageDTO) -> None:
             title="Índice de Realização",
             value=f"{k.realization_index_pct:.1f}%",
             subfooter_left=f"{k.skus_count} SKUs · {k.orders_count} pedidos",
+            delta_html=get_delta_html(k.realization_idx_delta_pp, kind="pp"),
             accent="teal",
             help_text=(
                 "Relação média entre o preço líquido praticado e o preço base de tabela "
@@ -41,6 +42,7 @@ def render_pricing_kpis(pricing_dto: PricingPageDTO) -> None:
             title="Dispersão de Preço (CV%)",
             value=f"{k.price_cv_pct:.1f}%",
             subfooter_left="Variabilidade entre clientes/pedidos",
+            delta_html=get_delta_html(k.price_cv_delta_pp, kind="pp", invert_color=True),
             accent="brass",
             help_text=(
                 "Coeficiente de variação do índice de preço realizado. Dispersão elevada sem lastro "
@@ -52,6 +54,7 @@ def render_pricing_kpis(pricing_dto: PricingPageDTO) -> None:
             title="Vendas Abaixo da Banda",
             value=f"{k.below_band_sales_pct:.1f}%",
             subfooter_left="Pedidos abaixo do piso P25",
+            delta_html=get_delta_html(k.below_band_delta_pp, kind="pp", invert_color=True),
             accent=below_acc,
             help_text=(
                 "Percentual de linhas faturadas abaixo do limite inferior (P25) previsto pela regressão "
@@ -63,6 +66,7 @@ def render_pricing_kpis(pricing_dto: PricingPageDTO) -> None:
             title="Vazamento Subprecificação",
             value=format_brl(k.subpricing_leakage_brl, compact=True, decimals=1),
             subfooter_left="Perda abaixo do piso contextual",
+            delta_html=get_delta_html(k.subpricing_leakage_delta_pct, kind="pct", invert_color=True),
             accent="alert_neg",
             help_text=(
                 "Soma financeira das vendas realizadas abaixo da banda justa P25 sem contrapartida "
@@ -74,6 +78,7 @@ def render_pricing_kpis(pricing_dto: PricingPageDTO) -> None:
             title="Potencial Reajuste (Inelást.)",
             value=format_brl(k.inelastic_reprice_upside_brl, compact=True, decimals=1),
             subfooter_left="Upside anual em famílias |β| < 1",
+            delta_html=get_delta_html(k.inelastic_upside_delta_pct, kind="pct"),
             accent="green" if k.inelastic_reprice_upside_brl > 0 else "teal",
             help_text=(
                 "Ganho anualizado estimado ao recompor preços de SKUs inelásticos até o esperado "

@@ -90,15 +90,15 @@ def render_sidebar(repo: DataRepository | None = None) -> AppState:
         c_theme, c_layout = st.columns(2)
         with c_theme:
             st.toggle(
-                "Modo Escuro",
+                "Escuro",
                 value=(state.theme_mode == "dark"),
                 key="_theme_toggle",
                 on_change=on_theme_toggle,
-                help="Alterna entre o visual executivo claro e o cockpit escuro.",
+                help="Alterna entre o visual executivo claro e o modo escuro.",
             )
         with c_layout:
             st.toggle(
-                "Filtros Topo",
+                "Topo",
                 value=(state.filter_layout == "top"),
                 key="_filter_layout_toggle",
                 on_change=on_filter_layout_toggle,

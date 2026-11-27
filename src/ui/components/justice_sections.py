@@ -11,7 +11,7 @@ from src.services.dto import CommercialPageDTO, ExecutivePageDTO, FortitudePageD
 from src.services.export_service import attach_whatsapp_links
 from src.ui.components.kpi_card import KpiAccent, render_kpi_card
 from src.ui.components.tables import render_margin_drivers_table
-from src.ui.formatting import fmt_brl_cell, fmt_pct_cell, format_brl, format_int
+from src.ui.formatting import fmt_brl_cell, fmt_pct_cell, format_brl, format_int, get_delta_html
 
 
 def render_justice_kpi_cards(dto: CommercialPageDTO, customer_plural: str) -> None:
@@ -64,6 +64,7 @@ def render_justice_kpi_cards(dto: CommercialPageDTO, customer_plural: str) -> No
             title="Clientes Vampiros (<15% MC)",
             value=f"{format_int(vamp_cnt)} contas",
             subfooter_left="Alto volume com margem comprimida",
+            delta_html=get_delta_html(dto.kpis.vampire_customers_delta, kind="int", invert_color=True),
             accent="alert_neg" if vamp_cnt > 0 else "green",
             help_text=(
                 f"{customer_plural} com faturamento relevante (> R$ 15 mil), mas margem de "
@@ -76,6 +77,7 @@ def render_justice_kpi_cards(dto: CommercialPageDTO, customer_plural: str) -> No
             title="Positivação de Carteira",
             value=f"{dto.kpis.avg_positivation_pct:.1f}%",
             subfooter_left=f"LTV Médio: {format_brl(dto.kpis.avg_ltv_brl, compact=True)}",
+            delta_html=get_delta_html(dto.kpis.active_customers_delta_pct, kind="pct"),
             accent="green",
             help_text=(
                 f"Percentual de {customer_plural.lower()} cadastrados que compraram regularmente "

@@ -5,7 +5,7 @@ import streamlit as st
 from src.services.dto import FortitudePageDTO, TemperancePageDTO
 from src.ui.components.kpi_card import KpiAccent, render_kpi_card
 from src.ui.components.prescription import render_prescription_box
-from src.ui.formatting import fmt_brl_cell, fmt_pct_cell, format_brl
+from src.ui.formatting import fmt_brl_cell, fmt_pct_cell, format_brl, get_delta_html
 
 
 def _style_aging_stage(val: object) -> str:
@@ -33,12 +33,11 @@ def render_fortitude_kpi_cards(
         render_kpi_card(
             title="Runway de Caixa",
             value=f"{k.cash_runway_months:.1f} meses",
-            subfooter_left=f"Reserva: {format_brl(k.cash_reserve_brl, compact=True, decimals=1)}",
-            delta_html=(
-                f"Meta: {k.cash_reserve_target_months:.1f}m"
-                if runway_ok
-                else f"Abaixo meta ({k.cash_reserve_target_months:.1f}m)"
+            subfooter_left=(
+                f"Reserva: {format_brl(k.cash_reserve_brl, compact=True, decimals=1)} · "
+                f"Meta {k.cash_reserve_target_months:.1f}m"
             ),
+            delta_html=get_delta_html(k.runway_delta_months, kind="float", label_suffix="m"),
             accent="green" if runway_ok else "alert_neg",
             help_text=(
                 "Meses de cobertura dos custos fixos pela reserva operacional caso o faturamento zere "
@@ -47,7 +46,6 @@ def render_fortitude_kpi_cards(
         )
 
     with c2:
-        slack_days = max(0, 30 - k.breakeven_day_of_month)
         render_kpi_card(
             title="Break-Even Mensal",
             value=f"Dia {k.breakeven_day_of_month}",
@@ -55,7 +53,7 @@ def render_fortitude_kpi_cards(
                 f"Fat. mín.: {format_brl(k.breakeven_revenue_brl, compact=True, decimals=1)} | "
                 f"Fixo: {format_brl(k.fixed_costs_monthly_brl, compact=True, decimals=1)}"
             ),
-            delta_html=f"Folga operacional: {slack_days}d",
+            delta_html=get_delta_html(k.breakeven_revenue_delta_pct, kind="pct", invert_color=True),
             accent="teal" if k.breakeven_day_of_month <= 22 else "alert_warn",
             help_text=(
                 "Dia do mês em que a Margem de Contribuição acumulada cobre 100% dos Custos Fixos "
@@ -75,19 +73,21 @@ def render_fortitude_kpi_cards(
             title="Ciclo Financeiro & NCG",
             value=f"{k.cash_conversion_cycle_days:.0f} dias",
             subfooter_left=f"NCG: {format_brl(k.ncg_brl, compact=True, decimals=2)}",
-            delta_html=f"PME {k.pme_days:.0f}d + PMR {k.pmr_days:.0f}d - PMP {k.pmp_days:.0f}d",
+            delta_html=get_delta_html(k.ccc_delta_days, kind="float", invert_color=True, label_suffix="d"),
             accent=ccc_accent,
             help_text=(
-                "Diferença entre prazo de estoque + recebimento e prazo de fornecedores. "
+                f"PME {k.pme_days:.0f}d + PMR {k.pmr_days:.0f}d - PMP {k.pmp_days:.0f}d. "
                 "NCG = (Receita Líquida Mensal / 30) x Ciclo Financeiro."
             ),
         )
 
     with c4:
+        term_delta = temp_dto.kpis.financial_term_leak_delta_pct if temp_dto is not None else None
         render_kpi_card(
             title="Custo Financeiro de Prazo",
             value=format_brl(term_leak, compact=True, decimals=1),
             subfooter_left="Prazo > 30d (1,35% a.m.)",
+            delta_html=get_delta_html(term_delta, kind="pct", invert_color=True),
             accent="alert_warn" if term_leak > 0 else "green",
             help_text=("Custo financeiro implícito de carregar duplicatas acima do prazo padrão de 30 dias."),
         )
@@ -97,12 +97,14 @@ def render_fortitude_kpi_cards(
         render_kpi_card(
             title="Concentração Top 10",
             value=f"{k.top10_customers_share_pct:.1f}%",
-            subfooter_left=f"Top 5: {k.top5_customers_share_pct:.1f}%",
-            delta_html=f"Top 2 fam.: {k.top2_families_share_pct:.1f}%",
+            subfooter_left=(
+                f"Top 5: {k.top5_customers_share_pct:.1f}% · Top 2 fam.: {k.top2_families_share_pct:.1f}%"
+            ),
+            delta_html=get_delta_html(k.top10_share_delta_pp, kind="pp", invert_color=True),
             accent="alert_warn" if conc_high else "teal",
             help_text=(
-                "Percentual da receita líquida dos últimos 12 meses concentrado nos 10 maiores "
-                "clientes (e nos 5 maiores no rodapé)."
+                "Percentual da receita líquida concentrado nos 10 maiores clientes "
+                "(e nos 5 maiores / 2 maiores famílias no rodapé)."
             ),
         )
 

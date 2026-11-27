@@ -1,14 +1,96 @@
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 
 from src.services.dto import SimulationResult
 from src.ui.components.kpi_card import KpiAccent, render_kpi_card
-from src.ui.formatting import format_brl
+from src.ui.formatting import format_brl, format_pct
 
 ALL_FAMILIES_OPT = "Todas as Famílias (Média)"
 NO_SKU_OPT = "Sem SKUs em desvio no recorte"
+
+
+def format_elasticity_explanation(beta_val: float, scope_label: str) -> str:
+    """Traduz o coeficiente beta em impacto pratico de volume e receita para executivos."""
+    impact_10 = abs(float(beta_val)) * 10.0
+    impact_str = f"{impact_10:.1f}%".replace(".", ",")
+    if abs(beta_val) < 1.0:
+        return (
+            f"<b>Inelástica (|β| &lt; 1):</b> em {scope_label}, cada <b>+10%</b> no preço reduz a "
+            f"demanda em ~<b>{impact_str}</b> — há espaço para recompor margem sem perda severa de giro."
+        )
+    return (
+        f"<b>Elástica (|β| ≥ 1):</b> em {scope_label}, cada <b>+10%</b> no preço reduz a "
+        f"demanda em ~<b>{impact_str}</b> — reajustes altos derrubam volume; "
+        "priorize reduzir descontos ou CMV."
+    )
+
+
+def _apply_optimal_price_callback(target_price_pct: float) -> None:
+    """Atualiza o slider de ajuste de preço com o ótimo calculado dentro da Banda Ideal."""
+    clamped = max(-30.0, min(30.0, round(float(target_price_pct), 1)))
+    st.session_state["_what_if_price"] = clamped
+
+
+def render_optimal_adjustment_banner(
+    res: SimulationResult,
+    *,
+    scope_label: str,
+    active_family: str,
+    beta_val: float,
+    band_caption: str,
+) -> None:
+    """Exibe indicativo claro do Ajuste Ideal na Banda, explicação do β e botão de 1 clique."""
+    has_band = bool(band_caption)
+    opt_pct = res.band_constrained_optimal_pct * 100.0 if has_band else res.optimal_price_change_pct * 100.0
+    opt_pct_rounded = round(float(opt_pct), 1)
+    df = res.profit_curve_df
+    opt_margin = res.optimal_margin_brl
+    if has_band and not df.empty:
+        deltas = df["delta_price_pct"].to_numpy(dtype=np.float64)
+        idx = int(np.argmin(np.abs(deltas - res.band_constrained_optimal_pct)))
+        opt_margin = float(df["contribution_margin"].iloc[idx])
+
+    opt_gain_brl = opt_margin - res.contribution_margin_0
+    band_txt = band_caption or "Grade Global [-25%, +25%]"
+    fam_txt = active_family if active_family != ALL_FAMILIES_OPT else "média do portfólio"
+    el_html = format_elasticity_explanation(beta_val, fam_txt)
+    opt_label = (
+        f"<b>{format_pct(opt_pct_rounded, signed=True)}</b> no preço de tabela"
+        if abs(opt_pct_rounded) >= 0.1
+        else "<b>0,0%</b> (já está no ótimo da banda)"
+    )
+    gain_html = (
+        f" · Margem estimada: <b>{format_brl(opt_margin, compact=True)}</b> "
+        f"(<b>{'+' if opt_gain_brl >= 0 else ''}{format_brl(opt_gain_brl, compact=True)}</b> vs. atual)"
+    )
+
+    c_info, c_btn = st.columns([3.2, 1.0])
+    with c_info:
+        st.markdown(
+            "<div style='background:var(--kyb-card-bg); border:1px solid var(--kyb-border); "
+            "border-left:3px solid var(--kyb-teal); border-radius:8px; padding:0.55rem 0.85rem; "
+            "margin:0.35rem 0 0.6rem 0; font-size:0.78rem; line-height:1.45;'>"
+            f"<div><strong>Ajuste Ideal ({'Banda ' + band_txt if has_band else band_txt}):</strong> "
+            f"{opt_label}{gain_html}</div>"
+            f"<div style='color:var(--kyb-text-muted); margin-top:0.15rem;'>"
+            f"<strong>Elasticidade Real (β = {beta_val:.2f}):</strong> {el_html}</div>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+    with c_btn:
+        st.markdown("<div style='height:0.35rem;'></div>", unsafe_allow_html=True)
+        btn_label = f"Aplicar Ajuste Ideal ({opt_pct_rounded:+.1f}%)".replace(".", ",")
+        st.button(
+            btn_label,
+            key="sim_apply_optimal_btn",
+            use_container_width=True,
+            on_click=_apply_optimal_price_callback,
+            args=(opt_pct_rounded,),
+            help=f"Posiciona o slider de Ajuste de Preço em {opt_pct_rounded:+.1f}% ({scope_label}).",
+        )
 
 
 def resolve_active_beta(elasticity_df: pd.DataFrame, selected_family: str) -> tuple[float, str]:

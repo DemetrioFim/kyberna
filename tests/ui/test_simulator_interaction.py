@@ -30,6 +30,15 @@ def test_simulator_zero_levers_and_controls_present() -> None:
     assert "Volume Projetado (β):" in all_markdown
     assert "Receita Bruta Simulada" in all_markdown
     assert "Impacto Direto no Lucro" in all_markdown
+    assert "Ajuste Ideal (" in all_markdown
+    assert "Elasticidade Real (β =" in all_markdown
+    assert any(b.key == "sim_apply_optimal_btn" for b in at.button)
+
+    # Botão de 1 clique aplica o Ajuste Ideal diretamente no slider de preço
+    apply_btn = next(b for b in at.button if b.key == "sim_apply_optimal_btn")
+    apply_btn.click().run()
+    assert not at.exception
+    assert any("Simulador" in str(m.value) for m in at.markdown)
 
 
 def test_simulator_slider_latency_and_scenario_comparison() -> None:

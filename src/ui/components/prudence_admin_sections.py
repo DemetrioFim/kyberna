@@ -9,7 +9,14 @@ import streamlit as st
 from src.services.dto import ExecutivePageDTO, TemperancePageDTO
 from src.services.inventory_dto import InventoryPageDTO
 from src.ui.components.kpi_card import KpiAccent, render_kpi_card
-from src.ui.formatting import fmt_brl_cell, fmt_int_cell, fmt_pct_cell, format_brl, format_int
+from src.ui.formatting import (
+    fmt_brl_cell,
+    fmt_int_cell,
+    fmt_pct_cell,
+    format_brl,
+    format_int,
+    get_delta_html,
+)
 
 
 def _cell_stats(matrix_df: pd.DataFrame, abc: str, xyz: str) -> tuple[int, float]:
@@ -51,20 +58,23 @@ def render_admin_portfolio_kpis(exec_dto: ExecutivePageDTO, inv_dto: InventoryPa
     cz_skus, cz_share = _cell_stats(matrix_df, "C", "Z")
     net_rev_str = format_brl(exec_dto.kpis.net_revenue, compact=True, decimals=1)
 
+    ek = exec_dto.kpis
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         render_kpi_card(
             title="SKUs Ativos no Portfólio",
             value=f"{format_int(sku_total)} SKUs",
             subfooter_left=f"{fam_count} famílias ativas",
+            delta_html=get_delta_html(ek.active_skus_delta_pct, kind="pct"),
             accent="teal",
             help_text="Total de SKUs ativos no catálogo que registraram movimentação no filtro atual.",
         )
     with c2:
         render_kpi_card(
             title="Margem de Contribuição Total",
-            value=format_brl(exec_dto.kpis.contribution_margin, compact=True),
-            subfooter_left=f"Receita Líq.: {net_rev_str} · MC {exec_dto.kpis.contribution_margin_pct:.1f}%",
+            value=format_brl(ek.contribution_margin, compact=True),
+            subfooter_left=f"Receita Líq.: {net_rev_str} · MC {ek.contribution_margin_pct:.1f}%",
+            delta_html=get_delta_html(ek.contribution_margin_delta_pct, kind="pct"),
             accent="green",
             help_text=("Denominador financeiro completo do portfólio após impostos, CPV, comissões e frete."),
         )
@@ -73,6 +83,7 @@ def render_admin_portfolio_kpis(exec_dto: ExecutivePageDTO, inv_dto: InventoryPa
             title="SKUs na Curva A",
             value=f"{format_int(curva_a_skus)} SKUs",
             subfooter_left=f"{curva_a_mix_pct:.1f}% do mix · MC {curva_a_mc_pct:.1f}%",
+            delta_html=get_delta_html(ek.curve_a_skus_delta_pct, kind="pct"),
             accent="teal",
             help_text=(
                 "Quantidade de SKUs que compõem os 80% principais da Margem de Contribuição (Pareto ABC)."
@@ -83,6 +94,7 @@ def render_admin_portfolio_kpis(exec_dto: ExecutivePageDTO, inv_dto: InventoryPa
             title="SKUs Classe AX (Core)",
             value=f"{format_int(ax_skus)} SKUs",
             subfooter_left=f"{ax_share:.1f}% da MC Total",
+            delta_html=get_delta_html(ek.ax_skus_delta_pct, kind="pct"),
             accent="teal",
             help_text="Produtos de alta margem (A) e demanda regular (X): política JIT / ruptura zero.",
         )
@@ -91,6 +103,7 @@ def render_admin_portfolio_kpis(exec_dto: ExecutivePageDTO, inv_dto: InventoryPa
             title="SKUs Classe CZ (Cauda)",
             value=f"{format_int(cz_skus)} SKUs",
             subfooter_left=f"{cz_share:.1f}% da MC Total",
+            delta_html=get_delta_html(ek.cz_skus_delta_pct, kind="pct", invert_color=True),
             accent="alert_warn" if cz_skus > 40 else "brass",
             help_text=(
                 "Itens de baixa margem (C) e giro intermitente (Z): candidatos a venda sob encomenda."

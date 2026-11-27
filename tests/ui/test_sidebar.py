@@ -250,17 +250,16 @@ def test_sidebar_cascade_and_progressive_period_controls() -> None:
 
 
 def test_executive_pop_yoy_toggle_and_app_render() -> None:
-    """AppTest: Toggle PoP/YoY na Visão Financeira (Justiça) alterna comparison_mode e app.py renderiza."""
-    page_path = get_project_root() / "src" / "ui" / "pages" / "2_commercial_radar.py"
-    at_fin = AppTest.from_file(str(page_path), default_timeout=15)
-    at_fin.run()
-    assert not at_fin.exception
+    """AppTest: Toggle global YoY na Sidebar e Barra Superior alterna comparison_mode e app.py renderiza."""
+    at_side = AppTest.from_function(_sidebar_entrypoint, default_timeout=15)
+    at_side.run()
+    assert not at_side.exception
 
-    comp_radio = next(r for r in at_fin.radio if r.key == "_comparison_mode_radio")
-    assert comp_radio.value == "pop"
-    comp_radio.set_value("yoy").run()
-    assert not at_fin.exception
-    assert at_fin.session_state.comparison_mode == "yoy"
+    comp_toggle = next(t for t in at_side.sidebar.toggle if t.key == "_comparison_mode_toggle")
+    assert comp_toggle.value is False
+    comp_toggle.set_value(True).run()
+    assert not at_side.exception
+    assert at_side.session_state.comparison_mode == "yoy"
 
     app_path = get_project_root() / "src" / "ui" / "app.py"
     at_app = AppTest.from_file(str(app_path), default_timeout=15)
@@ -271,7 +270,7 @@ def test_executive_pop_yoy_toggle_and_app_render() -> None:
     assert at_app.sidebar.selectbox[-1].key == "_scenario_select"
     assert "Fonte:" in at_app.sidebar.markdown[-1].value
 
-    # Alternância para Opção B (Filtros no Topo estilo PowerBI)
+    # Alternância para Opção B (Filtros no Topo estilo PowerBI) inclui toggle YoY global
     def _top_filter_entrypoint() -> None:
         import src.ui.components.filter_controls as fc
         import src.ui.components.sidebar as st_sidebar
@@ -293,4 +292,5 @@ def test_executive_pop_yoy_toggle_and_app_render() -> None:
     assert not at_top.exception
     assert at_top.session_state.filter_layout == "top"
     assert any(sb.key == "_period_preset_select" for sb in at_top.main.selectbox)
+    assert any(t.key == "_comparison_mode_toggle" for t in at_top.main.toggle)
     assert not any(sb.key == "_period_preset_select" for sb in at_top.sidebar.selectbox)
