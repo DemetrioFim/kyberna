@@ -13,6 +13,7 @@ from src.services.dto import (
 )
 from src.services.executive_abc_queries import (
     build_filtered_abc_xyz_matrix,
+    compute_abc_xyz_period_deltas,
     query_filtered_abc_xyz_skus,
 )
 from src.services.executive_kpis import compute_executive_kpis
@@ -24,6 +25,7 @@ from src.services.executive_queries import (
     query_prudence_anomalies,
     query_top_drivers,
 )
+from src.services.period_comparison import resolve_effective_comparison_window
 from src.services.simulator import simulate_quick_what_if
 from src.services.waterfall_steps import build_waterfall_steps
 from src.ui.formatting import format_brl
@@ -247,6 +249,28 @@ def build_executive_dashboard(
         start_date_key=start_date_key,
         end_date_key=end_date_key,
     )
+    win = resolve_effective_comparison_window(
+        repo,
+        scenario_id,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+        comp_start_date_key=comp_start_date_key,
+        comp_end_date_key=comp_end_date_key,
+        comparison_mode=comparison_mode,
+    )
+    if win is not None:
+        can_reuse = start_date_key is not None and not (selected_cell and selected_cell != "Todas")
+        sku_deltas = compute_abc_xyz_period_deltas(
+            repo,
+            scenario_id,
+            win,
+            cur_skus_df=abc_xyz_skus_df if can_reuse else None,
+            regiao=regiao,
+            uf=uf,
+            families=families,
+            sales_reps=sales_reps,
+        )
+        kpis = kpis.model_copy(update=sku_deltas)
 
     # 4 Dimensões de Geradores vs Detratores
     dims: tuple[Literal["product", "customer", "family", "sales_rep"], ...] = (

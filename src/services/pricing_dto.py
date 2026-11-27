@@ -16,6 +16,11 @@ class PricingKpisDTO(BaseModel):
     inelastic_reprice_upside_brl: float
     orders_count: int = 0
     skus_count: int = 0
+    realization_idx_delta_pp: float | None = None
+    price_cv_delta_pp: float | None = None
+    below_band_delta_pp: float | None = None
+    subpricing_leakage_delta_pct: float | None = None
+    inelastic_upside_delta_pct: float | None = None
 
 
 class PricingShapDTO(BaseModel):
@@ -54,3 +59,4 @@ class PricingPageDTO(BaseModel):
     prescription_title: str = ""
     prescription_html: str = ""
     prescription_impact_brl: float | None = None
+    comparison_label: str = "Histórico Global Consolidado"

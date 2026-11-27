@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Literal
 
 import pandas as pd
 
 from src.core.types import ScenarioId
 from src.db.repository import DataRepository
+from src.services.period_comparison import (
+    pct_delta,
+    pp_delta,
+    resolve_effective_comparison_window,
+)
 from src.services.pricing_dto import PricingKpisDTO, PricingPageDTO, PricingShapDTO
 from src.services.pricing_queries import (
     query_family_pricing_bands,
@@ -63,6 +69,10 @@ def build_pricing_dashboard(
     sales_reps: Sequence[str] = (),
     start_date_key: int | None = None,
     end_date_key: int | None = None,
+    comp_start_date_key: int | None = None,
+    comp_end_date_key: int | None = None,
+    comparison_mode: Literal["pop", "yoy"] = "pop",
+    comparison_label: str = "Histórico Global Consolidado",
 ) -> PricingPageDTO:
     """Consolida o payload completo da Aba 3 de 3. Justiça (Precificação, Banda & SHAP)."""
     raw_kpis = query_filtered_pricing_kpis(
@@ -76,6 +86,65 @@ def build_pricing_dashboard(
         end_date_key=end_date_key,
     )
     kpis = PricingKpisDTO(**raw_kpis)
+    win = resolve_effective_comparison_window(
+        repo,
+        scenario_id,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+        comp_start_date_key=comp_start_date_key,
+        comp_end_date_key=comp_end_date_key,
+        comparison_mode=comparison_mode,
+    )
+    if win is not None:
+        cur_raw = (
+            raw_kpis
+            if start_date_key is not None
+            else query_filtered_pricing_kpis(
+                repo,
+                scenario_id,
+                regiao=regiao,
+                uf=uf,
+                families=families,
+                sales_reps=sales_reps,
+                start_date_key=win.cur_start,
+                end_date_key=win.cur_end,
+            )
+        )
+        prev_raw = query_filtered_pricing_kpis(
+            repo,
+            scenario_id,
+            regiao=regiao,
+            uf=uf,
+            families=families,
+            sales_reps=sales_reps,
+            start_date_key=win.prev_start,
+            end_date_key=win.prev_end,
+        )
+        if int(cur_raw.get("orders_count", 0)) > 0 and int(prev_raw.get("orders_count", 0)) > 0:
+            kpis = kpis.model_copy(
+                update={
+                    "realization_idx_delta_pp": pp_delta(
+                        float(cur_raw["realization_index_pct"]),
+                        float(prev_raw["realization_index_pct"]),
+                    ),
+                    "price_cv_delta_pp": pp_delta(
+                        float(cur_raw["price_cv_pct"]),
+                        float(prev_raw["price_cv_pct"]),
+                    ),
+                    "below_band_delta_pp": pp_delta(
+                        float(cur_raw["below_band_sales_pct"]),
+                        float(prev_raw["below_band_sales_pct"]),
+                    ),
+                    "subpricing_leakage_delta_pct": pct_delta(
+                        float(cur_raw["subpricing_leakage_brl"]),
+                        float(prev_raw["subpricing_leakage_brl"]),
+                    ),
+                    "inelastic_upside_delta_pct": pct_delta(
+                        float(cur_raw["inelastic_reprice_upside_brl"]),
+                        float(prev_raw["inelastic_reprice_upside_brl"]),
+                    ),
+                }
+            )
     boxplot_df = query_pricing_boxplot_data(
         repo,
         scenario_id,
@@ -110,6 +179,7 @@ def build_pricing_dashboard(
         prescription_title=title,
         prescription_html=html,
         prescription_impact_brl=impact,
+        comparison_label=comparison_label,
     )
 
 

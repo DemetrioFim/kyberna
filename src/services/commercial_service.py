@@ -8,6 +8,7 @@ import pandas as pd
 from src.core.logging import get_logger
 from src.core.types import ScenarioId
 from src.db.repository import DataRepository
+from src.services.commercial_deltas import compute_commercial_period_deltas
 from src.services.commercial_queries import (
     query_commercial_kpis_data,
     query_cycle_health_funnel,
@@ -172,6 +173,10 @@ def build_commercial_dashboard(
     quadrant: str = "Todos",
     start_date_key: int | None = None,
     end_date_key: int | None = None,
+    comp_start_date_key: int | None = None,
+    comp_end_date_key: int | None = None,
+    comparison_mode: Literal["pop", "yoy"] = "pop",
+    comparison_label: str = "Histórico Global Consolidado",
     as_of_date_label: str = "31/12/2024",
 ) -> CommercialPageDTO:
     """Orquestra as consultas analíticas e consolida o payload consumido pela Página 3 — Justiça."""
@@ -289,6 +294,27 @@ def build_commercial_dashboard(
         start_date_key=start_date_key,
         end_date_key=end_date_key,
     )
+    deltas = compute_commercial_period_deltas(
+        repo,
+        scenario_id,
+        cur_kpis_raw=kpis_raw,
+        cur_ws_cov=ws_cov,
+        cur_rep_df=rep_df,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+        risk_status=risk_status,
+        rfm_segment=rfm_segment,
+        quadrant=quadrant,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+        comp_start_date_key=comp_start_date_key,
+        comp_end_date_key=comp_end_date_key,
+        comparison_mode=comparison_mode,
+    )
+    if deltas:
+        kpis = kpis.model_copy(update=deltas)
 
     # 4 Dimensões de Campeões vs. Vampiros
     dims: tuple[Literal["family", "product", "customer", "sales_rep"], ...] = (
@@ -354,4 +380,5 @@ def build_commercial_dashboard(
         prescription_html=prescription_html,
         prescription_impact_brl=impact_brl,
         as_of_date_label=as_of_date_label,
+        comparison_label=comparison_label,
     )

@@ -9,11 +9,13 @@ from src.core.types import ScenarioId
 from src.db.repository import DataRepository
 from src.ml.abc_xyz import compute_abc_xyz_matrix_summary
 from src.services.executive_queries import build_filter_clauses
+from src.services.period_comparison import ComparisonWindow, pct_delta
 
 logger = get_logger(__name__)
 
 __all__ = [
     "build_filtered_abc_xyz_matrix",
+    "compute_abc_xyz_period_deltas",
     "query_filtered_abc_xyz_skus",
 ]
 
@@ -112,3 +114,63 @@ def build_filtered_abc_xyz_matrix(skus_df: pd.DataFrame) -> pd.DataFrame:
     matrix_summary["margin_share_pct"] = matrix_summary["margin_pct"]
     matrix_summary["recommended_policy"] = matrix_summary["policy"]
     return matrix_summary
+
+
+def _count_sku_metrics(skus_df: pd.DataFrame) -> tuple[int, int, int, int]:
+    """Extrai contagens de SKUs ativos, Curva A, AX e CZ de um DataFrame ABC/XYZ."""
+    if skus_df.empty:
+        return 0, 0, 0, 0
+    active_cnt = len(skus_df)
+    curve_a_cnt = int((skus_df["abc_class"] == "A").sum()) if "abc_class" in skus_df.columns else 0
+    if "abc_xyz_class" in skus_df.columns:
+        ax_cnt = int((skus_df["abc_xyz_class"] == "AX").sum())
+        cz_cnt = int((skus_df["abc_xyz_class"] == "CZ").sum())
+    else:
+        ax_cnt, cz_cnt = 0, 0
+    return active_cnt, curve_a_cnt, ax_cnt, cz_cnt
+
+
+def compute_abc_xyz_period_deltas(
+    repo: DataRepository,
+    scenario_id: ScenarioId,
+    win: ComparisonWindow,
+    *,
+    cur_skus_df: pd.DataFrame | None = None,
+    regiao: str = "Todas",
+    uf: str = "Todas",
+    families: Sequence[str] = (),
+    sales_reps: Sequence[str] = (),
+) -> dict[str, float | None]:
+    """Calcula deltas percentuais dos KPIs de portfolio (ativos, Curva A, AX e CZ)."""
+    eff_cur_df = (
+        cur_skus_df
+        if cur_skus_df is not None
+        else query_filtered_abc_xyz_skus(
+            repo,
+            scenario_id,
+            regiao=regiao,
+            uf=uf,
+            families=families,
+            sales_reps=sales_reps,
+            start_date_key=win.cur_start,
+            end_date_key=win.cur_end,
+        )
+    )
+    prev_df = query_filtered_abc_xyz_skus(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+        start_date_key=win.prev_start,
+        end_date_key=win.prev_end,
+    )
+    c_act, c_a, c_ax, c_cz = _count_sku_metrics(eff_cur_df)
+    p_act, p_a, p_ax, p_cz = _count_sku_metrics(prev_df)
+    return {
+        "active_skus_delta_pct": pct_delta(float(c_act), float(p_act)),
+        "curve_a_skus_delta_pct": pct_delta(float(c_a), float(p_a)),
+        "ax_skus_delta_pct": pct_delta(float(c_ax), float(p_ax)),
+        "cz_skus_delta_pct": pct_delta(float(c_cz), float(p_cz)),
+    }

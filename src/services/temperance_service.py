@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Literal
 
 import pandas as pd
 
@@ -11,6 +12,7 @@ from src.services.dto import (
     TemperanceKpisDTO,
     TemperancePageDTO,
 )
+from src.services.period_comparison import pct_delta, resolve_effective_comparison_window
 from src.services.temperance_queries import (
     query_commercial_erosion_waterfall,
     query_discount_policy_violations,
@@ -111,6 +113,10 @@ def build_temperance_dashboard(
     sales_reps: Sequence[str] = (),
     start_date_key: int | None = None,
     end_date_key: int | None = None,
+    comp_start_date_key: int | None = None,
+    comp_end_date_key: int | None = None,
+    comparison_mode: Literal["pop", "yoy"] = "pop",
+    comparison_label: str = "Histórico Global Consolidado",
     as_of_date_label: str = "31/12/2024",
 ) -> TemperancePageDTO:
     """Orquestra as consultas e consolida o payload completo consumido pela Página 4 (Temperança)."""
@@ -176,6 +182,58 @@ def build_temperance_dashboard(
         end_date_key=end_date_key,
     )
 
+    # 5.1 Deltas comparativos (PoP / YoY)
+    win = resolve_effective_comparison_window(
+        repo,
+        scenario_id,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+        comp_start_date_key=comp_start_date_key,
+        comp_end_date_key=comp_end_date_key,
+        comparison_mode=comparison_mode,
+    )
+    if win is not None:
+        cur_kpis = (
+            kpis
+            if start_date_key is not None
+            else query_temperance_kpis(
+                repo,
+                scenario_id,
+                regiao=regiao,
+                uf=uf,
+                sales_reps=sales_reps,
+                families=families,
+                start_date_key=win.cur_start,
+                end_date_key=win.cur_end,
+            )
+        )
+        prev_kpis = query_temperance_kpis(
+            repo,
+            scenario_id,
+            regiao=regiao,
+            uf=uf,
+            sales_reps=sales_reps,
+            families=families,
+            start_date_key=win.prev_start,
+            end_date_key=win.prev_end,
+        )
+        kpis = kpis.model_copy(
+            update={
+                "excess_discount_delta_pct": pct_delta(
+                    cur_kpis.excess_discount_brl,
+                    prev_kpis.excess_discount_brl,
+                ),
+                "financial_term_leak_delta_pct": pct_delta(
+                    cur_kpis.financial_term_leak_brl,
+                    prev_kpis.financial_term_leak_brl,
+                ),
+                "total_erosion_delta_pct": pct_delta(
+                    cur_kpis.total_commercial_erosion_brl,
+                    prev_kpis.total_commercial_erosion_brl,
+                ),
+            }
+        )
+
     # 6. Manchete e Prescrição (sinalizando escopo global do armazém se houver filtro)
     is_scoped = (
         regiao != "Todas"
@@ -208,4 +266,5 @@ def build_temperance_dashboard(
         prescription_html=presc_html,
         prescription_impact_brl=presc_impact,
         as_of_date_label=as_of_date_label,
+        comparison_label=comparison_label,
     )

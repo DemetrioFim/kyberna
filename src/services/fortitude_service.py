@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -10,13 +11,15 @@ from src.core.types import ScenarioId
 from src.db.repository import DataRepository
 from src.etl.gold.inventory_snapshot import load_working_capital_config
 from src.services.dto import FortitudeKpisDTO, FortitudePageDTO
+from src.services.fortitude_metrics import (
+    compute_fortitude_period_deltas,
+    compute_fortitude_window_snapshot,
+)
 from src.services.fortitude_queries import (
     query_aging_buckets_and_customers,
-    query_concentration_data,
-    query_fortitude_financial_base,
     query_pme_weighted,
-    query_pmr_weighted,
 )
+from src.services.period_comparison import resolve_effective_comparison_window
 from src.ui.formatting import format_brl
 
 logger = get_logger(__name__)
@@ -174,6 +177,10 @@ def build_fortitude_dashboard(
     sales_reps: Sequence[str] = (),
     start_date_key: int | None = None,
     end_date_key: int | None = None,
+    comp_start_date_key: int | None = None,
+    comp_end_date_key: int | None = None,
+    comparison_mode: Literal["pop", "yoy"] = "pop",
+    comparison_label: str = "Histórico Global Consolidado",
 ) -> FortitudePageDTO:
     """Agrega métricas de solvência, ciclo financeiro, break-even e aging para a Tela 2."""
     wc_cfg = load_working_capital_config(scenario_id)
@@ -183,79 +190,21 @@ def build_fortitude_dashboard(
     raw_pmr_map = wc_cfg.get("pmr_days_by_size", {"P": 28, "M": 42, "G": 56})
     pmr_by_size = {str(k): float(v) for k, v in dict(raw_pmr_map).items()}
     extra_pmr_days = float(wc_cfg.get("high_discount_rep_extra_pmr_days", 18.0))
-
-    fin = query_fortitude_financial_base(
-        repo,
-        scenario_id,
-        regiao=regiao,
-        uf=uf,
-        sales_reps=sales_reps,
-        families=families,
-        start_date_key=start_date_key,
-        end_date_key=end_date_key,
-    )
-    monthly_gross = float(fin["monthly_gross_revenue_brl"])
-    monthly_net = float(fin["monthly_net_revenue_brl"])
-    monthly_cm = float(fin["monthly_contribution_margin_brl"])
-    active_customers_count = int(fin["active_customers_count"])
-
     pme_days = round(query_pme_weighted(repo, scenario_id, families=families), 1)
-    pmr_days = round(
-        query_pmr_weighted(
-            repo,
-            scenario_id,
-            pmr_by_size,
-            extra_pmr_days,
-            regiao=regiao,
-            uf=uf,
-            sales_reps=sales_reps,
-            families=families,
-            start_date_key=start_date_key,
-            end_date_key=end_date_key,
-        ),
-        1,
-    )
-    ccc_days = round(pme_days + pmr_days - pmp_days, 1)
-    ncg_brl = round((monthly_net / 30.0) * max(ccc_days, 0.0), 2)
 
-    fixed_costs_monthly = round(monthly_net * fixed_cost_pct, 2)
-    free_cash_generation = round(monthly_cm - fixed_costs_monthly, 2)
-
-    if monthly_gross > 0.0:
-        margin_pct_gross = round((monthly_cm / monthly_gross) * 100.0, 1)
-        margin_pct_net = round((monthly_cm / max(monthly_net, 1e-6)) * 100.0, 1)
-        breakeven_rev = round(fixed_costs_monthly / max(margin_pct_gross / 100.0, 0.01), 2)
-        breakeven_day = int(np.clip(np.ceil(30.0 * breakeven_rev / max(monthly_gross, 1.0)), 1, 30))
-
-        if free_cash_generation >= 0.0:
-            cash_reserve_brl = round(fixed_costs_monthly * reserve_target_months + free_cash_generation, 2)
-            cash_runway_months = round(cash_reserve_brl / max(fixed_costs_monthly, 1.0), 1)
-        else:
-            cash_reserve_brl = round(
-                max(
-                    fixed_costs_monthly,
-                    fixed_costs_monthly * reserve_target_months + free_cash_generation,
-                ),
-                2,
-            )
-            cash_runway_months = round(
-                cash_reserve_brl / max(fixed_costs_monthly + abs(free_cash_generation), 1.0), 1
-            )
-    else:
-        margin_pct_gross = 0.0
-        margin_pct_net = 0.0
-        breakeven_rev = 0.0
-        breakeven_day = 30
-        cash_reserve_brl = 0.0
-        cash_runway_months = 0.0
-
-    cust_conc_df, fam_conc_df, conc_metrics = query_concentration_data(
+    core, cust_conc_df, fam_conc_df = compute_fortitude_window_snapshot(
         repo,
         scenario_id,
+        pme_days=pme_days,
+        pmp_days=pmp_days,
+        fixed_cost_pct=fixed_cost_pct,
+        reserve_target_months=reserve_target_months,
+        pmr_by_size=pmr_by_size,
+        extra_pmr_days=extra_pmr_days,
         regiao=regiao,
         uf=uf,
-        sales_reps=sales_reps,
         families=families,
+        sales_reps=sales_reps,
         start_date_key=start_date_key,
         end_date_key=end_date_key,
     )
@@ -276,31 +225,64 @@ def build_fortitude_dashboard(
     at_risk_count = int(risk_rows["customers_count"].sum())
     at_risk_pct = round((at_risk_brl / total_aging_rev * 100.0) if total_aging_rev > 0 else 0.0, 1)
 
+    deltas: dict[str, float | None] = {}
+    win = resolve_effective_comparison_window(
+        repo,
+        scenario_id,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+        comp_start_date_key=comp_start_date_key,
+        comp_end_date_key=comp_end_date_key,
+        comparison_mode=comparison_mode,
+    )
+    if win is not None:
+        deltas = compute_fortitude_period_deltas(
+            repo,
+            scenario_id,
+            win,
+            cur_core=core if start_date_key is not None else None,
+            pme_days=pme_days,
+            pmp_days=pmp_days,
+            fixed_cost_pct=fixed_cost_pct,
+            reserve_target_months=reserve_target_months,
+            pmr_by_size=pmr_by_size,
+            extra_pmr_days=extra_pmr_days,
+            regiao=regiao,
+            uf=uf,
+            families=families,
+            sales_reps=sales_reps,
+        )
+
     kpis = FortitudeKpisDTO(
-        cash_reserve_brl=cash_reserve_brl,
-        cash_runway_months=cash_runway_months,
+        cash_reserve_brl=core["cash_reserve_brl"],
+        cash_runway_months=core["cash_runway_months"],
         cash_reserve_target_months=reserve_target_months,
-        fixed_costs_monthly_brl=fixed_costs_monthly,
-        monthly_gross_revenue_brl=round(monthly_gross, 2),
-        monthly_net_revenue_brl=round(monthly_net, 2),
-        monthly_contribution_margin_brl=round(monthly_cm, 2),
-        free_cash_generation_brl=free_cash_generation,
-        margin_pct_of_gross=margin_pct_gross,
-        margin_pct_of_net=margin_pct_net,
-        breakeven_revenue_brl=breakeven_rev,
-        breakeven_day_of_month=breakeven_day,
+        fixed_costs_monthly_brl=core["fixed_costs_monthly"],
+        monthly_gross_revenue_brl=round(core["monthly_gross"], 2),
+        monthly_net_revenue_brl=round(core["monthly_net"], 2),
+        monthly_contribution_margin_brl=round(core["monthly_cm"], 2),
+        free_cash_generation_brl=core["free_cash_generation"],
+        margin_pct_of_gross=core["margin_pct_gross"],
+        margin_pct_of_net=core["margin_pct_net"],
+        breakeven_revenue_brl=core["breakeven_rev"],
+        breakeven_day_of_month=core["breakeven_day"],
         pme_days=pme_days,
-        pmr_days=pmr_days,
+        pmr_days=core["pmr_days"],
         pmp_days=pmp_days,
-        cash_conversion_cycle_days=ccc_days,
-        ncg_brl=ncg_brl,
-        top5_customers_share_pct=conc_metrics["top5_customers_share_pct"],
-        top10_customers_share_pct=conc_metrics["top10_customers_share_pct"],
-        top2_families_share_pct=conc_metrics["top2_families_share_pct"],
-        active_customers_count=active_customers_count,
+        cash_conversion_cycle_days=core["ccc_days"],
+        ncg_brl=core["ncg_brl"],
+        top5_customers_share_pct=core["top5_share"],
+        top10_customers_share_pct=core["top10_share"],
+        top2_families_share_pct=core["top2_fam_share"],
+        active_customers_count=core["active_customers_count"],
         at_risk_portfolio_brl=at_risk_brl,
         at_risk_portfolio_pct=at_risk_pct,
         at_risk_customers_count=at_risk_count,
+        runway_delta_months=deltas.get("runway_delta_months"),
+        breakeven_revenue_delta_pct=deltas.get("breakeven_revenue_delta_pct"),
+        ccc_delta_days=deltas.get("ccc_delta_days"),
+        ncg_delta_pct=deltas.get("ncg_delta_pct"),
+        top10_share_delta_pp=deltas.get("top10_share_delta_pp"),
     )
 
     headline_title, headline_text = build_fortitude_headline(kpis)
@@ -311,8 +293,17 @@ def build_fortitude_dashboard(
         kpis=kpis,
         headline_title=headline_title,
         headline_text=headline_text,
-        breakeven_curve_df=build_breakeven_curve_df(monthly_gross, monthly_cm, fixed_costs_monthly),
-        cycle_components_df=build_cycle_components_df(pme_days, pmr_days, pmp_days, ccc_days),
+        breakeven_curve_df=build_breakeven_curve_df(
+            core["monthly_gross"],
+            core["monthly_cm"],
+            core["fixed_costs_monthly"],
+        ),
+        cycle_components_df=build_cycle_components_df(
+            pme_days,
+            core["pmr_days"],
+            pmp_days,
+            core["ccc_days"],
+        ),
         customer_concentration_df=cust_conc_df,
         family_concentration_df=fam_conc_df,
         aging_buckets_df=aging_buckets_df,
@@ -320,4 +311,5 @@ def build_fortitude_dashboard(
         prescription_title=rx_title,
         prescription_html=rx_html,
         prescription_impact_brl=rx_impact,
+        comparison_label=comparison_label,
     )

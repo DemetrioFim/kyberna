@@ -33,6 +33,11 @@ class ExecutiveKpisDTO(BaseModel):
     contribution_margin_delta_pct: float | None = None
     margin_pct_delta_pp: float | None = None
     active_customers_delta_pct: float | None = None
+    deductions_pct_delta_pp: float | None = None
+    active_skus_delta_pct: float | None = None
+    curve_a_skus_delta_pct: float | None = None
+    ax_skus_delta_pct: float | None = None
+    cz_skus_delta_pct: float | None = None
 
     # Termômetro de Metas (Pacing) e Projeção (Virtus - Prudência)
     revenue_target_brl: float = 0.0
@@ -138,6 +143,17 @@ class CommercialKpisDTO(BaseModel):
     high_lift_customers_count: int = 0
     high_lift_coverage_pct: float = 0.0
 
+    # Deltas comparativos (PoP / YoY)
+    avg_families_delta: float | None = None
+    white_space_revenue_delta_pct: float | None = None
+    active_customers_delta_pct: float | None = None
+    avg_ltv_delta_pct: float | None = None
+    vampire_customers_delta: int | None = None
+    rep_gross_revenue_delta_pct: float | None = None
+    rep_margin_pct_delta_pp: float | None = None
+    rep_discount_pct_delta_pp: float | None = None
+    rep_positivation_delta_pp: float | None = None
+
 
 class CommercialPageDTO(BaseModel):
     """Payload completo e tipado consumido pela Página 3 (Justiça Comercial, Margem e Carteira)."""
@@ -169,6 +185,7 @@ class CommercialPageDTO(BaseModel):
     prescription_html: str
     prescription_impact_brl: float | None = None
     as_of_date_label: str = "31/12/2024"
+    comparison_label: str = "Histórico Global Consolidado"
 
 
 class TemperanceKpisDTO(BaseModel):
@@ -195,6 +212,11 @@ class TemperanceKpisDTO(BaseModel):
     stockout_risk_skus_count: int  # SKUs Curva A com cobertura <= lead_time
     stockout_risk_revenue_brl: float  # receita estimada em risco de ruptura
 
+    # Deltas comparativos (PoP / YoY)
+    excess_discount_delta_pct: float | None = None
+    financial_term_leak_delta_pct: float | None = None
+    total_erosion_delta_pct: float | None = None
+
 
 class TemperancePageDTO(BaseModel):
     """Payload completo e tipado consumido pela Página 4 — Temperança."""
@@ -216,6 +238,7 @@ class TemperancePageDTO(BaseModel):
     prescription_html: str
     prescription_impact_brl: float | None = None
     as_of_date_label: str = "31/12/2024"
+    comparison_label: str = "Histórico Global Consolidado"
 
 
 class FortitudeKpisDTO(BaseModel):
@@ -245,6 +268,11 @@ class FortitudeKpisDTO(BaseModel):
     at_risk_portfolio_brl: float
     at_risk_portfolio_pct: float
     at_risk_customers_count: int
+    runway_delta_months: float | None = None
+    breakeven_revenue_delta_pct: float | None = None
+    ccc_delta_days: float | None = None
+    ncg_delta_pct: float | None = None
+    top10_share_delta_pp: float | None = None
 
 
 class FortitudePageDTO(BaseModel):
@@ -266,102 +294,28 @@ class FortitudePageDTO(BaseModel):
     prescription_html: str
     prescription_impact_brl: float | None = None
     as_of_date_label: str = "31/12/2024"
+    comparison_label: str = "Histórico Global Consolidado"
 
 
-class SimulationBaseline(BaseModel):
-    """Parâmetros financeiros de baseline para o Simulador What-If (M4-S4)."""
+from src.services.simulator_dto import (  # noqa: E402
+    SimulationBaseline,
+    SimulationLevers,
+    SimulationResult,
+)
 
-    model_config = ConfigDict(frozen=True)
-
-    units_0: float = Field(gt=0.0)
-    gross_revenue_0: float = Field(ge=0.0)
-    discount_rate_0: float = Field(ge=0.0, le=0.50)
-    tax_rate_eff: float = Field(ge=0.0, le=0.60)
-    cogs_0: float = Field(ge=0.0)
-    commission_rate_0: float = Field(ge=0.0, le=0.25)
-    freight_0: float = Field(ge=0.0)
-    beta_elasticity: float = -1.2
-
-    @classmethod
-    def from_executive_kpis(
-        cls,
-        kpis: ExecutiveKpisDTO,
-        *,
-        beta_elasticity: float = -1.2,
-    ) -> SimulationBaseline:
-        """Constrói um `SimulationBaseline` consistente a partir de `ExecutiveKpisDTO`."""
-        gross_0 = max(float(kpis.gross_revenue), 0.0)
-        net_price_0 = max(float(kpis.net_price_revenue), 0.0)
-        disc_rate = min(max(kpis.discount_amount / gross_0, 0.0), 0.50) if gross_0 > 0.0 else 0.0
-        tax_rate = min(max(kpis.tax_amount / net_price_0, 0.0), 0.60) if net_price_0 > 0.0 else 0.174
-        comm_rate = min(max(kpis.commission_amount / net_price_0, 0.0), 0.25) if net_price_0 > 0.0 else 0.05
-        return cls(
-            units_0=float(max(kpis.total_units, 1)),
-            gross_revenue_0=gross_0,
-            discount_rate_0=disc_rate,
-            tax_rate_eff=tax_rate,
-            cogs_0=max(float(kpis.cogs), 0.0),
-            commission_rate_0=comm_rate,
-            freight_0=max(float(kpis.freight_amount), 0.0),
-            beta_elasticity=float(beta_elasticity),
-        )
-
-
-class SimulationLevers(BaseModel):
-    """Alavancas comerciais e operacionais do Simulador What-If (valores fracionários)."""
-
-    model_config = ConfigDict(frozen=True)
-
-    delta_price_pct: float = Field(0.0, ge=-0.50, le=0.50)
-    delta_discount_pp: float = Field(0.0, ge=-0.50, le=0.50)
-    delta_commission_pp: float = Field(0.0, ge=-0.25, le=0.25)
-    delta_cogs_pct: float = Field(0.0, ge=-0.50, le=0.50)
-    apply_elasticity: bool = True
-    beta_override: float | None = None
-    band_low_change_pct: float = -0.12
-    band_high_change_pct: float = 0.08
-
-
-class SimulationResult(BaseModel):
-    """Resultado completo do Simulador What-If, Breakeven, Curva Lucro x Preço e Tornado."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    units_0: float
-    units_1: float
-    volume_ratio: float
-    projected_volume_change_pct: float
-    net_price_ratio: float
-    effective_discount_rate: float
-    effective_commission_rate: float
-    gross_revenue_0: float
-    gross_revenue_1: float
-    discount_amount_0: float
-    discount_amount_1: float
-    net_price_revenue_0: float
-    net_price_revenue_1: float
-    tax_amount_0: float
-    tax_amount_1: float
-    net_revenue_0: float
-    net_revenue_1: float
-    cogs_0: float
-    cogs_1: float
-    commission_amount_0: float
-    commission_amount_1: float
-    freight_0: float
-    freight_1: float
-    contribution_margin_0: float
-    contribution_margin_1: float
-    margin_pct_0: float
-    margin_pct_1: float
-    margin_delta_brl: float
-    revenue_delta_brl: float
-    unit_margin_1: float
-    breakeven_volume_change_pct: float | None = None
-    verdict: str
-    optimal_price_change_pct: float
-    optimal_margin_brl: float
-    band_constrained_optimal_pct: float = 0.0
-    is_outside_band: bool = False
-    profit_curve_df: pd.DataFrame
-    tornado_df: pd.DataFrame
+__all__ = [
+    "AbcXyzCellDTO",
+    "CommercialKpisDTO",
+    "CommercialPageDTO",
+    "ExecutiveKpisDTO",
+    "ExecutivePageDTO",
+    "FortitudeKpisDTO",
+    "FortitudePageDTO",
+    "MarginDriverDTO",
+    "SimulationBaseline",
+    "SimulationLevers",
+    "SimulationResult",
+    "TemperanceKpisDTO",
+    "TemperancePageDTO",
+    "WaterfallStepDTO",
+]
