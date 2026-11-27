@@ -124,3 +124,20 @@ def test_powerbi_single_page_tabs_and_no_nested_subtabs() -> None:
     for comp_file in sorted((ui_root / "components").glob("*.py")):
         content = comp_file.read_text(encoding="utf-8")
         assert "st.tabs(" not in content, f"Sub-aba proibida encontrada em {comp_file.name}"
+
+
+def test_empty_filtered_slice_renders_without_exception_across_all_pages() -> None:
+    """Combinações de filtros sem interseção de vendas devem renderizar zeradas sem quebrar."""
+    pages_dir = get_project_root() / "src" / "ui" / "pages"
+    for filename in (
+        "1_executive.py",
+        "4_simulator.py",
+        "2_commercial_radar.py",
+        "3_inventory_demand.py",
+    ):
+        at = AppTest.from_file(str(pages_dir / filename), default_timeout=30)
+        at.session_state["scenario_id"] = "c1_toys"
+        at.session_state["regiao"] = "Sudeste"
+        at.session_state["sales_reps"] = ("Ana Júlia Martins",)
+        at.run()
+        assert not at.exception, f"Exceção com recorte vazio em {filename}: {at.exception}"

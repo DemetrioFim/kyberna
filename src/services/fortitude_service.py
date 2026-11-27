@@ -172,6 +172,8 @@ def build_fortitude_dashboard(
     uf: str = "Todas",
     families: Sequence[str] = (),
     sales_reps: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> FortitudePageDTO:
     """Agrega métricas de solvência, ciclo financeiro, break-even e aging para a Tela 2."""
     wc_cfg = load_working_capital_config(scenario_id)
@@ -189,6 +191,8 @@ def build_fortitude_dashboard(
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     monthly_gross = float(fin["monthly_gross_revenue_brl"])
     monthly_net = float(fin["monthly_net_revenue_brl"])
@@ -206,6 +210,8 @@ def build_fortitude_dashboard(
             uf=uf,
             sales_reps=sales_reps,
             families=families,
+            start_date_key=start_date_key,
+            end_date_key=end_date_key,
         ),
         1,
     )
@@ -250,6 +256,8 @@ def build_fortitude_dashboard(
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     aging_buckets_df, aging_customers_df = query_aging_buckets_and_customers(
         repo,
@@ -258,6 +266,8 @@ def build_fortitude_dashboard(
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
 
     total_aging_rev = float(aging_buckets_df["revenue_12m_brl"].sum())

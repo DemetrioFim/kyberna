@@ -11,9 +11,9 @@ from src.db.repository import DataRepository
 from src.etl.finance.margin_waterfall import load_discounts_config
 from src.services.fortitude_risk_queries import (
     AGING_BUCKET_ORDER,
+    build_fortitude_date_scope,
     query_aging_buckets_and_customers,
     query_concentration_data,
-    trailing_12m_cte,
 )
 from src.services.temperance_queries import build_temperance_filter_clauses
 
@@ -37,17 +37,26 @@ def query_fortitude_financial_base(
     uf: str = "Todas",
     sales_reps: Sequence[str] = (),
     families: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> dict[str, float | int]:
-    """Consulta médias mensais dos últimos 12 meses de receita, margem e clientes ativos."""
+    """Consulta médias mensais do período (ou últimos 12m) de receita, margem e clientes ativos."""
     where_sql, filter_params = build_temperance_filter_clauses(
         scenario_id,
         regiao=regiao,
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+    )
+    cte_sql, cross_join_sql, date_where_sql, date_params = build_fortitude_date_scope(
+        scenario_id,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     sql = f"""
-    {trailing_12m_cte()}
+    {cte_sql}
     SELECT
         GREATEST(COUNT(DISTINCT d.year_month), 1)::INTEGER AS active_months,
         COALESCE(SUM(f.gross_revenue), 0.0) AS gross_revenue_12m,
@@ -59,11 +68,11 @@ def query_fortitude_financial_base(
     JOIN gold.dim_customer c ON f.customer_id = c.customer_id
     JOIN gold.dim_product p ON f.product_id = p.product_id
     JOIN gold.dim_sales_rep r ON f.sales_rep_id = r.sales_rep_id
-    CROSS JOIN max_dt m
+    {cross_join_sql}
     WHERE {where_sql}
-      AND d.full_date > (m.max_full_date - INTERVAL 12 MONTH)
+      {date_where_sql}
     """
-    params: list[Any] = [scenario_id, *filter_params]
+    params: list[Any] = [*date_params, *filter_params]
     df = repo.query(sql, params=params)
     if df.empty:
         return {
@@ -126,6 +135,8 @@ def query_pmr_weighted(
     uf: str = "Todas",
     sales_reps: Sequence[str] = (),
     families: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> float:
     """Calcula o Prazo Médio de Recebimento (PMR em dias) ponderado pela receita líquida."""
     high_reps = list(load_discounts_config().rep_bias.high_discount_reps)
@@ -135,7 +146,15 @@ def query_pmr_weighted(
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
+    cte_sql, cross_join_sql, date_where_sql, date_params = build_fortitude_date_scope(
+        scenario_id,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+    )
+    cte_header = f"{cte_sql}," if cte_sql else "WITH"
 
     p_days = float(pmr_by_size.get("P", 28.0))
     m_days = float(pmr_by_size.get("M", 42.0))
@@ -151,8 +170,8 @@ def query_pmr_weighted(
         rep_params = []
 
     sql = f"""
-    {trailing_12m_cte()}
-    , scoped_orders AS (
+    {cte_header}
+    scoped_orders AS (
         SELECT
             f.net_revenue,
             (
@@ -168,9 +187,9 @@ def query_pmr_weighted(
         JOIN gold.dim_customer c ON f.customer_id = c.customer_id
         JOIN gold.dim_product p ON f.product_id = p.product_id
         JOIN gold.dim_sales_rep r ON f.sales_rep_id = r.sales_rep_id
-        CROSS JOIN max_dt m
+        {cross_join_sql}
         WHERE {where_sql}
-          AND d.full_date > (m.max_full_date - INTERVAL 12 MONTH)
+          {date_where_sql}
     )
     SELECT
         COALESCE(
@@ -181,7 +200,7 @@ def query_pmr_weighted(
     FROM scoped_orders
     """
     params: list[Any] = [
-        scenario_id,
+        *date_params,
         p_days,
         m_days,
         g_days,

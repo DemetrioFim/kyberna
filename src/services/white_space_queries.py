@@ -19,6 +19,8 @@ def _build_ws_filter_clauses(
     families: Sequence[str] = (),
     include_rfm: bool = True,
     include_families: bool = True,
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> tuple[str, list[Any]]:
     """Constrói cláusulas WHERE e parâmetros compartilhados para consultas White Space."""
     clauses: list[str] = ["ws.scenario_id = ?"]
@@ -44,6 +46,15 @@ def _build_ws_filter_clauses(
         placeholders = ", ".join(["?"] * len(fam_list))
         clauses.append(f"ws.recommended_family IN ({placeholders})")
         params.extend(fam_list)
+    if start_date_key is not None or end_date_key is not None:
+        date_parts = ["fs_p.scenario_id = ws.scenario_id", "fs_p.customer_id = ws.customer_id"]
+        if start_date_key is not None:
+            date_parts.append("fs_p.date_key >= ?")
+            params.append(start_date_key)
+        if end_date_key is not None:
+            date_parts.append("fs_p.date_key <= ?")
+            params.append(end_date_key)
+        clauses.append(f"EXISTS (SELECT 1 FROM gold.fact_sales fs_p WHERE {' AND '.join(date_parts)})")
 
     return f"WHERE {' AND '.join(clauses)}", params
 
@@ -115,6 +126,8 @@ def query_white_space_coverage_kpis(
     uf: str = "Todas",
     sales_reps: Sequence[str] = (),
     families: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> dict[str, float | int]:
     """Calcula alcance real de lojas elegíveis, total de ofertas e mix médio sem teto LIMIT 50."""
     where_sql, params = _build_ws_filter_clauses(
@@ -124,6 +137,8 @@ def query_white_space_coverage_kpis(
         sales_reps=sales_reps,
         families=families,
         include_rfm=False,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     ws_sql = f"""
     SELECT
@@ -156,6 +171,12 @@ def query_white_space_coverage_kpis(
         mix_clauses.append(f"(c.sales_rep_id IN ({placeholders}) OR r.name IN ({placeholders}))")
         mix_params.extend(rep_list)
         mix_params.extend(rep_list)
+    if start_date_key is not None:
+        mix_clauses.append("f.date_key >= ?")
+        mix_params.append(start_date_key)
+    if end_date_key is not None:
+        mix_clauses.append("f.date_key <= ?")
+        mix_params.append(end_date_key)
 
     mix_sql = f"""
     WITH cust_fams AS (
@@ -201,6 +222,8 @@ def query_white_space_matrix_data(
     uf: str = "Todas",
     sales_reps: Sequence[str] = (),
     families: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> pd.DataFrame:
     """Consulta oportunidades White Space por Família x Segmento RFM com métricas Apriori médias."""
     where_sql, params = _build_ws_filter_clauses(
@@ -210,6 +233,8 @@ def query_white_space_matrix_data(
         sales_reps=sales_reps,
         families=families,
         include_rfm=False,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     sql = f"""
     SELECT
@@ -241,6 +266,8 @@ def query_top_white_space_deals(
     sales_reps: Sequence[str] = (),
     rfm_segment: str = "Todos",
     families: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
     limit: int = 2500,
 ) -> pd.DataFrame:
     """Consulta oportunidades de Cross-Sell CNPJ a CNPJ com Segmento RFM, SKU Âncora e Apriori reais."""
@@ -251,6 +278,8 @@ def query_top_white_space_deals(
         sales_reps=sales_reps,
         rfm_segment=rfm_segment,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     sql = f"""
     SELECT

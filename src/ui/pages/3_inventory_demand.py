@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -34,6 +36,7 @@ def _get_static_temperance_figures(
     cache_key: tuple[object, ...],
     scenario_id: str,
     theme_mode: str,
+    families: Sequence[str] = (),
 ) -> tuple[go.Figure, go.Figure]:
     """Memoiza os gráficos estáticos de Temperança para manter sliders < 300 ms."""
     cached = st.session_state.get("_temp_static_figs")
@@ -43,6 +46,8 @@ def _get_static_temperance_figures(
 
     fig_erosion = erosion_breakdown_chart(temp_dto.kpis, theme_mode=theme_mode)
     elasticity_df = cached_family_elasticity(scenario_id)  # type: ignore[arg-type]
+    if families and not elasticity_df.empty and "family" in elasticity_df.columns:
+        elasticity_df = elasticity_df[elasticity_df["family"].isin(families)].copy()
     fig_elasticity = elasticity_family_chart(elasticity_df, theme_mode=theme_mode)
     figs = (fig_erosion, fig_elasticity)
     st.session_state["_temp_static_figs"] = (cache_key, figs)
@@ -76,6 +81,13 @@ def render_page() -> None:
         uf=state.uf,
         families=tuple(state.families),
         sales_reps=tuple(state.sales_reps),
+        period_preset=state.period_preset,
+        comparison_mode=state.comparison_mode,
+        selected_month=state.selected_month,
+        selected_quarter=state.selected_quarter,
+        selected_semester=state.selected_semester,
+        custom_start_date=state.custom_start_date,
+        custom_end_date=state.custom_end_date,
     )
     comm_dto = cached_commercial_dashboard(
         state.scenario_id,
@@ -144,6 +156,7 @@ def render_page() -> None:
         fig_cache_key,
         state.scenario_id,
         theme_mode,
+        families=tuple(state.families),
     )
 
     render_cockpit_header(

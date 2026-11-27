@@ -129,50 +129,55 @@ def query_monthly_trend(
     end_date_key: int | None = None,
 ) -> pd.DataFrame:
     """Consulta a série temporal de faturamento e margem no mart_margin_monthly."""
-    clauses: list[str] = ["scenario_id = ?"]
+    clauses: list[str] = ["m.scenario_id = ?"]
     params: list[Any] = [scenario_id]
+    joins_sql = ""
 
     if regiao != "Todas":
-        clauses.append("region = ?")
+        clauses.append("m.region = ?")
         params.append(regiao)
     if uf != "Todas":
-        clauses.append("state = ?")
+        clauses.append("m.state = ?")
         params.append(uf)
     if families:
         fam_list = list(families)
-        clauses.append(f"family IN ({', '.join(['?'] * len(fam_list))})")
+        clauses.append(f"m.family IN ({', '.join(['?'] * len(fam_list))})")
         params.extend(fam_list)
     if sales_reps:
         rep_list = list(sales_reps)
-        clauses.append(f"sales_rep_id IN ({', '.join(['?'] * len(rep_list))})")
+        placeholders = ", ".join(["?"] * len(rep_list))
+        clauses.append(f"(m.sales_rep_id IN ({placeholders}) OR r.name IN ({placeholders}))")
         params.extend(rep_list)
+        params.extend(rep_list)
+        joins_sql = "LEFT JOIN gold.dim_sales_rep r ON m.sales_rep_id = r.sales_rep_id"
 
     if start_date_key is not None:
-        clauses.append("year_month >= ?")
+        clauses.append("m.year_month >= ?")
         params.append(f"{start_date_key // 10000:04d}-{((start_date_key % 10000) // 100):02d}")
     if end_date_key is not None:
-        clauses.append("year_month <= ?")
+        clauses.append("m.year_month <= ?")
         params.append(f"{end_date_key // 10000:04d}-{((end_date_key % 10000) // 100):02d}")
 
     where_sql = f"WHERE {' AND '.join(clauses)}"
     sql = f"""
     SELECT
-        year_month,
-        CASE month
+        m.year_month,
+        CASE m.month
             WHEN 1 THEN 'Jan/' WHEN 2 THEN 'Fev/' WHEN 3 THEN 'Mar/' WHEN 4 THEN 'Abr/'
             WHEN 5 THEN 'Mai/' WHEN 6 THEN 'Jun/' WHEN 7 THEN 'Jul/' WHEN 8 THEN 'Ago/'
             WHEN 9 THEN 'Set/' WHEN 10 THEN 'Out/' WHEN 11 THEN 'Nov/' WHEN 12 THEN 'Dez/'
-        END || RIGHT(CAST(year AS VARCHAR), 2) AS month_label,
-        ROUND(SUM(gross_revenue), 2) AS gross_revenue,
-        ROUND(SUM(discount_amount), 2) AS discount_amount,
-        ROUND(SUM(discount_amount) / NULLIF(SUM(gross_revenue), 0) * 100.0, 1) AS avg_discount_pct,
-        ROUND(SUM(net_revenue), 2) AS net_revenue,
-        ROUND(SUM(contribution_margin), 2) AS contribution_margin,
-        ROUND(SUM(contribution_margin) / NULLIF(SUM(gross_revenue), 0) * 100.0, 2) AS margin_pct
-    FROM gold.mart_margin_monthly
+        END || RIGHT(CAST(m.year AS VARCHAR), 2) AS month_label,
+        ROUND(SUM(m.gross_revenue), 2) AS gross_revenue,
+        ROUND(SUM(m.discount_amount), 2) AS discount_amount,
+        ROUND(SUM(m.discount_amount) / NULLIF(SUM(m.gross_revenue), 0) * 100.0, 1) AS avg_discount_pct,
+        ROUND(SUM(m.net_revenue), 2) AS net_revenue,
+        ROUND(SUM(m.contribution_margin), 2) AS contribution_margin,
+        ROUND(SUM(m.contribution_margin) / NULLIF(SUM(m.gross_revenue), 0) * 100.0, 2) AS margin_pct
+    FROM gold.mart_margin_monthly m
+    {joins_sql}
     {where_sql}
-    GROUP BY year_month, year, month
-    ORDER BY year_month ASC
+    GROUP BY m.year_month, m.year, m.month
+    ORDER BY m.year_month ASC
     """
     return repo.query(sql, params)
 

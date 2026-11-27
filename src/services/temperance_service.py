@@ -169,6 +169,11 @@ def build_temperance_dashboard(
         repo,
         scenario_id,
         families=families,
+        regiao=regiao,
+        uf=uf,
+        sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
 
     # 6. Manchete e Prescrição (sinalizando escopo global do armazém se houver filtro)

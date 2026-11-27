@@ -100,23 +100,39 @@ def _query_vampire_customers(
     *,
     regiao: str = "Todas",
     uf: str = "Todas",
+    families: Sequence[str] = (),
     sales_reps: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> pd.DataFrame:
     """Retorna exatamente as contas Vampiro (<15% MC e > R$ 15k faturamento) conciliadas com o KPI."""
     clauses = ["f.scenario_id = ?"]
     params: list[object] = [scenario_id]
+    product_join = ""
     if regiao != "Todas":
         clauses.append("c.region = ?")
         params.append(regiao)
     if uf != "Todas":
         clauses.append("c.state = ?")
         params.append(uf)
+    if families:
+        fam_list = list(families)
+        ph = ", ".join(["?"] * len(fam_list))
+        product_join = "JOIN gold.dim_product p ON f.product_id = p.product_id"
+        clauses.append(f"p.family IN ({ph})")
+        params.extend(fam_list)
     if sales_reps:
         rep_list = list(sales_reps)
         ph = ", ".join(["?"] * len(rep_list))
         clauses.append(f"(c.sales_rep_id IN ({ph}) OR r.name IN ({ph}))")
         params.extend(rep_list)
         params.extend(rep_list)
+    if start_date_key is not None:
+        clauses.append("f.date_key >= ?")
+        params.append(start_date_key)
+    if end_date_key is not None:
+        clauses.append("f.date_key <= ?")
+        params.append(end_date_key)
 
     sql = f"""
     SELECT
@@ -130,6 +146,7 @@ def _query_vampire_customers(
     FROM gold.fact_sales f
     JOIN gold.dim_customer c ON f.customer_id = c.customer_id
     LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id
+    {product_join}
     WHERE {" AND ".join(clauses)}
     GROUP BY c.customer_id, c.trade_name, c.company_name, c.state, r.name
     HAVING SUM(f.gross_revenue) > 15000
@@ -172,9 +189,12 @@ def build_commercial_dashboard(
         scenario_id,
         regiao=regiao,
         uf=uf,
+        families=families,
         sales_reps=sales_reps,
         risk_status=risk_status,
         rfm_segment=rfm_segment,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     ws_cov = query_white_space_coverage_kpis(
         repo,
@@ -183,6 +203,8 @@ def build_commercial_dashboard(
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     apriori_rules_df = query_apriori_rules_data(repo, scenario_id, families=families)
     apriori_stats: dict[str, float | int] = {
@@ -207,16 +229,22 @@ def build_commercial_dashboard(
         scenario_id,
         regiao=regiao,
         uf=uf,
+        families=families,
         sales_reps=sales_reps,
         risk_status=risk_status,
         rfm_segment=rfm_segment,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     rfm_df = query_rfm_summary_data(
         repo,
         scenario_id,
         regiao=regiao,
         uf=uf,
+        families=families,
         sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     ws_matrix_df = query_white_space_matrix_data(
         repo,
@@ -225,6 +253,8 @@ def build_commercial_dashboard(
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     top_ws_deals_df = query_top_white_space_deals(
         repo,
@@ -234,22 +264,30 @@ def build_commercial_dashboard(
         sales_reps=sales_reps,
         rfm_segment=rfm_segment,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     cycle_funnel_df = query_cycle_health_funnel(
         repo,
         scenario_id,
         regiao=regiao,
         uf=uf,
+        families=families,
         sales_reps=sales_reps,
         rfm_segment=rfm_segment,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     rep_df = query_rep_performance_data(
         repo,
         scenario_id,
         regiao=regiao,
         uf=uf,
+        families=families,
         sales_reps=sales_reps,
         quadrant=quadrant,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
 
     # 4 Dimensões de Campeões vs. Vampiros
@@ -282,7 +320,10 @@ def build_commercial_dashboard(
         scenario_id,
         regiao=regiao,
         uf=uf,
+        families=families,
         sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
     headline_title, headline_text = build_commercial_headline(kpis)
     prescription_title, prescription_html, impact_brl = build_commercial_prescription(kpis, priority_df)

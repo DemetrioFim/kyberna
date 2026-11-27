@@ -8,6 +8,10 @@ import pandas as pd
 from src.core.logging import get_logger
 from src.core.types import ScenarioId
 from src.db.repository import DataRepository
+from src.services.executive_abc_queries import (
+    build_filtered_abc_xyz_matrix,
+    query_filtered_abc_xyz_skus,
+)
 
 logger = get_logger(__name__)
 
@@ -114,6 +118,11 @@ def query_temperance_inventory_details(
     scenario_id: ScenarioId,
     *,
     families: Sequence[str] = (),
+    regiao: str = "Todas",
+    uf: str = "Todas",
+    sales_reps: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Retorna tabelas detalhadas de capital imobilizado, risco de ruptura e matriz ABC/XYZ."""
     use_ssot = _has_inventory_position(repo, scenario_id)
@@ -209,35 +218,17 @@ def query_temperance_inventory_details(
     df_locked = repo.query(locked_sql, params=inv_params)
     df_stockout = repo.query(stockout_sql, params=inv_params)
 
-    # 3. Resumo ABC/XYZ 3x3
-    abc_fam_clause, f_list = _family_filter(families, alias="")
-
-    abc_sql = f"""
-    SELECT
-        abc_xyz_class AS cell,
-        abc_class,
-        xyz_class,
-        COUNT(*)::INTEGER AS sku_count,
-        ROUND(SUM(gross_revenue), 2) AS gross_revenue,
-        ROUND(SUM(contribution_margin), 2) AS contribution_margin,
-        ROUND(COUNT(*) * 100.0 / (
-            SELECT COUNT(*) FROM gold.mart_abc_xyz WHERE scenario_id = ? {abc_fam_clause}
-        ), 2) AS sku_share_pct,
-        ROUND(SUM(contribution_margin) * 100.0 / (
-            SELECT SUM(contribution_margin) FROM gold.mart_abc_xyz WHERE scenario_id = ? {abc_fam_clause}
-        ), 2) AS margin_share_pct,
-        MAX(policy) AS policy
-    FROM gold.mart_abc_xyz
-    WHERE scenario_id = ? {abc_fam_clause}
-    GROUP BY abc_xyz_class, abc_class, xyz_class
-    ORDER BY abc_class, xyz_class
-    """
-    if families:
-        f_list = list(families)
-        abc_full_params = [scenario_id, *f_list, scenario_id, *f_list, scenario_id, *f_list]
-    else:
-        abc_full_params = [scenario_id, scenario_id, scenario_id]
-
-    df_abc = repo.query(abc_sql, params=abc_full_params)
+    # 3. Resumo ABC/XYZ 3x3 reativo aos 5 filtros globais
+    skus_df = query_filtered_abc_xyz_skus(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+    )
+    df_abc = build_filtered_abc_xyz_matrix(skus_df)
 
     return df_locked, df_stockout, df_abc

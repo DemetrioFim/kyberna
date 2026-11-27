@@ -92,7 +92,7 @@ def _compute_profit_curve(
     )
     gross = res["gross_1"]
     margin = res["margin_1"]
-    margin_pct = np.where(gross > 0.0, (margin / gross) * 100.0, 0.0)
+    margin_pct = np.divide(margin, gross, out=np.zeros_like(margin, dtype=float), where=gross > 0.0) * 100.0
 
     curve_df = pd.DataFrame(
         {

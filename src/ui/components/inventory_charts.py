@@ -197,7 +197,29 @@ def abc_xyz_heatmap(
     selected_cell: str | None = None,
 ) -> go.Figure:
     """Mapa de calor da Matriz 3x3 ABC/XYZ com alto contraste nas celulas claras."""
+    tokens = get_theme_tokens(theme_mode)
     template_name = "kyberna_dark" if theme_mode == "dark" else "kyberna_light"
+    if matrix_df.empty or "abc_class" not in matrix_df.columns or "xyz_class" not in matrix_df.columns:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Sem movimentação para os filtros selecionados.",
+            x=0.5,
+            y=0.5,
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+            font={"size": 12.5, "color": tokens["text_muted"]},
+        )
+        fig.update_layout(
+            template=template_name,
+            title=None,
+            height=245,
+            margin={"l": 12, "r": 12, "t": 12, "b": 12},
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+        )
+        return fig
+
     abc_classes = ["A", "B", "C"]
     xyz_classes = ["X", "Y", "Z"]
 

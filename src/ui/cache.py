@@ -33,7 +33,39 @@ from src.services.pricing_dto import PricingPageDTO, PricingShapDTO
 from src.services.pricing_service import build_pricing_dashboard, get_pricing_shap_waterfall
 from src.services.simulator import query_family_elasticity
 from src.services.temperance_service import build_temperance_dashboard
-from src.ui.state import ComparisonMode, fetch_date_bounds, resolve_period_bounds
+from src.ui.state import (
+    ComparisonMode,
+    PeriodBounds,
+    fetch_date_bounds,
+    resolve_period_bounds,
+)
+
+
+def _resolve_cached_bounds(
+    scenario_id: ScenarioId,
+    *,
+    period_preset: str,
+    comparison_mode: ComparisonMode,
+    selected_month: str | None,
+    selected_quarter: str | None,
+    selected_semester: str | None,
+    custom_start_date: str | None,
+    custom_end_date: str | None,
+) -> PeriodBounds:
+    """Resolve limites temporais usando a janela em cache do cenário."""
+    min_d, max_d = get_cached_date_bounds(scenario_id)
+    return resolve_period_bounds(
+        period_preset,
+        selected_month,
+        comparison_mode=comparison_mode,
+        selected_quarter=selected_quarter,
+        selected_semester=selected_semester,
+        rolling_end_month=selected_month,
+        custom_start=custom_start_date,
+        custom_end=custom_end_date,
+        min_date=min_d,
+        max_date=max_d,
+    )
 
 
 @st.cache_resource(show_spinner=False)
@@ -79,18 +111,15 @@ def cached_executive_dashboard(
 ) -> ExecutivePageDTO:
     """Consulta e agrega os dados da Visão Executiva com cache em memória (TTL 5 min)."""
     repo = get_cached_repository()
-    min_d, max_d = get_cached_date_bounds(scenario_id)
-    bounds = resolve_period_bounds(
-        period_preset,
-        selected_month,
+    bounds = _resolve_cached_bounds(
+        scenario_id,
+        period_preset=period_preset,
         comparison_mode=comparison_mode,
+        selected_month=selected_month,
         selected_quarter=selected_quarter,
         selected_semester=selected_semester,
-        rolling_end_month=selected_month,
-        custom_start=custom_start_date,
-        custom_end=custom_end_date,
-        min_date=min_d,
-        max_date=max_d,
+        custom_start_date=custom_start_date,
+        custom_end_date=custom_end_date,
     )
     return build_executive_dashboard(
         repo,
@@ -132,18 +161,15 @@ def cached_commercial_dashboard(
 ) -> CommercialPageDTO:
     """Consulta e agrega os dados do Radar de Justiça Comercial com cache em memória (TTL 5 min)."""
     repo = get_cached_repository()
-    min_d, max_d = get_cached_date_bounds(scenario_id)
-    bounds = resolve_period_bounds(
-        period_preset,
-        selected_month,
+    bounds = _resolve_cached_bounds(
+        scenario_id,
+        period_preset=period_preset,
         comparison_mode=comparison_mode,
+        selected_month=selected_month,
         selected_quarter=selected_quarter,
         selected_semester=selected_semester,
-        rolling_end_month=selected_month,
-        custom_start=custom_start_date,
-        custom_end=custom_end_date,
-        min_date=min_d,
-        max_date=max_d,
+        custom_start_date=custom_start_date,
+        custom_end_date=custom_end_date,
     )
     return build_commercial_dashboard(
         repo,
@@ -179,18 +205,15 @@ def cached_temperance_dashboard(
 ) -> TemperancePageDTO:
     """Consulta e agrega os dados da Tela 4 (Temperança) com cache em memória (TTL 5 min)."""
     repo = get_cached_repository()
-    min_d, max_d = get_cached_date_bounds(scenario_id)
-    bounds = resolve_period_bounds(
-        period_preset,
-        selected_month,
+    bounds = _resolve_cached_bounds(
+        scenario_id,
+        period_preset=period_preset,
         comparison_mode=comparison_mode,
+        selected_month=selected_month,
         selected_quarter=selected_quarter,
         selected_semester=selected_semester,
-        rolling_end_month=selected_month,
-        custom_start=custom_start_date,
-        custom_end=custom_end_date,
-        min_date=min_d,
-        max_date=max_d,
+        custom_start_date=custom_start_date,
+        custom_end_date=custom_end_date,
     )
     return build_temperance_dashboard(
         repo,
@@ -213,9 +236,26 @@ def cached_fortitude_dashboard(
     uf: str = "Todas",
     families: tuple[str, ...] = (),
     sales_reps: tuple[str, ...] = (),
+    period_preset: str = "all",
+    comparison_mode: ComparisonMode = "pop",
+    selected_month: str | None = None,
+    selected_quarter: str | None = None,
+    selected_semester: str | None = None,
+    custom_start_date: str | None = None,
+    custom_end_date: str | None = None,
 ) -> FortitudePageDTO:
     """Consulta e agrega os dados da Tela 2 (Fortaleza) com cache em memória (TTL 5 min)."""
     repo = get_cached_repository()
+    bounds = _resolve_cached_bounds(
+        scenario_id,
+        period_preset=period_preset,
+        comparison_mode=comparison_mode,
+        selected_month=selected_month,
+        selected_quarter=selected_quarter,
+        selected_semester=selected_semester,
+        custom_start_date=custom_start_date,
+        custom_end_date=custom_end_date,
+    )
     return build_fortitude_dashboard(
         repo,
         scenario_id,
@@ -223,6 +263,8 @@ def cached_fortitude_dashboard(
         uf=uf,
         families=families,
         sales_reps=sales_reps,
+        start_date_key=bounds.start_date_key,
+        end_date_key=bounds.end_date_key,
     )
 
 
@@ -289,18 +331,15 @@ def cached_pricing_dashboard(
 ) -> PricingPageDTO:
     """Consulta e agrega os dados de Precificação Contextual com cache (TTL 5 min)."""
     repo = get_cached_repository()
-    min_d, max_d = get_cached_date_bounds(scenario_id)
-    bounds = resolve_period_bounds(
-        period_preset,
-        selected_month,
+    bounds = _resolve_cached_bounds(
+        scenario_id,
+        period_preset=period_preset,
         comparison_mode=comparison_mode,
+        selected_month=selected_month,
         selected_quarter=selected_quarter,
         selected_semester=selected_semester,
-        rolling_end_month=selected_month,
-        custom_start=custom_start_date,
-        custom_end=custom_end_date,
-        min_date=min_d,
-        max_date=max_d,
+        custom_start_date=custom_start_date,
+        custom_end_date=custom_end_date,
     )
     return build_pricing_dashboard(
         repo,
@@ -334,18 +373,15 @@ def cached_pricing_shap(
 ) -> PricingShapDTO:
     """Carrega os 5 drivers Linear SHAP (% e R$) de um escopo respeitando os filtros globais."""
     repo = get_cached_repository()
-    min_d, max_d = get_cached_date_bounds(scenario_id)
-    bounds = resolve_period_bounds(
-        period_preset,
-        selected_month,
+    bounds = _resolve_cached_bounds(
+        scenario_id,
+        period_preset=period_preset,
         comparison_mode=comparison_mode,  # type: ignore[arg-type]
+        selected_month=selected_month,
         selected_quarter=selected_quarter,
         selected_semester=selected_semester,
-        rolling_end_month=selected_month,
-        custom_start=custom_start_date,
-        custom_end=custom_end_date,
-        min_date=min_d,
-        max_date=max_d,
+        custom_start_date=custom_start_date,
+        custom_end_date=custom_end_date,
     )
     return get_pricing_shap_waterfall(
         repo,

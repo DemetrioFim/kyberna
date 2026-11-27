@@ -12,6 +12,7 @@ from src.services.temperance_queries import build_temperance_filter_clauses
 
 __all__ = [
     "AGING_BUCKET_ORDER",
+    "build_fortitude_date_scope",
     "query_aging_buckets_and_customers",
     "query_concentration_data",
     "trailing_12m_cte",
@@ -37,6 +38,24 @@ def trailing_12m_cte() -> str:
     """
 
 
+def build_fortitude_date_scope(
+    scenario_id: ScenarioId,
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
+    *,
+    date_alias: str = "d",
+) -> tuple[str, str, str, list[Any]]:
+    """Retorna (cte_sql, join_sql, extra_where_sql, params) para o escopo temporal de Fortitude."""
+    if start_date_key is None and end_date_key is None:
+        return (
+            trailing_12m_cte(),
+            "CROSS JOIN max_dt m",
+            f"AND {date_alias}.full_date > (m.max_full_date - INTERVAL 12 MONTH)",
+            [scenario_id],
+        )
+    return "", "", "", []
+
+
 def query_concentration_data(
     repo: DataRepository,
     scenario_id: ScenarioId,
@@ -45,6 +64,8 @@ def query_concentration_data(
     uf: str = "Todas",
     sales_reps: Sequence[str] = (),
     families: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, float]]:
     """Retorna concentração Pareto por cliente, por família e indicadores Top 5/10/2."""
     where_sql, filter_params = build_temperance_filter_clauses(
@@ -53,10 +74,17 @@ def query_concentration_data(
         uf=uf,
         sales_reps=sales_reps,
         families=families,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+    )
+    cte_sql, cross_join_sql, date_where_sql, date_params = build_fortitude_date_scope(
+        scenario_id,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
 
     cust_sql = f"""
-    {trailing_12m_cte()}
+    {cte_sql}
     SELECT
         c.customer_id,
         COALESCE(c.trade_name, c.company_name) AS customer_name,
@@ -73,13 +101,13 @@ def query_concentration_data(
     JOIN gold.dim_sales_rep r ON f.sales_rep_id = r.sales_rep_id
     LEFT JOIN gold.mart_customer_risk cr
         ON f.customer_id = cr.customer_id AND f.scenario_id = cr.scenario_id
-    CROSS JOIN max_dt m
+    {cross_join_sql}
     WHERE {where_sql}
-      AND d.full_date > (m.max_full_date - INTERVAL 12 MONTH)
+      {date_where_sql}
     GROUP BY 1, 2, 3, 4, 5, 6
     ORDER BY revenue_12m_brl DESC
     """
-    cust_df = repo.query(cust_sql, params=[scenario_id, *filter_params])
+    cust_df = repo.query(cust_sql, params=[*date_params, *filter_params])
 
     if cust_df.empty:
         empty_cust = pd.DataFrame(
@@ -108,7 +136,7 @@ def query_concentration_data(
         empty_cust = cust_df.head(20).reset_index(drop=True)
 
     fam_sql = f"""
-    {trailing_12m_cte()}
+    {cte_sql}
     SELECT
         p.family AS family,
         ROUND(COALESCE(SUM(f.net_revenue), 0.0), 2) AS revenue_12m_brl,
@@ -118,13 +146,13 @@ def query_concentration_data(
     JOIN gold.dim_customer c ON f.customer_id = c.customer_id
     JOIN gold.dim_product p ON f.product_id = p.product_id
     JOIN gold.dim_sales_rep r ON f.sales_rep_id = r.sales_rep_id
-    CROSS JOIN max_dt m
+    {cross_join_sql}
     WHERE {where_sql}
-      AND d.full_date > (m.max_full_date - INTERVAL 12 MONTH)
+      {date_where_sql}
     GROUP BY 1
     ORDER BY revenue_12m_brl DESC
     """
-    fam_df = repo.query(fam_sql, params=[scenario_id, *filter_params])
+    fam_df = repo.query(fam_sql, params=[*date_params, *filter_params])
 
     if fam_df.empty:
         empty_fam = pd.DataFrame(
@@ -147,6 +175,41 @@ def query_concentration_data(
     return empty_cust, empty_fam, metrics
 
 
+def _build_aging_date_scope(
+    scenario_id: ScenarioId,
+    start_date_key: int | None,
+    end_date_key: int | None,
+) -> tuple[str, str, str, list[Any], list[Any], bool]:
+    """Constrói CTE e filtros temporais para a consulta de aging."""
+    is_date_scoped = start_date_key is not None or end_date_key is not None
+    if not is_date_scoped:
+        max_dt_cte = """
+    max_dt AS (
+        SELECT MAX(d2.full_date) AS max_full_date
+        FROM gold.fact_sales f2
+        JOIN gold.dim_date d2 ON f2.date_key = d2.date_key
+        WHERE f2.scenario_id = ?
+    ),"""
+        return (
+            max_dt_cte,
+            "CROSS JOIN max_dt m",
+            "AND d2.full_date > (m.max_full_date - INTERVAL 12 MONTH)",
+            [scenario_id],
+            [],
+            False,
+        )
+
+    date_clauses: list[str] = []
+    date_params: list[Any] = []
+    if start_date_key is not None:
+        date_clauses.append("AND f2.date_key >= ?")
+        date_params.append(start_date_key)
+    if end_date_key is not None:
+        date_clauses.append("AND f2.date_key <= ?")
+        date_params.append(end_date_key)
+    return "", "", " ".join(date_clauses), [], date_params, True
+
+
 def query_aging_buckets_and_customers(
     repo: DataRepository,
     scenario_id: ScenarioId,
@@ -155,6 +218,8 @@ def query_aging_buckets_and_customers(
     uf: str = "Todas",
     sales_reps: Sequence[str] = (),
     families: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Consulta a carteira de clientes agrupada por faixas de atraso/aging e o detalhe acionável."""
     clauses: list[str] = ["cr.scenario_id = ?"]
@@ -169,27 +234,23 @@ def query_aging_buckets_and_customers(
         rep_list = list(sales_reps)
         ph = ", ".join(["?"] * len(rep_list))
         clauses.append(f"(c.sales_rep_id IN ({ph}) OR r.name IN ({ph}))")
-        cust_params.extend(rep_list)
-        cust_params.extend(rep_list)
+        cust_params.extend([*rep_list, *rep_list])
 
     fam_filter_sql = ""
     fam_params: list[Any] = []
     if families:
         fam_list = list(families)
-        ph = ", ".join(["?"] * len(fam_list))
-        fam_filter_sql = f" AND p2.family IN ({ph})"
+        fam_filter_sql = f" AND p2.family IN ({', '.join(['?'] * len(fam_list))})"
         fam_params.extend(fam_list)
 
+    max_dt_cte, max_dt_join, date_filter_sql, max_dt_params, date_params, is_date_scoped = (
+        _build_aging_date_scope(scenario_id, start_date_key, end_date_key)
+    )
     where_sql = " AND ".join(clauses)
-    fam_exists_clause = "AND cust_12m.revenue_12m_brl > 0.0" if families else ""
+    fam_exists_clause = "AND cust_12m.revenue_12m_brl > 0.0" if (families or is_date_scoped) else ""
 
     sql = f"""
-    WITH max_dt AS (
-        SELECT MAX(d2.full_date) AS max_full_date
-        FROM gold.fact_sales f2
-        JOIN gold.dim_date d2 ON f2.date_key = d2.date_key
-        WHERE f2.scenario_id = ?
-    ),
+    WITH {max_dt_cte}
     cust_12m AS (
         SELECT
             f2.customer_id,
@@ -197,9 +258,9 @@ def query_aging_buckets_and_customers(
         FROM gold.fact_sales f2
         JOIN gold.dim_date d2 ON f2.date_key = d2.date_key
         JOIN gold.dim_product p2 ON f2.product_id = p2.product_id
-        CROSS JOIN max_dt m
+        {max_dt_join}
         WHERE f2.scenario_id = ?
-          AND d2.full_date > (m.max_full_date - INTERVAL 12 MONTH)
+          {date_filter_sql}
           {fam_filter_sql}
         GROUP BY f2.customer_id
     )
@@ -229,7 +290,7 @@ def query_aging_buckets_and_customers(
       {fam_exists_clause}
     ORDER BY cr.delay_ratio DESC, revenue_12m_brl DESC
     """
-    params: list[Any] = [scenario_id, scenario_id, *fam_params, scenario_id, *cust_params]
+    params: list[Any] = [*max_dt_params, scenario_id, *date_params, *fam_params, scenario_id, *cust_params]
     raw_df = repo.query(sql, params=params)
 
     bucket_label_map = dict(AGING_BUCKET_ORDER)

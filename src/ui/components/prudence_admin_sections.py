@@ -27,7 +27,11 @@ def render_admin_portfolio_kpis(exec_dto: ExecutivePageDTO, inv_dto: InventoryPa
     """Renderiza os 5 KPIs da Aba 1 (Portfólio & Curva ABC/XYZ) de Prudência Administrativa."""
     skus_df = exec_dto.abc_xyz_skus_df
     matrix_df = exec_dto.abc_xyz_matrix_df
-    sku_total = len(skus_df) if not skus_df.empty else len(inv_dto.sku_options_df)
+    sku_total = (
+        len(skus_df)
+        if (not skus_df.empty or exec_dto.kpis.total_orders == 0)
+        else len(inv_dto.sku_options_df)
+    )
     fam_count = int(skus_df["family"].nunique()) if not skus_df.empty and "family" in skus_df.columns else 0
 
     if not skus_df.empty and "abc_class" in skus_df.columns:

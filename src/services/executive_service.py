@@ -8,9 +8,12 @@ import pandas as pd
 from src.core.logging import get_logger
 from src.core.types import ScenarioId
 from src.db.repository import DataRepository
-from src.ml.abc_xyz import compute_abc_xyz_matrix_summary
 from src.services.dto import (
     ExecutivePageDTO,
+)
+from src.services.executive_abc_queries import (
+    build_filtered_abc_xyz_matrix,
+    query_filtered_abc_xyz_skus,
 )
 from src.services.executive_kpis import compute_executive_kpis
 from src.services.executive_queries import (
@@ -109,26 +112,28 @@ def get_abc_xyz_overview(
     scenario_id: ScenarioId = "c1_toys",
     selected_cell: str | None = None,
     families: Sequence[str] = (),
+    *,
+    regiao: str = "Todas",
+    uf: str = "Todas",
+    sales_reps: Sequence[str] = (),
+    start_date_key: int | None = None,
+    end_date_key: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Retorna o resumo 3x3 da Matriz ABC/XYZ e a listagem de SKUs da célula selecionada."""
-    try:
-        mart_df = repo.table("mart_abc_xyz", scenario_id)
-    except Exception as exc:
-        logger.warning("Falha ao carregar mart_abc_xyz: %s", exc)
-        return pd.DataFrame(), pd.DataFrame()
-
+    mart_df = query_filtered_abc_xyz_skus(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+    )
     if mart_df.empty:
         return pd.DataFrame(), pd.DataFrame()
 
-    if families:
-        mart_df = mart_df[mart_df["family"].isin(families)]
-        if mart_df.empty:
-            return pd.DataFrame(), pd.DataFrame()
-
-    matrix_summary = compute_abc_xyz_matrix_summary(mart_df)
-    matrix_summary["abc_xyz_cell"] = matrix_summary["cell"]
-    matrix_summary["margin_share_pct"] = matrix_summary["margin_pct"]
-    matrix_summary["recommended_policy"] = matrix_summary["policy"]
+    matrix_summary = build_filtered_abc_xyz_matrix(mart_df)
 
     skus_df = mart_df.copy()
     if selected_cell and selected_cell != "Todas":
@@ -232,7 +237,15 @@ def build_executive_dashboard(
         end_date_key=end_date_key,
     )
     abc_xyz_matrix_df, abc_xyz_skus_df = get_abc_xyz_overview(
-        repo, scenario_id, selected_cell, families=families
+        repo,
+        scenario_id,
+        selected_cell,
+        families=families,
+        regiao=regiao,
+        uf=uf,
+        sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
     )
 
     # 4 Dimensões de Geradores vs Detratores
