@@ -14,6 +14,7 @@ __all__ = [
     "build_scoped_sales_cte",
     "query_cycle_health_funnel",
     "query_rfm_summary_data",
+    "query_silent_churn_customers",
 ]
 
 
@@ -247,3 +248,109 @@ def query_rfm_summary_data(
     total_customers = df["customer_count"].sum()
     df["customer_share_pct"] = np.round((df["customer_count"] / max(total_customers, 1)) * 100.0, 1)
     return df
+
+
+def query_silent_churn_customers(
+    repo: DataRepository,
+    scenario_id: ScenarioId,
+    *,
+    regiao: str = "Todas",
+    uf: str = "Todas",
+    families: Sequence[str] = (),
+    sales_reps: Sequence[str] = (),
+    limit: int = 50,
+) -> pd.DataFrame:
+    """Identifica clientes no ciclo (delay <= 1.2) com queda >35% de faturamento ou perda de mix."""
+    clauses = ["f.scenario_id = ?"]
+    params: list[Any] = [scenario_id]
+    if regiao != "Todas":
+        clauses.append("c.region = ?")
+        params.append(regiao)
+    if uf != "Todas":
+        clauses.append("c.state = ?")
+        params.append(uf)
+    if families:
+        fam_list = list(families)
+        ph = ", ".join(["?"] * len(fam_list))
+        clauses.append(f"p.family IN ({ph})")
+        params.extend(fam_list)
+    if sales_reps:
+        rep_list = list(sales_reps)
+        ph = ", ".join(["?"] * len(rep_list))
+        clauses.append(f"(c.sales_rep_id IN ({ph}) OR r.name IN ({ph}))")
+        params.extend([*rep_list, *rep_list])
+
+    sql = f"""
+    WITH max_dt AS (
+        SELECT COALESCE(MAX(d2.full_date), DATE '2024-12-31') AS mx
+        FROM gold.fact_sales f2
+        JOIN gold.dim_date d2 ON f2.date_key = d2.date_key
+        WHERE f2.scenario_id = ?
+    ),
+    cust_windows AS (
+        SELECT
+            f.customer_id,
+            ROUND(COALESCE(SUM(CASE
+                WHEN d.full_date > (m.mx - INTERVAL 180 DAY) AND d.full_date <= (m.mx - INTERVAL 90 DAY)
+                THEN f.gross_revenue ELSE 0.0 END), 0.0), 2) AS rev_prev_90d,
+            ROUND(COALESCE(SUM(CASE
+                WHEN d.full_date > (m.mx - INTERVAL 90 DAY) AND d.full_date <= m.mx
+                THEN f.gross_revenue ELSE 0.0 END), 0.0), 2) AS rev_curr_90d,
+            COUNT(DISTINCT CASE
+                WHEN d.full_date > (m.mx - INTERVAL 180 DAY) AND d.full_date <= (m.mx - INTERVAL 90 DAY)
+                THEN p.family END)::INTEGER AS fams_prev,
+            COUNT(DISTINCT CASE
+                WHEN d.full_date > (m.mx - INTERVAL 90 DAY) AND d.full_date <= m.mx
+                THEN p.family END)::INTEGER AS fams_curr
+        FROM gold.fact_sales f
+        JOIN gold.dim_date d ON f.date_key = d.date_key
+        JOIN gold.dim_product p ON f.product_id = p.product_id
+        JOIN gold.dim_customer c ON f.customer_id = c.customer_id
+        LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id
+        CROSS JOIN max_dt m
+        WHERE {" AND ".join(clauses)}
+        GROUP BY f.customer_id
+    )
+    SELECT
+        c.customer_id,
+        COALESCE(c.trade_name, c.company_name) AS customer_name,
+        c.state,
+        COALESCE(r.name, 'Sem RCA') AS sales_rep_name,
+        ROUND(cr.delay_ratio, 2) AS delay_ratio,
+        w.rev_prev_90d,
+        w.rev_curr_90d,
+        ROUND(((w.rev_curr_90d - w.rev_prev_90d) / NULLIF(w.rev_prev_90d, 0.0)) * 100.0, 1) AS drop_pct,
+        w.fams_prev,
+        w.fams_curr,
+        COALESCE(c.whatsapp, '') AS whatsapp
+    FROM cust_windows w
+    JOIN gold.mart_customer_risk cr ON cr.customer_id = w.customer_id AND cr.scenario_id = ?
+    JOIN gold.dim_customer c ON c.customer_id = w.customer_id
+    LEFT JOIN gold.dim_sales_rep r ON c.sales_rep_id = r.sales_rep_id
+    WHERE cr.delay_ratio <= 1.2
+      AND w.rev_prev_90d > 0.0
+      AND (
+          (w.rev_curr_90d / w.rev_prev_90d) < 0.65
+          OR (w.fams_curr < w.fams_prev AND (w.rev_curr_90d / w.rev_prev_90d) <= 0.80)
+      )
+    ORDER BY (w.rev_prev_90d - w.rev_curr_90d) DESC, w.rev_prev_90d DESC
+    LIMIT {limit}
+    """
+    try:
+        return repo.query(sql, [scenario_id, *params, scenario_id])
+    except Exception:
+        return pd.DataFrame(
+            columns=[
+                "customer_id",
+                "customer_name",
+                "state",
+                "sales_rep_name",
+                "delay_ratio",
+                "rev_prev_90d",
+                "rev_curr_90d",
+                "drop_pct",
+                "fams_prev",
+                "fams_curr",
+                "whatsapp",
+            ]
+        )

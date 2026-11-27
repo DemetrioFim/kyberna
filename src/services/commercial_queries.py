@@ -14,6 +14,7 @@ from src.services.commercial_rfm_queries import (
     build_scoped_sales_cte,
     query_cycle_health_funnel,
     query_rfm_summary_data,
+    query_silent_churn_customers,
 )
 from src.services.white_space_queries import (
     query_top_white_space_deals,
@@ -27,6 +28,7 @@ __all__ = [
     "query_priority_risk_customers",
     "query_rep_performance_data",
     "query_rfm_summary_data",
+    "query_silent_churn_customers",
     "query_top_white_space_deals",
     "query_white_space_matrix_data",
 ]

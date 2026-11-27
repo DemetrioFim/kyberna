@@ -204,6 +204,16 @@ def test_justice_service_innovations(repo: DuckDBRepository) -> None:
     assert dto.kpis.attention_customers > 0
     assert dto.kpis.avg_ltv_brl > 0
     assert "estimated_ltv_brl" in dto.rfm_summary_df.columns
+    assert {
+        "customer_id",
+        "customer_name",
+        "delay_ratio",
+        "rev_prev_90d",
+        "rev_curr_90d",
+        "drop_pct",
+    }.issubset(set(dto.silent_churn_df.columns))
+    if not dto.silent_churn_df.empty:
+        assert (dto.silent_churn_df["delay_ratio"] <= 1.2).all()
 
 
 def test_apriori_real_metrics_coverage_and_excel_export(repo: DuckDBRepository) -> None:

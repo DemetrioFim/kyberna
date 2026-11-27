@@ -55,6 +55,71 @@ def _build_family_supply_df(
     return fam_df.sort_values("protected_revenue_brl", ascending=False).reset_index(drop=True)
 
 
+def build_unlock_cash_combos(position_df: pd.DataFrame) -> pd.DataFrame:
+    """Pareia cada SKU em Capital Travado (>120d) com o lider AX/AY/A da mesma familia."""
+    cols = [
+        "product_id",
+        "product_name",
+        "family",
+        "coverage_days",
+        "stock_units",
+        "locked_capital_brl",
+        "anchor_product_id",
+        "anchor_product_name",
+        "anchor_cell",
+        "combo_ratio",
+        "combo_suggestion",
+    ]
+    if position_df.empty:
+        return pd.DataFrame(columns=cols)
+
+    locked = position_df.loc[position_df["locked_capital_brl"] > 0.0].copy()
+    if locked.empty:
+        return pd.DataFrame(columns=cols)
+
+    pool = position_df.loc[position_df["stock_status"] != "Capital Travado"].copy()
+    if pool.empty:
+        pool = position_df.copy()
+
+    priority_map = {"AX": 1, "AY": 2, "AZ": 3, "BX": 4, "BY": 5}
+    pool["_prio"] = pool["abc_xyz_class"].astype(str).map(lambda c: priority_map.get(c, 9))
+    pool = pool.sort_values(
+        ["_prio", "forecast_daily_demand", "protected_revenue_brl"],
+        ascending=[True, False, False],
+    )
+    family_anchors = (
+        pool.drop_duplicates(subset=["family"], keep="first")
+        .set_index("family")[["product_id", "product_name", "abc_xyz_class"]]
+        .rename(
+            columns={
+                "product_id": "anchor_product_id",
+                "product_name": "anchor_product_name",
+                "abc_xyz_class": "anchor_cell",
+            }
+        )
+    )
+    fallback_anchor = pool.iloc[0]
+
+    out = locked[
+        ["product_id", "product_name", "family", "coverage_days", "stock_units", "locked_capital_brl"]
+    ].merge(family_anchors, on="family", how="left")
+    out["anchor_product_id"] = out["anchor_product_id"].fillna(str(fallback_anchor["product_id"]))
+    out["anchor_product_name"] = out["anchor_product_name"].fillna(str(fallback_anchor["product_name"]))
+    out["anchor_cell"] = out["anchor_cell"].fillna(str(fallback_anchor["abc_xyz_class"]))
+    out["combo_ratio"] = out["coverage_days"].map(lambda d: "1:2" if float(d) >= 180.0 else "1:3")
+    anchor_units = out["combo_ratio"].str.split(":").str[1]
+    out["combo_suggestion"] = (
+        "Combo c/ "
+        + out["anchor_product_name"].astype(str)
+        + " ("
+        + out["anchor_cell"].astype(str)
+        + "): 1 un travada a cada "
+        + anchor_units
+        + " un"
+    )
+    return out.sort_values("locked_capital_brl", ascending=False).reset_index(drop=True)[cols]
+
+
 def _build_pcp_plan_df(position_df: pd.DataFrame) -> pd.DataFrame:
     """Monta o plano mestre de necessidade de compra/produção por SKU para PCP."""
     if position_df.empty:
@@ -153,6 +218,7 @@ def build_inventory_dashboard(
     )
     family_supply_df = _build_family_supply_df(position_df, family_fc_df)
     pcp_plan_df = _build_pcp_plan_df(position_df)
+    unlock_combos_df = build_unlock_cash_combos(position_df)
     kpis = InventoryKpisDTO(
         total_stock_value_brl=float(position_df["stock_value_brl"].sum()),
         locked_capital_brl=locked_capital_total,
@@ -188,6 +254,7 @@ def build_inventory_dashboard(
         sku_options_df=sku_options_df,
         family_supply_df=family_supply_df,
         pcp_plan_df=pcp_plan_df,
+        unlock_combos_df=unlock_combos_df,
     )
 
 

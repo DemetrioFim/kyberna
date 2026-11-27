@@ -26,6 +26,7 @@ from src.services.executive_queries import (
     query_top_drivers,
 )
 from src.services.period_comparison import resolve_effective_comparison_window
+from src.services.pvm_bridge import build_pvm_bridge
 from src.services.simulator import simulate_quick_what_if
 from src.services.waterfall_steps import build_waterfall_steps
 from src.ui.formatting import format_brl
@@ -312,6 +313,19 @@ def build_executive_dashboard(
     low_margin_count, recovery_impact = query_margin_recovery_potential(
         repo, where_sql=where_sql, params=params, joins=joins, target_rate=0.22
     )
+    pvm_bridge_df = build_pvm_bridge(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+        start_date_key=start_date_key,
+        end_date_key=end_date_key,
+        comp_start_date_key=comp_start_date_key,
+        comp_end_date_key=comp_end_date_key,
+        comparison_mode=comparison_mode,
+    )
 
     headline_title = "Síntese Executiva: Ritmo de Metas & Margem Real"
     headline_text = (
@@ -364,4 +378,5 @@ def build_executive_dashboard(
         comparison_label=comparison_label,
         as_of_date_label=as_of_date_label,
         monthly_sales_table_df=monthly_sales_table_df,
+        pvm_bridge_df=pvm_bridge_df,
     )

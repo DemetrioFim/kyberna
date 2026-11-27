@@ -113,6 +113,7 @@ class ExecutivePageDTO(BaseModel):
     comparison_label: str = "Histórico Global Consolidado"
     as_of_date_label: str = "31/12/2024"
     monthly_sales_table_df: pd.DataFrame | None = None
+    pvm_bridge_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
 
 
 class CommercialKpisDTO(BaseModel):
@@ -173,6 +174,7 @@ class CommercialPageDTO(BaseModel):
     top_white_space_deals_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     champions_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     vampires_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    silent_churn_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     top_family_generators_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     top_family_destroyers_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     top_product_generators_df: pd.DataFrame = Field(default_factory=pd.DataFrame)

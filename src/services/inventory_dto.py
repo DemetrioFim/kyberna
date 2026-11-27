@@ -57,3 +57,4 @@ class InventoryPageDTO(BaseModel):
     sku_options_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     family_supply_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
     pcp_plan_df: pd.DataFrame = Field(default_factory=pd.DataFrame)
+    unlock_combos_df: pd.DataFrame = Field(default_factory=pd.DataFrame)

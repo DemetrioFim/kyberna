@@ -45,6 +45,13 @@ def test_build_inventory_dashboard_reconciliation(repo: DuckDBRepository) -> Non
     treemap_sum = float(dto.treemap_df["locked_capital_brl"].sum())
     assert treemap_sum == pytest.approx(dto.kpis.locked_capital_brl, abs=1e-6)
 
+    # V8-S3 (ID-I01): Combos Destrava-Caixa para SKUs imobilizados
+    assert len(dto.unlock_combos_df) == len(dto.locked_df)
+    assert {"anchor_product_name", "anchor_cell", "combo_ratio", "combo_suggestion"}.issubset(
+        set(dto.unlock_combos_df.columns)
+    )
+    assert (dto.unlock_combos_df["combo_suggestion"].str.startswith("Combo c/ ")).all()
+
 
 def test_forecast_30d_rollup_and_family_filter(repo: DuckDBRepository) -> None:
     """Valida rollup de 30 dias do StatsForecast e redução proporcional ao filtrar por família."""

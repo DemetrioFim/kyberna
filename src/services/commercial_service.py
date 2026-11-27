@@ -15,6 +15,7 @@ from src.services.commercial_queries import (
     query_priority_risk_customers,
     query_rep_performance_data,
     query_rfm_summary_data,
+    query_silent_churn_customers,
     query_top_white_space_deals,
     query_white_space_matrix_data,
 )
@@ -351,6 +352,14 @@ def build_commercial_dashboard(
         start_date_key=start_date_key,
         end_date_key=end_date_key,
     )
+    silent_churn_df = query_silent_churn_customers(
+        repo,
+        scenario_id,
+        regiao=regiao,
+        uf=uf,
+        families=families,
+        sales_reps=sales_reps,
+    )
     headline_title, headline_text = build_commercial_headline(kpis)
     prescription_title, prescription_html, impact_brl = build_commercial_prescription(kpis, priority_df)
 
@@ -368,6 +377,7 @@ def build_commercial_dashboard(
         top_white_space_deals_df=top_ws_deals_df,
         champions_df=top_gen_c,
         vampires_df=vampires_df,
+        silent_churn_df=silent_churn_df,
         top_family_generators_df=top_gen_f,
         top_family_destroyers_df=top_dest_f,
         top_product_generators_df=top_gen_p,
