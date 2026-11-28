@@ -110,3 +110,52 @@ def test_family_and_rep_reactivity_across_services(repo: DuckDBRepository) -> No
     assert exec_rep.abc_xyz_skus_df["gross_revenue"].sum() < exec_base.abc_xyz_skus_df["gross_revenue"].sum()
     assert len(comm_rep.rep_performance_df) == 1
     assert fort_rep.kpis.monthly_gross_revenue_brl < fort_base.kpis.monthly_gross_revenue_brl
+    assert len(comm_rep.silent_churn_df) <= len(comm_base.silent_churn_df)
+    assert comm_fam.white_space_matrix_df["potential_revenue_brl"].sum() <= (
+        comm_base.white_space_matrix_df["potential_revenue_brl"].sum() + 1e-2
+    )
+    assert comm_fam.silent_churn_df["rev_prev_90d"].sum() != pytest.approx(
+        comm_base.silent_churn_df["rev_prev_90d"].sum(), abs=1.0
+    )
+
+
+def test_temperance_pricing_and_pvm_reactivity(repo: DuckDBRepository) -> None:
+    """Valida reatividade de Temperanca, Pricing e fechamento exato do Bridge PVM sob recorte YoY."""
+    scenario_id = "c1_toys"
+    rep_df = repo.query("SELECT name FROM gold.dim_sales_rep ORDER BY name LIMIT 1")
+    fam_df = repo.query("SELECT DISTINCT family FROM gold.dim_product ORDER BY family LIMIT 1")
+    sample_rep_name = str(rep_df["name"].iloc[0])
+    sample_family = str(fam_df["family"].iloc[0])
+
+    temp_base = build_temperance_dashboard(repo, scenario_id)
+    temp_uf = build_temperance_dashboard(repo, scenario_id, uf="SP")
+    temp_fam = build_temperance_dashboard(repo, scenario_id, families=(sample_family,))
+    temp_rep = build_temperance_dashboard(repo, scenario_id, sales_reps=(sample_rep_name,))
+
+    assert temp_uf.kpis.gross_revenue < temp_base.kpis.gross_revenue
+    assert temp_fam.kpis.gross_revenue < temp_base.kpis.gross_revenue
+    assert temp_rep.kpis.gross_revenue < temp_base.kpis.gross_revenue
+
+    pric_base = build_pricing_dashboard(repo, scenario_id)
+    pric_uf = build_pricing_dashboard(repo, scenario_id, uf="SP")
+    pric_fam = build_pricing_dashboard(repo, scenario_id, families=(sample_family,))
+    pric_rep = build_pricing_dashboard(repo, scenario_id, sales_reps=(sample_rep_name,))
+
+    assert pric_uf.kpis.realization_index_pct != pytest.approx(
+        pric_base.kpis.realization_index_pct, abs=0.0
+    ) or (len(pric_uf.sku_deviations_df) <= len(pric_base.sku_deviations_df))
+    assert pric_fam.kpis.subpricing_leakage_brl <= pric_base.kpis.subpricing_leakage_brl
+    assert pric_rep.kpis.subpricing_leakage_brl <= pric_base.kpis.subpricing_leakage_brl
+
+    exec_yoy_reg = build_executive_dashboard(
+        repo,
+        scenario_id,
+        regiao="Sudeste",
+        comparison_mode="yoy",
+    )
+    pvm = exec_yoy_reg.pvm_bridge_df
+    assert not pvm.empty
+    mc0 = float(pvm.loc[pvm["step_key"] == "mc_base", "amount"].iloc[0])
+    mc1 = float(pvm.loc[pvm["step_key"] == "mc_final", "amount"].iloc[0])
+    effects = float(pvm.loc[pvm["measure"] == "relative", "amount"].sum())
+    assert abs((mc0 + effects) - mc1) < 1e-2

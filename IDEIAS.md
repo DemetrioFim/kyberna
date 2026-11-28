@@ -32,7 +32,7 @@ Toda proposta de funcionalidade, indicador ou visualização na Kyberna deve ser
 | **ID-E02** | **Termômetro de Vazamento nos KPI Cards (`Desc. Médio %` + `Frete+Com. %` + `Caixas Master`)** | Sub-rodapé de KPI Card | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa | 🛠️ Em `TASKS_REFACTORY.md` (`R1-V2`) |
 | **ID-E03** | **Waterfall B2B com Dupla Leitura (`R$` + `% sobre Bruto`) e R$/Caixa no Hover** | Evolução de Gráfico Plotly | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa | 🛠️ Em `TASKS_REFACTORY.md` (`R1-V1`) |
 | **ID-E04** | **Painel de "Vazamentos Acionáveis do Período" (3 Cards de Erosão)** | Faixa de 3 Mini-Cards de Alerta | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 🟡 Média | 📅 Backlog Curto Prazo (Pós-Refactory) |
-| **ID-E05** | **Decomposição Bridge PVM (*Price-Volume-Mix-Discount Bridge*) entre Períodos** | Gráfico Waterfall Comparativo | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 🟡 Média | 📅 Backlog Médio Prazo (`v0.6+`) |
+| **ID-E05** | **Decomposição Bridge PVM (*Price-Volume-Mix-Discount Bridge*) entre Períodos** | Gráfico Waterfall Comparativo | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 🟡 Média | ✅ Implementada na Onda V8 (`3. Justiça · Aba 1`) |
 | **ID-E06** | **Dedução do Custo Financeiro de Prazo de Boleto (30/60/90 dias — Margem Ajustada ao Caixa)** | Nova Barra no Waterfall + KPI | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 🟡 Média | 📅 Backlog Médio Prazo (`v0.6+`) |
 | **ID-E07** | **Alerta de Pedidos Fracionados com Frete CIF Destruidor ("Frete > Margem")** | Card + Tabela de Auditoria | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa | 📅 Backlog Curto Prazo |
 | **ID-E08** | **Radar de Concentração de Receita & Margem (Risco de Dependência Top 5 / Top 10)** | Badge / Mini-Gráfico de Pareto | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa | 📅 Backlog Médio Prazo |
@@ -73,8 +73,8 @@ Toda proposta de funcionalidade, indicador ou visualização na Kyberna deve ser
 | **ID-C04** | **Filtros Táticos Rápidos In-Page (`Status do Ciclo` e `Segmento RFM`) + Tabela Caixa-Branca** | Barra de Controle + Tabela | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa | 🛠️ Em `TASKS_REFACTORY.md` (`R2-V2`) |
 | **ID-C05** | **Motor de Ação em 1 Clique: Planilha Excel Multi-Aba por RCA, CSV e Link Direto WhatsApp (`wa.me`)** | Barra de Exportação + LinkColumn | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟡 Média | 📋 Próxima Task Oficial (`M3-V2` em `TASKS.md`) |
 | **ID-C06** | **Calculadora de "Recuperação de Alçada por RCA" (*Quanto ganhamos se o RCA parar de dar desconto máximo?*)** | Card Simulador / Tabela Comparativa | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa | 📅 Backlog Curto Prazo |
-| **ID-C07** | **Detector de "Churn Silencioso / Downgrade de Cesta" (Cliente no ciclo, mas comprando $-40\%$ de mix/ticket)** | Alerta + Filtro Especial | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 🟡 Média | 📅 Backlog Médio Prazo |
-| **ID-C08** | **Ficha Raio-X 360° do Lojista (Drawer / Expander ao clicar em um CNPJ da tabela)** | Card Detalhado on-select | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa | 📅 Backlog Curto Prazo |
+| **ID-C07** | **Detector de "Churn Silencioso / Downgrade de Cesta" (Cliente no ciclo, mas comprando $-40\%$ de mix/ticket)** | Alerta + Filtro Especial | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | 🟡 Média | ✅ Implementada na Onda V8 (`2. Fortaleza · Aba 2`) |
+| **ID-C08** | **Ficha Raio-X 360° do Lojista (Drawer / Expander ao clicar em um CNPJ da tabela)** | Card Detalhado on-select | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa | ✅ Implementada na Onda V8 (`2. Fortaleza · Aba 2`) |
 | **ID-C09** | **Meta Semanal de Ataque do RCA ("Agenda de Segunda-Feira: Top 5 Resgates + Top 5 Cross-Sell")** | Visão Resumida p/ Vendedor | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa | 📅 Backlog Curto Prazo (Junto ou pós `M3-V2`) |
 
 ### 3.2 Detalhamento das Melhores Ideias Futuras da Tela 2
@@ -104,11 +104,11 @@ Para garantir que as próximas telas do roadmap (`M4-V1` e `M4-V2`) já nasçam 
 
 | ID | Tela Alvo | Nome da Ideia / Funcionalidade | 🎯 Utilidade | 💰 Valor (R$) | 🚀 Demo ("Uau") | ⚙️ Viabilidade | 🧩 Complexidade |
 |---|---|---|---|---|:---:|:---:|:---:|:---:|
-| **ID-I01** | **Tela 3 (Estoque)** | **Casamento Automático "Combo Destrava-Caixa" (SKU Campeão `AX` + SKU Encalhado `CZ`)**<br/>Sugerir automaticamente kits promocionais cruzando um item de altíssimo giro (`AX`) da mesma família com um item em excesso (`> 120d`), permitindo desovar o estoque parado sem destruir o preço do carro-chefe. | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa |
+| **ID-I01** | **Tela 3 (Estoque)** | **Casamento Automático "Combo Destrava-Caixa" (SKU Campeão `AX` + SKU Encalhado `CZ`)** *(✅ Implementada na Onda V8)*<br/>Sugerir automaticamente kits promocionais cruzando um item de altíssimo giro (`AX`) da mesma família com um item em excesso (`> 120d`), permitindo desovar o estoque parado sem destruir o preço do carro-chefe. | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa |
 | **ID-I02** | **Tela 3 (Estoque)** | **Alerta Sazonal de Sell-in Industrial (Contagem Regressiva p/ Picos B2B)**<br/>Banner mostrando quantos dias faltam para a janela de faturamento industrial (*Dia das Crianças*, *Natal*, *Volta às Aulas*) comparado ao `lead_time_days` de produção. | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa |
 | **ID-I03** | **Tela 3 (Estoque)** | ** Conversor Físico-Financeiro Instantâneo (`Unidades` $\leftrightarrow$ `Caixas Master` $\leftrightarrow$ `R$ a Custo CMV` $\leftrightarrow$ `R$ a Preço de Venda`)**<br/>Permitir que tanto o PCP (que pensa em caixas/unidades) quanto o CFO (que pensa em R$ imobilizados em CMV) leiam a mesma tabela de ruptura e excesso. | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa |
 | **ID-S01** | **Tela 4 (Simulador)** | **Gráfico "Zona da Morte do Desconto" (Volume Exigido vs. Volume Projetado pela Elasticidade)**<br/>Visualização direta lado a lado mostrando que dar $10\%$ de desconto exige $+42\%$ de volume para empatar a margem, mas a elasticidade real do mercado entrega apenas $+14\%$. | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa |
-| **ID-S02** | **Tela 4 (Simulador)** | **Botão "⚡ Encontrar Preço Ótimo Automaticamente" (Maximização de Margem R$)**<br/>Em 1 clique, posicionar o slider de preço exatamente no ponto da curva de resposta que maximiza a Margem de Contribuição Líquida em R$ da família selecionada. | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa |
+| **ID-S02** | **Tela 4 (Simulador)** | **Botão "⚡ Encontrar Preço Ótimo Automaticamente" (Maximização de Margem R$)** *(✅ Implementada na Onda V8)*<br/>Em 1 clique, posicionar o slider de preço exatamente no ponto da curva de resposta que maximiza a Margem de Contribuição Líquida em R$ da família selecionada. | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | 🟢 Baixa |
 
 ---
 
